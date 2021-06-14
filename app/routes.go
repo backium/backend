@@ -1,4 +1,4 @@
-package api
+package app
 
 func (s *Server) setupRoutes() {
 	s.Echo.GET("/api/v1/merchants/:id", s.merchantHandler.Retrieve)
