@@ -1,23 +1,24 @@
 package main
 
 import (
-	"os"
-
-	"github.com/backium/backend/api"
+	"github.com/backium/backend/app"
 	"github.com/backium/backend/repository"
 	"github.com/labstack/echo/v4"
 )
 
 func main() {
-	uri := os.Getenv("MONGO_URI")
-	db, err := repository.NewMongoDB(uri, "testing")
+	config, err := app.LoadConfig(".")
 	if err != nil {
 		panic(err)
 	}
-	s := api.Server{
+	db, err := repository.NewMongoDB(config.DBURI, config.DBName)
+	if err != nil {
+		panic(err)
+	}
+	s := app.Server{
 		Echo: echo.New(),
 		DB:   db,
 	}
 	s.Setup()
-	s.ListenAndServe(3000)
+	s.ListenAndServe(config.Port)
 }

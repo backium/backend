@@ -3,7 +3,8 @@ package repository
 import (
 	"context"
 
-	"github.com/backium/backend/merchants"
+	"github.com/backium/backend/controller"
+	"github.com/backium/backend/entity"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -24,48 +25,48 @@ type merchantMongoRepository struct {
 	collection *mongo.Collection
 }
 
-func NewMerchantMongoRepository(db MongoDB) merchants.MerchantRepository {
+func NewMerchantMongoRepository(db MongoDB) controller.MerchantRepository {
 	return &merchantMongoRepository{collection: db.Collection(merchantCollectionName)}
 }
 
-func (r *merchantMongoRepository) Create(m merchants.Merchant) (merchants.Merchant, error) {
+func (r *merchantMongoRepository) Create(m entity.Merchant) (entity.Merchant, error) {
 	record := merchantRecordFrom(m)
 	record.ID = generateID(merchantIDPrefix)
 	res, err := r.collection.InsertOne(context.TODO(), record)
 	if err != nil {
-		return merchants.Merchant{}, err
+		return entity.Merchant{}, err
 	}
 	id := res.InsertedID.(string)
 	return r.Retrieve(id)
 }
 
-func (r *merchantMongoRepository) Update(m merchants.Merchant) (merchants.Merchant, error) {
+func (r *merchantMongoRepository) Update(m entity.Merchant) (entity.Merchant, error) {
 	record := merchantRecordFrom(m)
 	_, err := r.collection.UpdateByID(context.TODO(), m.ID, record.updateQuery())
 	if err != nil {
-		return merchants.Merchant{}, err
+		return entity.Merchant{}, err
 	}
 	return r.Retrieve(m.ID)
 }
 
-func (r *merchantMongoRepository) Retrieve(id string) (merchants.Merchant, error) {
+func (r *merchantMongoRepository) Retrieve(id string) (entity.Merchant, error) {
 	res := r.collection.FindOne(context.TODO(), bson.M{"_id": id})
 	if err := res.Err(); err != nil {
-		return merchants.Merchant{}, err
+		return entity.Merchant{}, err
 	}
 	record := merchantRecord{}
 	if err := res.Decode(&record); err != nil {
-		return merchants.Merchant{}, err
+		return entity.Merchant{}, err
 	}
 	return record.merchant(), nil
 }
 
-func (r *merchantMongoRepository) ListAll() ([]merchants.Merchant, error) {
+func (r *merchantMongoRepository) ListAll() ([]entity.Merchant, error) {
 	res, err := r.collection.Find(context.TODO(), bson.M{})
 	if err != nil {
 		return nil, err
 	}
-	var ms []merchants.Merchant
+	var ms []entity.Merchant
 	for res.Next(context.TODO()) {
 		record := merchantRecord{}
 		if err := res.Decode(&record); err != nil {
@@ -76,12 +77,12 @@ func (r *merchantMongoRepository) ListAll() ([]merchants.Merchant, error) {
 	return ms, nil
 }
 
-func (r *merchantMongoRepository) Delete(id string) (merchants.Merchant, error) {
-	return merchants.Merchant{}, nil
+func (r *merchantMongoRepository) Delete(id string) (entity.Merchant, error) {
+	return entity.Merchant{}, nil
 }
 
-func (m merchantRecord) merchant() merchants.Merchant {
-	return merchants.Merchant{
+func (m merchantRecord) merchant() entity.Merchant {
+	return entity.Merchant{
 		ID:           m.ID,
 		FirstName:    m.FirstName,
 		LastName:     m.LastName,
@@ -103,7 +104,7 @@ func (m merchantRecord) updateQuery() bson.M {
 	return bson.M{"$set": query}
 }
 
-func merchantRecordFrom(m merchants.Merchant) merchantRecord {
+func merchantRecordFrom(m entity.Merchant) merchantRecord {
 	return merchantRecord{
 		FirstName:    m.FirstName,
 		LastName:     m.LastName,

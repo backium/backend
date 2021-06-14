@@ -1,10 +1,11 @@
-package api
+package handler
 
 import (
 	"fmt"
 	"net/http"
 
-	"github.com/backium/backend/merchants"
+	"github.com/backium/backend/controller"
+	"github.com/backium/backend/entity"
 	"github.com/labstack/echo/v4"
 )
 
@@ -32,29 +33,28 @@ type listMerchantsResponse struct {
 	Merchants []merchantResource `json:"merchants"`
 }
 
-type merchantHandler struct {
-	controller merchants.MerchantController
+type Merchant struct {
+	Controller controller.Merchant
 }
 
-func (h *merchantHandler) Create(c echo.Context) error {
+func (h *Merchant) Create(c echo.Context) error {
 	req := createMerchantRequest{}
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	m, err := h.controller.Create(req.merchant())
+	m, err := h.Controller.Create(req.merchant())
 	if err != nil {
 		return err
 	}
 	return c.JSON(http.StatusOK, merchantResourceFrom(m))
 }
 
-func (h *merchantHandler) Update(c echo.Context) error {
+func (h *Merchant) Update(c echo.Context) error {
 	req := updateMerchantRequest{}
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	fmt.Println("binding done")
-	m, err := h.controller.Update(req.merchant())
+	m, err := h.Controller.Update(req.merchant())
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -62,17 +62,17 @@ func (h *merchantHandler) Update(c echo.Context) error {
 	return c.JSON(http.StatusOK, merchantResourceFrom(m))
 }
 
-func (h *merchantHandler) Retrieve(c echo.Context) error {
+func (h *Merchant) Retrieve(c echo.Context) error {
 	id := c.Param("id")
-	m, err := h.controller.Retrieve(id)
+	m, err := h.Controller.Retrieve(id)
 	if err != nil {
 		return err
 	}
 	return c.JSON(http.StatusOK, merchantResourceFrom(m))
 }
 
-func (h *merchantHandler) ListAll(c echo.Context) error {
-	ms, err := h.controller.ListAll()
+func (h *Merchant) ListAll(c echo.Context) error {
+	ms, err := h.Controller.ListAll()
 	if err != nil {
 		return err
 	}
@@ -83,11 +83,11 @@ func (h *merchantHandler) ListAll(c echo.Context) error {
 	return c.JSON(http.StatusOK, listMerchantsResponse{res})
 }
 
-func (h *merchantHandler) Delete(c echo.Context) error {
+func (h *Merchant) Delete(c echo.Context) error {
 	return nil
 }
 
-func merchantResourceFrom(m merchants.Merchant) merchantResource {
+func merchantResourceFrom(m entity.Merchant) merchantResource {
 	return merchantResource{
 		ID:           m.ID,
 		FirstName:    m.FirstName,
@@ -96,16 +96,16 @@ func merchantResourceFrom(m merchants.Merchant) merchantResource {
 	}
 }
 
-func (req createMerchantRequest) merchant() merchants.Merchant {
-	return merchants.Merchant{
+func (req createMerchantRequest) merchant() entity.Merchant {
+	return entity.Merchant{
 		FirstName:    req.FirstName,
 		LastName:     req.LastName,
 		BusinessName: req.BusinessName,
 	}
 }
 
-func (req updateMerchantRequest) merchant() merchants.Merchant {
-	return merchants.Merchant{
+func (req updateMerchantRequest) merchant() entity.Merchant {
+	return entity.Merchant{
 		ID:           req.ID,
 		FirstName:    req.FirstName,
 		LastName:     req.LastName,

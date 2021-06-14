@@ -1,9 +1,8 @@
-package api
+package app
 
 import (
-	"fmt"
-
-	"github.com/backium/backend/merchants"
+	"github.com/backium/backend/controller"
+	"github.com/backium/backend/handler"
 	"github.com/backium/backend/repository"
 	"github.com/labstack/echo/v4"
 )
@@ -11,7 +10,7 @@ import (
 type Server struct {
 	Echo            *echo.Echo
 	DB              repository.MongoDB
-	merchantHandler merchantHandler
+	merchantHandler handler.Merchant
 }
 
 func (s *Server) Setup() {
@@ -24,16 +23,16 @@ func (s *Server) setupHandlers() {
 	merchantRepository := repository.NewMerchantMongoRepository(s.DB)
 
 	// setup controllers
-	merchantController := merchants.MerchantController{
+	merchantController := controller.Merchant{
 		Repository: merchantRepository,
 	}
 
 	// setup handlers
-	s.merchantHandler = merchantHandler{
-		controller: merchantController,
+	s.merchantHandler = handler.Merchant{
+		Controller: merchantController,
 	}
 }
 
-func (s *Server) ListenAndServe(port int) {
-	s.Echo.Logger.Fatal(s.Echo.Start(fmt.Sprintf(":%v", port)))
+func (s *Server) ListenAndServe(port string) {
+	s.Echo.Logger.Fatal(s.Echo.Start(":" + port))
 }
