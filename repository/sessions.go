@@ -12,11 +12,11 @@ type redisRepository struct {
 	client *redis.Client
 }
 
-func NewSessionRepository(addr string) *redisRepository {
+func NewSessionRepository(addr string, password string) *redisRepository {
 	return &redisRepository{
 		client: redis.NewClient(&redis.Options{
 			Addr:     addr,
-			Password: "",
+			Password: password,
 			DB:       0,
 		}),
 	}

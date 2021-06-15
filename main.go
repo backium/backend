@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/backium/backend/app"
 	"github.com/backium/backend/repository"
 	"github.com/labstack/echo/v4"
@@ -11,11 +13,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	log.Printf("%+v", config)
 	db, err := repository.NewMongoDB(config.DBURI, config.DBName)
 	if err != nil {
 		panic(err)
 	}
-	redis := repository.NewSessionRepository("localhost:6379")
+	redis := repository.NewSessionRepository(config.RedisURI, config.RedisPassword)
 	s := app.Server{
 		Echo:              echo.New(),
 		DB:                db,

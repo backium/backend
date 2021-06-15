@@ -1,6 +1,9 @@
 package app
 
+import "github.com/labstack/echo/v4/middleware"
+
 func (s *Server) setupRoutes() {
+	s.Echo.Use(middleware.CORS())
 	s.Echo.GET("/api/v1/merchants/:id", s.merchantHandler.Retrieve, s.authHandler.Authenticate)
 	s.Echo.GET("/api/v1/merchants", s.merchantHandler.ListAll, s.authHandler.Authenticate)
 	s.Echo.POST("/api/v1/merchants", s.merchantHandler.Create, s.authHandler.Authenticate)
