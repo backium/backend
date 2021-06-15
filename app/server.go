@@ -5,6 +5,7 @@ import (
 	"github.com/backium/backend/handler"
 	"github.com/backium/backend/repository"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 )
 
 type Server struct {
@@ -21,6 +22,7 @@ func (s *Server) Setup() error {
 		return err
 	}
 	s.Echo.Validator = v
+	s.Echo.Logger.SetLevel(log.INFO)
 	s.setupHandlers()
 	s.setupRoutes()
 	return nil

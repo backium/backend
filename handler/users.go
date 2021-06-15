@@ -18,7 +18,6 @@ func (h *User) Signup(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-
 	u, err := h.Controller.Create(c.Request().Context(), controller.CreateUserRequest{
 		Email:    req.Email,
 		Password: req.Password,
@@ -35,7 +34,6 @@ func (h *User) Login(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-
 	u, err := h.Controller.Login(c.Request().Context(), controller.LoginUserRequest{
 		Email:    req.Email,
 		Password: req.Password,
@@ -49,8 +47,14 @@ func (h *User) Login(c echo.Context) error {
 	return c.JSON(http.StatusOK, userResourceFrom(u))
 }
 
+func (h *User) Signout(c echo.Context) error {
+	ac := c.(*AuthContext)
+	h.SessionStorage.Delete(c.Request().Context(), ac.ID)
+	return c.JSONBlob(http.StatusOK, []byte("{}"))
+}
+
 func (h *User) setSession(c echo.Context, u entity.User) error {
-	s := newSession(u.ID)
+	s := newSession(u)
 	stoken, err := s.encode([]byte("backium"))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

@@ -45,3 +45,7 @@ func (r *redisRepository) Get(ctx context.Context, id string) (handler.Session, 
 
 	return s, err
 }
+
+func (r *redisRepository) Delete(ctx context.Context, id string) error {
+	return r.client.Del(ctx, id).Err()
+}

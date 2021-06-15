@@ -1,43 +1,43 @@
 package app
 
 import (
-	"fmt"
+	"net/http"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/backium/backend/handler"
 	"github.com/labstack/echo/v4"
 )
 
 func (s *Server) setupRoutes() {
-	s.Echo.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			fmt.Println("calling middleware")
-			cookie, err := c.Cookie("web_session")
-			if err != nil {
-				return next(c)
-			}
-			claims := jwt.MapClaims{}
-			token, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
-				return []byte("backium"), nil
-			})
-
-			fmt.Println("token", token)
-			fmt.Println("claims", claims)
-
-			session, err := s.SessionStorage.Get(c.Request().Context(), claims["session_id"].(string))
-			if err != nil {
-				fmt.Println("error", err)
-			}
-
-			fmt.Println("session", session)
-
-			return next(c)
-		}
-	})
-	s.Echo.GET("/api/v1/merchants/:id", s.merchantHandler.Retrieve)
-	s.Echo.GET("/api/v1/merchants", s.merchantHandler.ListAll)
-	s.Echo.POST("/api/v1/merchants", s.merchantHandler.Create)
-	s.Echo.PUT("/api/v1/merchants/:id", s.merchantHandler.Update)
+	s.Echo.GET("/api/v1/merchants/:id", s.merchantHandler.Retrieve, s.authenticate)
+	s.Echo.GET("/api/v1/merchants", s.merchantHandler.ListAll, s.authenticate)
+	s.Echo.POST("/api/v1/merchants", s.merchantHandler.Create, s.authenticate)
+	s.Echo.PUT("/api/v1/merchants/:id", s.merchantHandler.Update, s.authenticate)
 
 	s.Echo.POST("/api/v1/signup", s.userHandler.Signup)
 	s.Echo.POST("/api/v1/login", s.userHandler.Login)
+	s.Echo.POST("/api/v1/signout", s.userHandler.Signout, s.authenticate)
+}
+
+// TODO: add session information to echo.Context
+func (s *Server) authenticate(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		cookie, err := c.Cookie("web_session")
+		if err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized: session cookie missing")
+		}
+		ds, err := handler.DecodeSession(cookie.Value)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized: error parsing session")
+		}
+		rs, err := s.SessionStorage.Get(c.Request().Context(), ds.ID)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized: session not found")
+		}
+		c.Logger().Infof("session found: %+v", rs)
+
+		return next(&handler.AuthContext{
+			Context: c,
+			Session: rs,
+		})
+	}
 }

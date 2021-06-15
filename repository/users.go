@@ -19,6 +19,7 @@ type userRecord struct {
 	Email        string `bson:"email"`
 	PasswordHash string `bson:"password_hash"`
 	IsOwner      bool   `bson:"is_owner"`
+	IsSuper      bool   `bson:"is_super"`
 	MerchantID   string `bson:"merchant_id"`
 }
 
@@ -71,6 +72,7 @@ func (ur userRecord) user() entity.User {
 		Email:        ur.ID,
 		PasswordHash: ur.PasswordHash,
 		IsOwner:      ur.IsOwner,
+		IsSuper:      ur.IsSuper,
 		MerchantID:   ur.MerchantID,
 	}
 }
@@ -81,6 +83,7 @@ func userRecordFrom(u entity.User) userRecord {
 		Email:        u.Email,
 		PasswordHash: u.PasswordHash,
 		IsOwner:      u.IsOwner,
+		IsSuper:      u.IsSuper,
 		MerchantID:   u.MerchantID,
 	}
 }

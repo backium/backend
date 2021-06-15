@@ -30,6 +30,10 @@ func (h *Merchant) Update(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
+	ac := c.(*AuthContext)
+	if !ac.IsSuper {
+		req.ID = ac.MerchantID
+	}
 	m, err := h.Controller.Update(req.merchant())
 	if err != nil {
 		fmt.Println(err)
@@ -40,6 +44,10 @@ func (h *Merchant) Update(c echo.Context) error {
 
 func (h *Merchant) Retrieve(c echo.Context) error {
 	id := c.Param("id")
+	ac := c.(*AuthContext)
+	if !ac.IsSuper {
+		id = ac.MerchantID
+	}
 	m, err := h.Controller.Retrieve(id)
 	if err != nil {
 		return err
