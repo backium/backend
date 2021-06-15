@@ -9,11 +9,11 @@ import (
 )
 
 type Server struct {
-	Echo            *echo.Echo
-	DB              repository.MongoDB
-	merchantHandler handler.Merchant
-	userHandler     handler.User
-	SessionStorage  handler.SessionRepository
+	Echo              *echo.Echo
+	DB                repository.MongoDB
+	merchantHandler   handler.Merchant
+	authHandler       handler.Auth
+	SessionRepository handler.SessionRepository
 }
 
 func (s *Server) Setup() error {
@@ -46,9 +46,9 @@ func (s *Server) setupHandlers() {
 	s.merchantHandler = handler.Merchant{
 		Controller: merchantController,
 	}
-	s.userHandler = handler.User{
-		Controller:     userController,
-		SessionStorage: s.SessionStorage,
+	s.authHandler = handler.Auth{
+		Controller:        userController,
+		SessionRepository: s.SessionRepository,
 	}
 }
 
