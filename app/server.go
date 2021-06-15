@@ -11,25 +11,42 @@ type Server struct {
 	Echo            *echo.Echo
 	DB              repository.MongoDB
 	merchantHandler handler.Merchant
+	userHandler     handler.User
+	SessionStorage  handler.SessionRepository
 }
 
-func (s *Server) Setup() {
+func (s *Server) Setup() error {
+	v, err := NewValidator()
+	if err != nil {
+		return err
+	}
+	s.Echo.Validator = v
 	s.setupHandlers()
 	s.setupRoutes()
+	return nil
 }
 
 func (s *Server) setupHandlers() {
 	// setup dependencies
 	merchantRepository := repository.NewMerchantMongoRepository(s.DB)
+	userRepository := repository.NewUserMongoRepository(s.DB)
 
 	// setup controllers
 	merchantController := controller.Merchant{
 		Repository: merchantRepository,
 	}
+	userController := controller.User{
+		Repository:         userRepository,
+		MerchantRepository: merchantRepository,
+	}
 
 	// setup handlers
 	s.merchantHandler = handler.Merchant{
 		Controller: merchantController,
+	}
+	s.userHandler = handler.User{
+		Controller:     userController,
+		SessionStorage: s.SessionStorage,
 	}
 }
 
