@@ -9,30 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type merchantResource struct {
-	ID           string `json:"id"`
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	BusinessName string `json:"business_name"`
-}
-
-type createMerchantRequest struct {
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	BusinessName string `json:"business_name"`
-}
-
-type updateMerchantRequest struct {
-	ID           string `param:"id"`
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	BusinessName string `json:"business_name"`
-}
-
-type listMerchantsResponse struct {
-	Merchants []merchantResource `json:"merchants"`
-}
-
 type Merchant struct {
 	Controller controller.Merchant
 }
@@ -96,12 +72,32 @@ func merchantResourceFrom(m entity.Merchant) merchantResource {
 	}
 }
 
+type merchantResource struct {
+	ID           string `json:"id"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	BusinessName string `json:"business_name"`
+}
+
+type createMerchantRequest struct {
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	BusinessName string `json:"business_name"`
+}
+
 func (req createMerchantRequest) merchant() entity.Merchant {
 	return entity.Merchant{
 		FirstName:    req.FirstName,
 		LastName:     req.LastName,
 		BusinessName: req.BusinessName,
 	}
+}
+
+type updateMerchantRequest struct {
+	ID           string `param:"id"`
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	BusinessName string `json:"business_name"`
 }
 
 func (req updateMerchantRequest) merchant() entity.Merchant {
@@ -111,4 +107,8 @@ func (req updateMerchantRequest) merchant() entity.Merchant {
 		LastName:     req.LastName,
 		BusinessName: req.BusinessName,
 	}
+}
+
+type listMerchantsResponse struct {
+	Merchants []merchantResource `json:"merchants"`
 }
