@@ -7,6 +7,7 @@ type User struct {
 	Email        string
 	PasswordHash string
 	IsOwner      bool
+	IsSuper      bool
 	MerchantID   string
 }
 
