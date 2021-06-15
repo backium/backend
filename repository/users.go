@@ -23,6 +23,28 @@ type userRecord struct {
 	MerchantID   string `bson:"merchant_id"`
 }
 
+func userRecordFrom(u entity.User) userRecord {
+	return userRecord{
+		ID:           u.ID,
+		Email:        u.Email,
+		PasswordHash: u.PasswordHash,
+		IsOwner:      u.IsOwner,
+		IsSuper:      u.IsSuper,
+		MerchantID:   u.MerchantID,
+	}
+}
+
+func (ur userRecord) user() entity.User {
+	return entity.User{
+		ID:           ur.ID,
+		Email:        ur.Email,
+		PasswordHash: ur.PasswordHash,
+		IsOwner:      ur.IsOwner,
+		IsSuper:      ur.IsSuper,
+		MerchantID:   ur.MerchantID,
+	}
+}
+
 type userMongoRepository struct {
 	collection *mongo.Collection
 }
@@ -64,26 +86,4 @@ func (r *userMongoRepository) RetrieveByEmail(ctx context.Context, email string)
 		return entity.User{}, err
 	}
 	return record.user(), nil
-}
-
-func (ur userRecord) user() entity.User {
-	return entity.User{
-		ID:           ur.ID,
-		Email:        ur.ID,
-		PasswordHash: ur.PasswordHash,
-		IsOwner:      ur.IsOwner,
-		IsSuper:      ur.IsSuper,
-		MerchantID:   ur.MerchantID,
-	}
-}
-
-func userRecordFrom(u entity.User) userRecord {
-	return userRecord{
-		ID:           u.ID,
-		Email:        u.Email,
-		PasswordHash: u.PasswordHash,
-		IsOwner:      u.IsOwner,
-		IsSuper:      u.IsSuper,
-		MerchantID:   u.MerchantID,
-	}
 }

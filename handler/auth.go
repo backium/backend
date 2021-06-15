@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/backium/backend/controller"
@@ -13,6 +14,15 @@ type userResource struct {
 	Email      string `json:"email"`
 	IsOwner    bool   `json:"is_owner"`
 	MerchantID string `json:"merchant_id"`
+}
+
+func userResourceFrom(u entity.User) userResource {
+	return userResource{
+		ID:         u.ID,
+		Email:      u.Email,
+		IsOwner:    u.IsOwner,
+		MerchantID: u.MerchantID,
+	}
 }
 
 type createUserRequest struct {
@@ -61,6 +71,7 @@ func (h *Auth) Login(c echo.Context) error {
 	if err := h.setSession(c, u); err != nil {
 		return err
 	}
+	fmt.Println("user", u)
 	return c.JSON(http.StatusOK, userResourceFrom(u))
 }
 
@@ -106,14 +117,5 @@ func (h *Auth) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 			Context: c,
 			Session: rs,
 		})
-	}
-}
-
-func userResourceFrom(u entity.User) userResource {
-	return userResource{
-		ID:         u.ID,
-		Email:      u.Email,
-		IsOwner:    u.IsOwner,
-		MerchantID: u.MerchantID,
 	}
 }
