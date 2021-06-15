@@ -17,9 +17,9 @@ func main() {
 	}
 	redis := repository.NewSessionRepository("localhost:6379")
 	s := app.Server{
-		Echo:           echo.New(),
-		DB:             db,
-		SessionStorage: redis,
+		Echo:              echo.New(),
+		DB:                db,
+		SessionRepository: redis,
 	}
 	s.Setup()
 	s.ListenAndServe(config.Port)

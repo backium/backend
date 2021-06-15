@@ -10,6 +10,7 @@ import (
 type User struct {
 	Repository         UserRepository
 	MerchantRepository MerchantRepository
+	LocationRepository LocationRepository
 }
 
 func (uc *User) Create(ctx context.Context, req CreateUserRequest) (entity.User, error) {
@@ -19,21 +20,29 @@ func (uc *User) Create(ctx context.Context, req CreateUserRequest) (entity.User,
 	}
 
 	// Create an owner user with merchant, locations, etc
-	// TODO: Create a default location and other entities
+	user := entity.User{}
 	m, err := uc.MerchantRepository.Create(entity.Merchant{
 		BusinessName: "My Business",
 	})
 	if err != nil {
-		return entity.User{}, err
+		return user, err
 	}
-	user, err := uc.Repository.Create(ctx, entity.User{
+	_, err = uc.LocationRepository.Create(ctx, entity.Location{
+		Name:         "My Business",
+		BusinessName: "My Business",
+		MerchantID:   m.ID,
+	})
+	if err != nil {
+		return user, err
+	}
+	user, err = uc.Repository.Create(ctx, entity.User{
 		Email:        req.Email,
 		PasswordHash: hash,
 		IsOwner:      true,
 		MerchantID:   m.ID,
 	})
 	if err != nil {
-		return entity.User{}, err
+		return user, err
 	}
 	return user, nil
 }

@@ -9,11 +9,12 @@ import (
 )
 
 type Server struct {
-	Echo            *echo.Echo
-	DB              repository.MongoDB
-	merchantHandler handler.Merchant
-	userHandler     handler.User
-	SessionStorage  handler.SessionRepository
+	Echo              *echo.Echo
+	DB                repository.MongoDB
+	merchantHandler   handler.Merchant
+	authHandler       handler.Auth
+	locationHandler   handler.Location
+	SessionRepository handler.SessionRepository
 }
 
 func (s *Server) Setup() error {
@@ -30,8 +31,9 @@ func (s *Server) Setup() error {
 
 func (s *Server) setupHandlers() {
 	// setup dependencies
-	merchantRepository := repository.NewMerchantMongoRepository(s.DB)
 	userRepository := repository.NewUserMongoRepository(s.DB)
+	merchantRepository := repository.NewMerchantMongoRepository(s.DB)
+	locationRepository := repository.NewLocationMongoRepository(s.DB)
 
 	// setup controllers
 	merchantController := controller.Merchant{
@@ -40,15 +42,22 @@ func (s *Server) setupHandlers() {
 	userController := controller.User{
 		Repository:         userRepository,
 		MerchantRepository: merchantRepository,
+		LocationRepository: locationRepository,
+	}
+	locationController := controller.Location{
+		Repository: locationRepository,
 	}
 
 	// setup handlers
+	s.authHandler = handler.Auth{
+		Controller:        userController,
+		SessionRepository: s.SessionRepository,
+	}
 	s.merchantHandler = handler.Merchant{
 		Controller: merchantController,
 	}
-	s.userHandler = handler.User{
-		Controller:     userController,
-		SessionStorage: s.SessionStorage,
+	s.locationHandler = handler.Location{
+		Controller: locationController,
 	}
 }
 

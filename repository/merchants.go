@@ -21,6 +21,37 @@ type merchantRecord struct {
 	BusinessName string `bson:"business_name"`
 }
 
+func merchantRecordFrom(m entity.Merchant) merchantRecord {
+	return merchantRecord{
+		FirstName:    m.FirstName,
+		LastName:     m.LastName,
+		BusinessName: m.BusinessName,
+	}
+}
+
+func (m merchantRecord) merchant() entity.Merchant {
+	return entity.Merchant{
+		ID:           m.ID,
+		FirstName:    m.FirstName,
+		LastName:     m.LastName,
+		BusinessName: m.BusinessName,
+	}
+}
+
+func (m merchantRecord) updateQuery() bson.M {
+	query := bson.M{}
+	if m.FirstName != "" {
+		query["first_name"] = m.FirstName
+	}
+	if m.LastName != "" {
+		query["last_name"] = m.LastName
+	}
+	if m.BusinessName != "" {
+		query["business_name"] = m.BusinessName
+	}
+	return bson.M{"$set": query}
+}
+
 type merchantMongoRepository struct {
 	collection *mongo.Collection
 }
@@ -79,35 +110,4 @@ func (r *merchantMongoRepository) ListAll() ([]entity.Merchant, error) {
 
 func (r *merchantMongoRepository) Delete(id string) (entity.Merchant, error) {
 	return entity.Merchant{}, nil
-}
-
-func (m merchantRecord) merchant() entity.Merchant {
-	return entity.Merchant{
-		ID:           m.ID,
-		FirstName:    m.FirstName,
-		LastName:     m.LastName,
-		BusinessName: m.BusinessName,
-	}
-}
-
-func (m merchantRecord) updateQuery() bson.M {
-	query := bson.M{}
-	if m.FirstName != "" {
-		query["first_name"] = m.FirstName
-	}
-	if m.LastName != "" {
-		query["last_name"] = m.LastName
-	}
-	if m.BusinessName != "" {
-		query["business_name"] = m.BusinessName
-	}
-	return bson.M{"$set": query}
-}
-
-func merchantRecordFrom(m entity.Merchant) merchantRecord {
-	return merchantRecord{
-		FirstName:    m.FirstName,
-		LastName:     m.LastName,
-		BusinessName: m.BusinessName,
-	}
 }
