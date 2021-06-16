@@ -1,0 +1,44 @@
+name: backium-backend
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      - name: Create backend image
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: docker build  -t 326036341196.dkr.ecr.us-east-1.amazonaws.com/backium-backend:$BUILD_NUMBER .
+
+      - name: Push images to registry
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          docker push 326036341196.dkr.ecr.us-east-1.amazonaws.com/backium-backend:$BUILD_NUMBER
+      - name: Deploy backend service
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{secrets.SSH_HOST_BACKEND}}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            aws ecr get-login-password | docker login -u AWS --password-stdin "https://$(aws sts get-caller-identity --query 'Account' --output text).dkr.ecr.us-east-1.amazonaws.com"
+            sh docker-destroy-all.sh
+            docker run \
+            --env BACKIUM_DB_URI=${{ secrets.BACKIUM_DB_URI }} \
+            --env BACKIUM_DB_NAME=${{ secrets.BACKIUM_DB_NAME }} \
+            --env BACKIUM_REDIS_URI=${{ secrets.BACKIUM_REDIS_URI }} \
+            --env BACKIUM_REDIS_PASSWORD=${{ secrets.BACKIUM_REDIS_PASSWORD }} \
+            -d -p 8080:8080 326036341196.dkr.ecr.us-east-1.amazonaws.com/backium-backend:${{github.run_number}}
