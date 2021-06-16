@@ -5,6 +5,6 @@ type Customer struct {
 	Name       string
 	Email      string
 	Phone      string
-	Address    Address
+	Address    *Address
 	MerchantID string
 }

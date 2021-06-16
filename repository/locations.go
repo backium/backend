@@ -21,31 +21,31 @@ type locationRecord struct {
 	MerchantID   string `bson:"merchant_id"`
 }
 
-func locationRecordFrom(l entity.Location) locationRecord {
+func locationRecordFrom(loc entity.Location) locationRecord {
 	return locationRecord{
-		ID:           l.ID,
-		Name:         l.Name,
-		BusinessName: l.BusinessName,
-		MerchantID:   l.MerchantID,
+		ID:           loc.ID,
+		Name:         loc.Name,
+		BusinessName: loc.BusinessName,
+		MerchantID:   loc.MerchantID,
 	}
 }
 
-func (l locationRecord) location() entity.Location {
+func (loc locationRecord) location() entity.Location {
 	return entity.Location{
-		ID:           l.ID,
-		Name:         l.Name,
-		BusinessName: l.BusinessName,
-		MerchantID:   l.MerchantID,
+		ID:           loc.ID,
+		Name:         loc.Name,
+		BusinessName: loc.BusinessName,
+		MerchantID:   loc.MerchantID,
 	}
 }
 
-func (m locationRecord) updateQuery() bson.M {
+func (loc locationRecord) updateQuery() bson.M {
 	query := bson.M{}
-	if m.Name != "" {
-		query["name"] = m.Name
+	if loc.Name != "" {
+		query["name"] = loc.Name
 	}
-	if m.BusinessName != "" {
-		query["business_name"] = m.BusinessName
+	if loc.BusinessName != "" {
+		query["business_name"] = loc.BusinessName
 	}
 	return bson.M{"$set": query}
 }
@@ -58,8 +58,8 @@ func NewLocationMongoRepository(db MongoDB) controller.LocationRepository {
 	return &locationMongoRepository{collection: db.Collection(locationCollectionName)}
 }
 
-func (r *locationMongoRepository) Create(ctx context.Context, l entity.Location) (entity.Location, error) {
-	record := locationRecordFrom(l)
+func (r *locationMongoRepository) Create(ctx context.Context, loc entity.Location) (entity.Location, error) {
+	record := locationRecordFrom(loc)
 	record.ID = generateID(locationIDPrefix)
 	res, err := r.collection.InsertOne(ctx, record)
 	if err != nil {
@@ -69,23 +69,23 @@ func (r *locationMongoRepository) Create(ctx context.Context, l entity.Location)
 	return r.Retrieve(ctx, id)
 }
 
-func (r *locationMongoRepository) Update(ctx context.Context, l entity.Location) (entity.Location, error) {
-	record := locationRecordFrom(l)
-	_, err := r.collection.UpdateByID(ctx, l.ID, record.updateQuery())
+func (r *locationMongoRepository) Update(ctx context.Context, loc entity.Location) (entity.Location, error) {
+	record := locationRecordFrom(loc)
+	_, err := r.collection.UpdateByID(ctx, loc.ID, record.updateQuery())
 	if err != nil {
 		return entity.Location{}, err
 	}
-	return r.Retrieve(ctx, l.ID)
+	return r.Retrieve(ctx, loc.ID)
 }
 
-func (r *locationMongoRepository) UpdateByMerchantID(ctx context.Context, l entity.Location) (entity.Location, error) {
-	record := locationRecordFrom(l)
-	filter := bson.M{"_id": l.ID, "merchant_id": l.MerchantID}
+func (r *locationMongoRepository) UpdateByMerchantID(ctx context.Context, loc entity.Location) (entity.Location, error) {
+	record := locationRecordFrom(loc)
+	filter := bson.M{"_id": loc.ID, "merchant_id": loc.MerchantID}
 	_, err := r.collection.UpdateOne(ctx, filter, record.updateQuery())
 	if err != nil {
 		return entity.Location{}, err
 	}
-	return r.Retrieve(ctx, l.ID)
+	return r.Retrieve(ctx, loc.ID)
 }
 
 func (r *locationMongoRepository) Retrieve(ctx context.Context, id string) (entity.Location, error) {

@@ -1,9 +1,9 @@
 package repository
 
-type AddressRecord struct {
-	Line1      string `bson:"line1"`
-	Line2      string `bson:"line2"`
-	District   string `bson:"district"`
-	Province   string `bson:"province"`
-	Department string `bson:"department"`
+type addressRecord struct {
+	Line1      string `bson:"line1,omitempty"`
+	Line2      string `bson:"line2,omitempty"`
+	District   string `bson:"district,omitempty"`
+	Province   string `bson:"province,omitempty"`
+	Department string `bson:"department,omitempty"`
 }
