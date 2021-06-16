@@ -77,81 +77,58 @@ func filterQuery(fil controller.SearchCustomersFilter) bson.M {
 	return q
 }
 
-type customerMongoRepository struct {
+type customerMongoRepo struct {
 	collection *mongo.Collection
 	driver     *mongoDriver
 }
 
 func NewCustomerMongoRepository(db MongoDB) controller.CustomerRepository {
-	collection := db.Collection(customerCollectionName)
-	return &customerMongoRepository{
-		collection: collection,
-		driver: &mongoDriver{
-			Collection: collection,
-		},
+	coll := db.Collection(customerCollectionName)
+	return &customerMongoRepo{
+		collection: coll,
+		driver:     &mongoDriver{Collection: coll},
 	}
 }
 
-func (r *customerMongoRepository) Create(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
-	record := newCustomerRecord(cus)
-	record.ID = generateID(customerIDPrefix)
-	res, err := r.collection.InsertOne(ctx, record)
+func (r *customerMongoRepo) Create(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
+	cusr := newCustomerRecord(cus)
+	cusr.ID = generateID(customerIDPrefix)
+	id, err := r.driver.insertOne(ctx, cusr)
 	if err != nil {
 		return entity.Customer{}, err
 	}
-	id := res.InsertedID.(string)
 	return r.Retrieve(ctx, id)
 }
 
-func (r *customerMongoRepository) Update(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
-	rec := customerRecord{}
+func (r *customerMongoRepo) Update(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
+	cusr := customerRecord{}
 	filter := bson.M{"_id": cus.ID}
-	if err := r.driver.findOneAndDecode(ctx, &rec, filter); err != nil {
+	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
 		return entity.Customer{}, err
 	}
-	if err := updateFields(&rec, newCustomerRecord(cus)); err != nil {
+	cusUpdate := newCustomerRecord(cus)
+	if err := updateFields(&cusr, cusUpdate); err != nil {
 		return entity.Customer{}, err
 	}
-	query := bson.M{"$set": rec}
+	query := bson.M{"$set": cusr}
 	if _, err := r.collection.UpdateOne(ctx, filter, query); err != nil {
 		return entity.Customer{}, err
 	}
 	return r.Retrieve(ctx, cus.ID)
 }
 
-func (r *customerMongoRepository) Retrieve(ctx context.Context, id string) (entity.Customer, error) {
-	rec := customerRecord{}
+func (r *customerMongoRepo) Retrieve(ctx context.Context, id string) (entity.Customer, error) {
+	cusr := customerRecord{}
 	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &rec, filter); err != nil {
+	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
 		return entity.Customer{}, err
 	}
-	return rec.customer(), nil
+	return cusr.customer(), nil
 }
 
-func (r *customerMongoRepository) ListAll(ctx context.Context, merchantID string) ([]entity.Customer, error) {
-	mfil := bson.M{
-		"merchant_id": merchantID,
-	}
-	res, err := r.collection.Find(ctx, mfil)
-	if err != nil {
-		return nil, err
-	}
-	var cuss []entity.Customer
-	for res.Next(ctx) {
-		record := customerRecord{}
-		if err := res.Decode(&record); err != nil {
-			continue
-		}
-		cuss = append(cuss, record.customer())
-	}
-	return cuss, nil
-}
-
-func (r *customerMongoRepository) Search(ctx context.Context, fil controller.SearchCustomersFilter) ([]entity.Customer, error) {
+func (r *customerMongoRepo) Search(ctx context.Context, fil controller.SearchCustomersFilter) ([]entity.Customer, error) {
 	mfil := filterQuery(fil)
-	fo := options.Find()
-	fo.SetLimit(fil.Limit)
-	fo.SetSkip(fil.Offset)
+	fo := options.Find().SetLimit(fil.Limit).SetSkip(fil.Offset)
 	res, err := r.collection.Find(ctx, mfil, fo)
 	if err != nil {
 		return nil, err
@@ -167,6 +144,6 @@ func (r *customerMongoRepository) Search(ctx context.Context, fil controller.Sea
 	return cuss, nil
 }
 
-func (r *customerMongoRepository) Delete(ctx context.Context, id string) (entity.Customer, error) {
+func (r *customerMongoRepo) Delete(ctx context.Context, id string) (entity.Customer, error) {
 	return entity.Customer{}, nil
 }

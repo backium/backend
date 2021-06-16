@@ -21,7 +21,7 @@ type locationRecord struct {
 	MerchantID   string `bson:"merchant_id"`
 }
 
-func locationRecordFrom(loc entity.Location) locationRecord {
+func newLocationRecord(loc entity.Location) locationRecord {
 	return locationRecord{
 		ID:           loc.ID,
 		Name:         loc.Name,
@@ -50,57 +50,56 @@ func (loc locationRecord) updateQuery() bson.M {
 	return bson.M{"$set": query}
 }
 
-type locationMongoRepository struct {
+type locationMongoRepo struct {
 	collection *mongo.Collection
+	driver     *mongoDriver
 }
 
 func NewLocationMongoRepository(db MongoDB) controller.LocationRepository {
-	return &locationMongoRepository{collection: db.Collection(locationCollectionName)}
+	coll := db.Collection(locationCollectionName)
+	return &locationMongoRepo{
+		collection: coll,
+		driver:     &mongoDriver{Collection: coll},
+	}
 }
 
-func (r *locationMongoRepository) Create(ctx context.Context, loc entity.Location) (entity.Location, error) {
-	record := locationRecordFrom(loc)
-	record.ID = generateID(locationIDPrefix)
-	res, err := r.collection.InsertOne(ctx, record)
+func (r *locationMongoRepo) Create(ctx context.Context, loc entity.Location) (entity.Location, error) {
+	locr := newLocationRecord(loc)
+	locr.ID = generateID(locationIDPrefix)
+	id, err := r.driver.insertOne(ctx, locr)
 	if err != nil {
 		return entity.Location{}, err
 	}
-	id := res.InsertedID.(string)
 	return r.Retrieve(ctx, id)
 }
 
-func (r *locationMongoRepository) Update(ctx context.Context, loc entity.Location) (entity.Location, error) {
-	record := locationRecordFrom(loc)
-	_, err := r.collection.UpdateByID(ctx, loc.ID, record.updateQuery())
-	if err != nil {
+func (r *locationMongoRepo) Update(ctx context.Context, loc entity.Location) (entity.Location, error) {
+	locr := locationRecord{}
+	filter := bson.M{"_id": loc.ID}
+	if err := r.driver.findOneAndDecode(ctx, &locr, filter); err != nil {
+		return entity.Location{}, err
+	}
+	cusUpdate := newLocationRecord(loc)
+	if err := updateFields(&locr, cusUpdate); err != nil {
+		return entity.Location{}, err
+	}
+	query := bson.M{"$set": locr}
+	if _, err := r.collection.UpdateOne(ctx, filter, query); err != nil {
 		return entity.Location{}, err
 	}
 	return r.Retrieve(ctx, loc.ID)
 }
 
-func (r *locationMongoRepository) UpdateByMerchantID(ctx context.Context, loc entity.Location) (entity.Location, error) {
-	record := locationRecordFrom(loc)
-	filter := bson.M{"_id": loc.ID, "merchant_id": loc.MerchantID}
-	_, err := r.collection.UpdateOne(ctx, filter, record.updateQuery())
-	if err != nil {
+func (r *locationMongoRepo) Retrieve(ctx context.Context, id string) (entity.Location, error) {
+	locr := locationRecord{}
+	filter := bson.M{"_id": id}
+	if err := r.driver.findOneAndDecode(ctx, &locr, filter); err != nil {
 		return entity.Location{}, err
 	}
-	return r.Retrieve(ctx, loc.ID)
+	return locr.location(), nil
 }
 
-func (r *locationMongoRepository) Retrieve(ctx context.Context, id string) (entity.Location, error) {
-	res := r.collection.FindOne(ctx, bson.M{"_id": id})
-	if err := res.Err(); err != nil {
-		return entity.Location{}, err
-	}
-	record := locationRecord{}
-	if err := res.Decode(&record); err != nil {
-		return entity.Location{}, err
-	}
-	return record.location(), nil
-}
-
-func (r *locationMongoRepository) ListAll(ctx context.Context, merchantID string) ([]entity.Location, error) {
+func (r *locationMongoRepo) ListAll(ctx context.Context, merchantID string) ([]entity.Location, error) {
 	res, err := r.collection.Find(ctx, bson.M{"merchant_id": merchantID})
 	if err != nil {
 		return nil, err
@@ -116,6 +115,6 @@ func (r *locationMongoRepository) ListAll(ctx context.Context, merchantID string
 	return ms, nil
 }
 
-func (r *locationMongoRepository) Delete(ctx context.Context, id string) (entity.Location, error) {
+func (r *locationMongoRepo) Delete(ctx context.Context, id string) (entity.Location, error) {
 	return entity.Location{}, nil
 }

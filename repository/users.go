@@ -45,18 +45,18 @@ func (ur userRecord) user() entity.User {
 	}
 }
 
-type userMongoRepository struct {
+type userMongoRepo struct {
 	collection *mongo.Collection
 }
 
 func NewUserMongoRepository(db MongoDB) controller.UserRepository {
-	return &userMongoRepository{collection: db.Collection(userCollectionName)}
+	return &userMongoRepo{collection: db.Collection(userCollectionName)}
 }
 
-func (r *userMongoRepository) Create(ctx context.Context, u entity.User) (entity.User, error) {
-	record := userRecordFrom(u)
-	record.ID = generateID(userIDPrefix)
-	res, err := r.collection.InsertOne(ctx, record)
+func (r *userMongoRepo) Create(ctx context.Context, u entity.User) (entity.User, error) {
+	ur := userRecordFrom(u)
+	ur.ID = generateID(userIDPrefix)
+	res, err := r.collection.InsertOne(ctx, ur)
 	if err != nil {
 		return entity.User{}, err
 	}
@@ -64,26 +64,26 @@ func (r *userMongoRepository) Create(ctx context.Context, u entity.User) (entity
 	return r.Retrieve(ctx, id)
 }
 
-func (r *userMongoRepository) Retrieve(ctx context.Context, id string) (entity.User, error) {
+func (r *userMongoRepo) Retrieve(ctx context.Context, id string) (entity.User, error) {
 	res := r.collection.FindOne(context.TODO(), bson.M{"_id": id})
 	if err := res.Err(); err != nil {
 		return entity.User{}, err
 	}
-	record := userRecord{}
-	if err := res.Decode(&record); err != nil {
+	ur := userRecord{}
+	if err := res.Decode(&ur); err != nil {
 		return entity.User{}, err
 	}
-	return record.user(), nil
+	return ur.user(), nil
 }
 
-func (r *userMongoRepository) RetrieveByEmail(ctx context.Context, email string) (entity.User, error) {
+func (r *userMongoRepo) RetrieveByEmail(ctx context.Context, email string) (entity.User, error) {
 	res := r.collection.FindOne(context.TODO(), bson.M{"email": email})
 	if err := res.Err(); err != nil {
 		return entity.User{}, err
 	}
-	record := userRecord{}
-	if err := res.Decode(&record); err != nil {
+	ur := userRecord{}
+	if err := res.Decode(&ur); err != nil {
 		return entity.User{}, err
 	}
-	return record.user(), nil
+	return ur.user(), nil
 }

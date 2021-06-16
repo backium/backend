@@ -33,7 +33,6 @@ type CustomerRepository interface {
 	Create(context.Context, entity.Customer) (entity.Customer, error)
 	Update(context.Context, entity.Customer) (entity.Customer, error)
 	Retrieve(context.Context, string) (entity.Customer, error)
-	ListAll(context.Context, string) ([]entity.Customer, error)
 	Search(context.Context, SearchCustomersFilter) ([]entity.Customer, error)
 	Delete(context.Context, string) (entity.Customer, error)
 }
