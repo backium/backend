@@ -12,6 +12,14 @@ type mongoDriver struct {
 	*mongo.Collection
 }
 
+func (md *mongoDriver) insertOne(ctx context.Context, document interface{}) (string, error) {
+	res, err := md.InsertOne(ctx, document)
+	if err != nil {
+		return "", err
+	}
+	return res.InsertedID.(string), nil
+}
+
 func (md *mongoDriver) findOneAndDecode(ctx context.Context, val interface{},
 	filter interface{}, opts ...*options.FindOneOptions) error {
 	res := md.FindOne(ctx, filter)
@@ -32,6 +40,5 @@ func updateFields(base interface{}, diff interface{}) error {
 	if err := bson.Unmarshal(b, base); err != nil {
 		return err
 	}
-
 	return nil
 }

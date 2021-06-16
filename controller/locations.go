@@ -15,7 +15,6 @@ type RetrieveLocationRequest struct {
 type LocationRepository interface {
 	Create(context.Context, entity.Location) (entity.Location, error)
 	Update(context.Context, entity.Location) (entity.Location, error)
-	UpdateByMerchantID(context.Context, entity.Location) (entity.Location, error)
 	Retrieve(context.Context, string) (entity.Location, error)
 	ListAll(context.Context, string) ([]entity.Location, error)
 	Delete(context.Context, string) (entity.Location, error)
@@ -30,7 +29,7 @@ func (c *Location) Create(ctx context.Context, l entity.Location) (entity.Locati
 }
 
 func (c *Location) Update(ctx context.Context, l entity.Location) (entity.Location, error) {
-	return c.Repository.UpdateByMerchantID(ctx, l)
+	return c.Repository.Update(ctx, l)
 }
 
 func (c *Location) Retrieve(ctx context.Context, req RetrieveLocationRequest) (entity.Location, error) {
