@@ -7,7 +7,7 @@ import (
 )
 
 func bindAndValidate(c echo.Context, req interface{}) error {
-	if err := c.Bind(&req); err != nil {
+	if err := c.Bind(req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 

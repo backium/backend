@@ -2,6 +2,14 @@ package controller
 
 import "github.com/backium/backend/entity"
 
+type MerchantRepository interface {
+	Create(entity.Merchant) (entity.Merchant, error)
+	Update(entity.Merchant) (entity.Merchant, error)
+	Retrieve(string) (entity.Merchant, error)
+	ListAll() ([]entity.Merchant, error)
+	Delete(string) (entity.Merchant, error)
+}
+
 type Merchant struct {
 	Repository MerchantRepository
 }
@@ -20,12 +28,4 @@ func (c *Merchant) Retrieve(id string) (entity.Merchant, error) {
 
 func (c *Merchant) ListAll() ([]entity.Merchant, error) {
 	return c.Repository.ListAll()
-}
-
-type MerchantRepository interface {
-	Create(entity.Merchant) (entity.Merchant, error)
-	Update(entity.Merchant) (entity.Merchant, error)
-	Retrieve(string) (entity.Merchant, error)
-	ListAll() ([]entity.Merchant, error)
-	Delete(string) (entity.Merchant, error)
 }

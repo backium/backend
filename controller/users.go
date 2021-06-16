@@ -7,6 +7,23 @@ import (
 	"github.com/backium/backend/entity"
 )
 
+type UserRepository interface {
+	Create(context.Context, entity.User) (entity.User, error)
+	Retrieve(context.Context, string) (entity.User, error)
+	RetrieveByEmail(context.Context, string) (entity.User, error)
+}
+
+type CreateUserRequest struct {
+	Email    string
+	Password string
+	IsOwner  bool
+}
+
+type LoginUserRequest struct {
+	Email    string
+	Password string
+}
+
 type User struct {
 	Repository         UserRepository
 	MerchantRepository MerchantRepository
@@ -58,21 +75,4 @@ func (uc *User) Login(ctx context.Context, req LoginUserRequest) (entity.User, e
 	}
 
 	return user, err
-}
-
-type UserRepository interface {
-	Create(context.Context, entity.User) (entity.User, error)
-	Retrieve(context.Context, string) (entity.User, error)
-	RetrieveByEmail(context.Context, string) (entity.User, error)
-}
-
-type CreateUserRequest struct {
-	Email    string
-	Password string
-	IsOwner  bool
-}
-
-type LoginUserRequest struct {
-	Email    string
-	Password string
 }
