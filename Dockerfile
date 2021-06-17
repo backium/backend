@@ -1,4 +1,4 @@
-FROM golang:1.16.5-alpine
+FROM golang:1.16.5-alpine as builder
 
 # Set some configurations
 ENV BACKIUM_DB_URI  "mongodb://localhost:27017" 
@@ -18,8 +18,21 @@ WORKDIR /app
 # Run the Go installer
 RUN go install
 
-# Indicate the binary as our entrypoint
-ENTRYPOINT /go/bin/backend
+# FROM scratch
+FROM alpine:latest
+
+RUN mkdir -p /app
+
+WORKDIR /app
+
+# Copy bynary from builder
+COPY --from=builder /go/bin/backend /app/
+
+# Copy configuration files from builder
+COPY --from=builder /app/app.env /app/
 
 # Expose your port
 EXPOSE 8080
+
+# Indicate the binary as our entrypoint
+ENTRYPOINT [ "/app/backend" ]

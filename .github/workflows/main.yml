@@ -20,10 +20,7 @@ jobs:
       - name: Create backend image
         env:
           BUILD_NUMBER: ${{ github.run_number }}
-        run: |
-          docker build  -t temp:$BUILD_NUMBER .
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/docker-slim build temp:$BUILD_NUMBER --tag 326036341196.dkr.ecr.us-east-1.amazonaws.com/backium-backend:$BUILD_NUMBER
-
+        run: docker build  -t 326036341196.dkr.ecr.us-east-1.amazonaws.com/backium-backend:$BUILD_NUMBER .
       - name: Push images to registry
         env:
           BUILD_NUMBER: ${{ github.run_number }}
