@@ -1,11 +1,11 @@
 FROM golang:1.16.5-alpine
 
 # Set some configurations
-ENV BACKIUM_DB_URI  "missing db uri" 
-ENV BACKIUM_DB_NAME  "missing db name" 
-ENV BACKIUM_APP_PORT  "missing app port" 
-ENV BACKIUM_REDIS_URI  "missing redis uri" 
-ENV BACKIUM_REDIS_PASSWORD  "missing redis password"
+ENV BACKIUM_DB_URI  "mongodb://localhost:27017" 
+ENV BACKIUM_DB_NAME  "testing" 
+ENV BACKIUM_APP_PORT  "8080" 
+ENV BACKIUM_REDIS_URI  "localhost:6379" 
+ENV BACKIUM_REDIS_PASSWORD  ""
 
 # Make the source code path
 RUN mkdir -p /app
