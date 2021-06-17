@@ -8,33 +8,44 @@ import (
 
 func (s *Server) setupRoutes() {
 	s.Echo.Use(middleware.CORS())
-	s.Echo.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			s.Echo.Logger.Infoj(log.JSON{
-				"path":   c.Path(),
-				"method": c.Request().Method,
-			})
-			return next(c)
-		}
-	})
-	s.Echo.GET("/api/v1/merchants/:id", s.merchantHandler.Retrieve, s.authHandler.Authenticate)
-	s.Echo.GET("/api/v1/merchants", s.merchantHandler.ListAll, s.authHandler.Authenticate)
-	s.Echo.POST("/api/v1/merchants", s.merchantHandler.Create, s.authHandler.Authenticate)
-	s.Echo.PUT("/api/v1/merchants/:id", s.merchantHandler.Update, s.authHandler.Authenticate)
+	s.Echo.Use(s.loggerMiddleware)
+	userGroup := s.Echo.Group("/api/v1", s.authHandler.Authenticate)
+	pubGroup := s.Echo.Group("/api/v1")
 
-	s.Echo.POST("/api/v1/signup", s.authHandler.Signup)
-	s.Echo.POST("/api/v1/login", s.authHandler.Login)
-	s.Echo.POST("/api/v1/signout", s.authHandler.Signout, s.authHandler.Authenticate)
+	userGroup.GET("/merchants/:id", s.merchantHandler.Retrieve)
+	userGroup.GET("/merchants", s.merchantHandler.ListAll)
+	userGroup.POST("/merchants", s.merchantHandler.Create)
+	userGroup.PUT("/merchants/:id", s.merchantHandler.Update)
 
-	s.Echo.GET("/api/v1/locations/:id", s.locationHandler.Retrieve, s.authHandler.Authenticate)
-	s.Echo.GET("/api/v1/locations", s.locationHandler.ListAll, s.authHandler.Authenticate)
-	s.Echo.POST("/api/v1/locations", s.locationHandler.Create, s.authHandler.Authenticate)
-	s.Echo.PUT("/api/v1/locations/:id", s.locationHandler.Update, s.authHandler.Authenticate)
-	s.Echo.DELETE("/api/v1/locations/:id", s.locationHandler.Delete, s.authHandler.Authenticate)
+	pubGroup.POST("/signup", s.authHandler.Signup)
+	pubGroup.POST("/login", s.authHandler.Login)
+	userGroup.POST("/signout", s.authHandler.Signout)
 
-	s.Echo.GET("/api/v1/customers/:id", s.customerHandler.Retrieve, s.authHandler.Authenticate)
-	s.Echo.GET("/api/v1/customers", s.customerHandler.ListAll, s.authHandler.Authenticate)
-	s.Echo.POST("/api/v1/customers", s.customerHandler.Create, s.authHandler.Authenticate)
-	s.Echo.PUT("/api/v1/customers/:id", s.customerHandler.Update, s.authHandler.Authenticate)
-	s.Echo.DELETE("/api/v1/customers/:id", s.customerHandler.Delete, s.authHandler.Authenticate)
+	userGroup.GET("/locations/:id", s.locationHandler.Retrieve)
+	userGroup.GET("/locations", s.locationHandler.ListAll)
+	userGroup.POST("/locations", s.locationHandler.Create)
+	userGroup.PUT("/locations/:id", s.locationHandler.Update)
+	userGroup.DELETE("/locations/:id", s.locationHandler.Delete)
+
+	userGroup.GET("/customers/:id", s.customerHandler.Retrieve)
+	userGroup.GET("/customers", s.customerHandler.ListAll)
+	userGroup.POST("/customers", s.customerHandler.Create)
+	userGroup.PUT("/customers/:id", s.customerHandler.Update)
+	userGroup.DELETE("/customers/:id", s.customerHandler.Delete)
+
+	userGroup.GET("/categories/:id", s.categoryHandler.Retrieve)
+	userGroup.GET("/categories", s.categoryHandler.ListAll)
+	userGroup.POST("/categories", s.categoryHandler.Create)
+	userGroup.PUT("/categories/:id", s.categoryHandler.Update)
+	userGroup.DELETE("/categories/:id", s.categoryHandler.Delete)
+}
+
+func (s *Server) loggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		s.Echo.Logger.Infoj(log.JSON{
+			"path":   c.Path(),
+			"method": c.Request().Method,
+		})
+		return next(c)
+	}
 }

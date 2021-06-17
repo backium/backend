@@ -49,28 +49,6 @@ func newCustomerResource(cus entity.Customer) customerResource {
 	}
 }
 
-func (cus *customerResource) customer() entity.Customer {
-	var addr *entity.Address
-	if cus.Address != nil {
-		addr = &entity.Address{
-			Line1:      cus.Address.Line1,
-			Line2:      cus.Address.Line2,
-			District:   cus.Address.District,
-			Province:   cus.Address.Province,
-			Department: cus.Address.Department,
-		}
-	}
-	return entity.Customer{
-		ID:         cus.ID,
-		Name:       cus.Name,
-		Email:      cus.Email,
-		Phone:      cus.Phone,
-		Address:    addr,
-		MerchantID: cus.MerchantID,
-		Status:     cus.Status,
-	}
-}
-
 type createCustomerRequest struct {
 	Name    string   `json:"name" validate:"required"`
 	Email   string   `json:"email" validate:"required,email"`
@@ -126,7 +104,7 @@ func (req *updateCustomerRequest) customer() entity.Customer {
 }
 
 type listAllCustomersRequest struct {
-	Limit  *int64 `query:"limit" validate:"gte=1"`
+	Limit  *int64 `query:"limit" validate:"omitempty,gte=1"`
 	Offset *int64 `query:"offset"`
 }
 
