@@ -16,6 +16,7 @@ type Server struct {
 	locationHandler   handler.Location
 	customerHandler   handler.Customer
 	categoryHandler   handler.Category
+	itemHandler       handler.Item
 	SessionRepository handler.SessionRepository
 }
 
@@ -39,6 +40,7 @@ func (s *Server) setupHandlers() {
 	locationRepository := mongo.NewLocationRepository(s.DB)
 	customerRepository := mongo.NewCustomerRepository(s.DB)
 	categoryRepository := mongo.NewCategoryRepository(s.DB)
+	itemRepository := mongo.NewItemRepository(s.DB)
 
 	// setup controllers
 	merchantController := controller.Merchant{
@@ -58,6 +60,9 @@ func (s *Server) setupHandlers() {
 	categoryController := controller.Category{
 		Repository: categoryRepository,
 	}
+	itemController := controller.Item{
+		Repository: itemRepository,
+	}
 
 	// setup handlers
 	s.authHandler = handler.Auth{
@@ -75,6 +80,9 @@ func (s *Server) setupHandlers() {
 	}
 	s.categoryHandler = handler.Category{
 		Controller: categoryController,
+	}
+	s.itemHandler = handler.Item{
+		Controller: itemController,
 	}
 }
 
