@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/backium/backend/entity"
+	"github.com/backium/backend/errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	gonanoid "github.com/matoous/go-nanoid/v2"
@@ -24,8 +25,7 @@ type Session struct {
 	ID         string
 	UserID     string
 	MerchantID string
-	IsSuper    bool
-	IsOwner    bool
+	Kind       entity.UserKind
 }
 
 func newSession(u entity.User) Session {
@@ -37,33 +37,55 @@ func newSession(u entity.User) Session {
 		ID:         id,
 		UserID:     u.ID,
 		MerchantID: u.MerchantID,
-		IsSuper:    u.IsSuper,
-		IsOwner:    u.IsOwner,
+		Kind:       u.Kind,
 	}
 }
 
 func DecodeSession(encodedSession string) (Session, error) {
+	const op = "handler.DecodeSession"
 	claims := jwt.MapClaims{}
 	_, err := jwt.ParseWithClaims(encodedSession, claims, func(token *jwt.Token) (interface{}, error) {
 		return []byte("backium"), nil
 	})
 	if err != nil {
-		return Session{}, err
+		return Session{}, errors.E(op, errors.KindInvalidSession, err)
+	}
+	id, ok := claims["session_id"].(string)
+	if !ok {
+		return Session{}, errors.E(op, errors.KindInvalidSession, "missing or invalid session_id")
+	}
+	userID, ok := claims["user_id"].(string)
+	if !ok {
+		return Session{}, errors.E(op, errors.KindInvalidSession, "missing or invalid user_id")
+	}
+	merchantID, ok := claims["merchant_id"].(string)
+	if !ok {
+		return Session{}, errors.E(op, errors.KindInvalidSession, "missing or invalid merchant_id")
+	}
+	kind, ok := claims["kind"].(string)
+	if !ok {
+		return Session{}, errors.E(op, errors.KindInvalidSession, "missing or invalid kind")
 	}
 	return Session{
-		ID:         claims["session_id"].(string),
-		UserID:     claims["user_id"].(string),
-		MerchantID: claims["merchant_id"].(string),
-		IsSuper:    claims["is_super"].(bool),
+		ID:         id,
+		UserID:     userID,
+		MerchantID: merchantID,
+		Kind:       entity.UserKind(kind),
 	}, nil
 }
 
 func (s *Session) encode(key []byte) (string, error) {
+	const op = errors.Op("Session.encode")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"session_id":  s.ID,
 		"user_id":     s.UserID,
 		"merchant_id": s.MerchantID,
-		"is_super":    s.IsSuper,
+		"kind":        s.Kind,
 	})
-	return token.SignedString(key)
+	sig, err := token.SignedString(key)
+	if err != nil {
+		return "", errors.E(op, errors.KindInvalidSession, err)
+	}
+	return sig, nil
+
 }

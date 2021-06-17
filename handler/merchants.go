@@ -81,7 +81,7 @@ func (h *Merchant) Update(c echo.Context) error {
 		return err
 	}
 	ac := c.(*AuthContext)
-	if !ac.IsSuper {
+	if ac.Kind != entity.UserKindSuper {
 		req.ID = ac.MerchantID
 	}
 	m, err := h.Controller.Update(req.merchant())
@@ -95,7 +95,7 @@ func (h *Merchant) Update(c echo.Context) error {
 func (h *Merchant) Retrieve(c echo.Context) error {
 	id := c.Param("id")
 	ac := c.(*AuthContext)
-	if !ac.IsSuper {
+	if ac.Kind != entity.UserKindSuper {
 		id = ac.MerchantID
 	}
 	m, err := h.Controller.Retrieve(id)

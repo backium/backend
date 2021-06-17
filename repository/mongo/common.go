@@ -1,4 +1,4 @@
-package repository
+package mongo
 
 import gonanoid "github.com/matoous/go-nanoid/v2"
 

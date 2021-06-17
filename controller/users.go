@@ -2,9 +2,9 @@ package controller
 
 import (
 	"context"
-	"errors"
 
 	"github.com/backium/backend/entity"
+	"github.com/backium/backend/errors"
 )
 
 type UserRepository interface {
@@ -31,9 +31,14 @@ type User struct {
 }
 
 func (uc *User) Create(ctx context.Context, req CreateUserRequest) (entity.User, error) {
+	const op = errors.Op("controller.User.Create")
+	_, err := uc.Repository.RetrieveByEmail(ctx, req.Email)
+	if err == nil {
+		return entity.User{}, errors.E(op, errors.KindUserExist, "user email used")
+	}
 	hash, err := entity.HashUserPassword(req.Password)
 	if err != nil {
-		return entity.User{}, err
+		return entity.User{}, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	// Create an owner user with merchant, locations, etc
@@ -42,7 +47,7 @@ func (uc *User) Create(ctx context.Context, req CreateUserRequest) (entity.User,
 		BusinessName: "My Business",
 	})
 	if err != nil {
-		return user, err
+		return user, errors.E(op, errors.KindUnexpected, err)
 	}
 	_, err = uc.LocationRepository.Create(ctx, entity.Location{
 		Name:         "My Business",
@@ -50,29 +55,28 @@ func (uc *User) Create(ctx context.Context, req CreateUserRequest) (entity.User,
 		MerchantID:   m.ID,
 	})
 	if err != nil {
-		return user, err
+		return user, errors.E(op, errors.KindUnexpected, err)
 	}
 	user, err = uc.Repository.Create(ctx, entity.User{
 		Email:        req.Email,
 		PasswordHash: hash,
-		IsOwner:      true,
+		Kind:         entity.UserKindOwner,
 		MerchantID:   m.ID,
 	})
 	if err != nil {
-		return user, err
+		return user, errors.E(op, errors.KindUnexpected, err)
 	}
 	return user, nil
 }
 
 func (uc *User) Login(ctx context.Context, req LoginUserRequest) (entity.User, error) {
+	const op = errors.Op("controller.User.Login")
 	user, err := uc.Repository.RetrieveByEmail(ctx, req.Email)
 	if err != nil {
-		return entity.User{}, err
+		return entity.User{}, errors.E(op, errors.KindInvalidCredentials, err)
 	}
-
 	if !user.PasswordEquals(req.Password) {
-		return entity.User{}, errors.New("wrong password")
+		return entity.User{}, errors.E(op, errors.KindInvalidCredentials, "invalid password")
 	}
-
-	return user, err
+	return user, nil
 }

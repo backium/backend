@@ -1,4 +1,4 @@
-package repository
+package mongo
 
 import (
 	"context"
@@ -7,24 +7,24 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type MongoDB struct {
+type DB struct {
 	client *mongo.Client
 	db     *mongo.Database
 }
 
-func NewMongoDB(uri string, dbName string) (MongoDB, error) {
+func New(uri string, dbName string) (DB, error) {
 	c, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(uri))
 	if err != nil {
-		return MongoDB{}, err
+		return DB{}, err
 	}
-	mdb := MongoDB{client: c, db: c.Database(dbName)}
+	mdb := DB{client: c, db: c.Database(dbName)}
 	return mdb, nil
 }
 
-func (m MongoDB) Collection(name string) *mongo.Collection {
+func (m DB) Collection(name string) *mongo.Collection {
 	return m.db.Collection(name)
 }
 
-func (m MongoDB) Disconnect() error {
+func (m DB) Disconnect() error {
 	return m.client.Disconnect(context.TODO())
 }

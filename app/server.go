@@ -3,14 +3,14 @@ package app
 import (
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/handler"
-	"github.com/backium/backend/repository"
+	"github.com/backium/backend/repository/mongo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
 
 type Server struct {
 	Echo              *echo.Echo
-	DB                repository.MongoDB
+	DB                mongo.DB
 	merchantHandler   handler.Merchant
 	authHandler       handler.Auth
 	locationHandler   handler.Location
@@ -25,6 +25,7 @@ func (s *Server) Setup() error {
 	}
 	s.Echo.Validator = v
 	s.Echo.Logger.SetLevel(log.INFO)
+	s.Echo.HTTPErrorHandler = errorHandler
 	s.setupHandlers()
 	s.setupRoutes()
 	return nil
@@ -32,10 +33,10 @@ func (s *Server) Setup() error {
 
 func (s *Server) setupHandlers() {
 	// setup dependencies
-	userRepository := repository.NewUserMongoRepository(s.DB)
-	merchantRepository := repository.NewMerchantMongoRepository(s.DB)
-	locationRepository := repository.NewLocationMongoRepository(s.DB)
-	customerRepository := repository.NewCustomerMongoRepository(s.DB)
+	userRepository := mongo.NewUserRepository(s.DB)
+	merchantRepository := mongo.NewMerchantRepository(s.DB)
+	locationRepository := mongo.NewLocationRepository(s.DB)
+	customerRepository := mongo.NewCustomerRepository(s.DB)
 
 	// setup controllers
 	merchantController := controller.Merchant{
