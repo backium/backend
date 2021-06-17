@@ -9,60 +9,70 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type category struct {
+type item struct {
 	ID          string        `json:"id"`
 	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	CategoryID  string        `json:"category_id"`
 	LocationIDs []string      `json:"location_ids"`
 	MerchantID  string        `json:"merchant_id"`
 	Status      entity.Status `json:"status"`
 }
 
-func newCategory(cat entity.Category) category {
-	return category{
-		ID:          cat.ID,
-		Name:        cat.Name,
-		LocationIDs: cat.LocationIDs,
-		MerchantID:  cat.MerchantID,
-		Status:      cat.Status,
+func newItem(it entity.Item) item {
+	return item{
+		ID:          it.ID,
+		Name:        it.Name,
+		Description: it.Description,
+		CategoryID:  it.CategoryID,
+		LocationIDs: it.LocationIDs,
+		MerchantID:  it.MerchantID,
+		Status:      it.Status,
 	}
 }
 
-type createCategoryRequest struct {
+type createItemRequest struct {
 	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	CategoryID  string   `json:"category_id"`
 	LocationIDs []string `json:"location_ids"`
 }
 
-type updateCategoryRequest struct {
+type updateItemRequest struct {
 	ID          string   `param:"id"`
 	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	CategoryID  string   `json:"category_id"`
 	LocationIDs []string `json:"location_ids"`
 }
 
-type listAllCategoriesRequest struct {
+type listAllItemsRequest struct {
 	Limit  *int64 `query:"limit" validate:"omitempty,gte=1"`
 	Offset *int64 `query:"offset"`
 }
 
-type listCategoriesResponse struct {
-	Categories []category `json:"categories"`
+type listItemsResponse struct {
+	Items []item `json:"items"`
 }
 
-type Category struct {
-	Controller controller.Category
+type Item struct {
+	Controller controller.Item
 }
 
-func (h *Category) Create(c echo.Context) error {
-	const op = errors.Op("handler.Category.Create")
+func (h *Item) Create(c echo.Context) error {
+	const op = errors.Op("handler.Item.Create")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := createCategoryRequest{}
+	req := createItemRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cat := entity.Category{
+	cat := entity.Item{
 		Name:        req.Name,
+		Description: req.Description,
+		CategoryID:  req.CategoryID,
 		LocationIDs: req.LocationIDs,
 		MerchantID:  ac.MerchantID,
 	}
@@ -70,59 +80,61 @@ func (h *Category) Create(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newCategory(cat))
+	return c.JSON(http.StatusOK, newItem(cat))
 }
 
-func (h *Category) Update(c echo.Context) error {
-	const op = errors.Op("handler.Category.Update")
+func (h *Item) Update(c echo.Context) error {
+	const op = errors.Op("handler.Item.Update")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := updateCategoryRequest{}
+	req := updateItemRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cat := entity.Category{
+	it := entity.Item{
 		ID:          req.ID,
 		Name:        req.Name,
+		Description: req.Description,
+		CategoryID:  req.CategoryID,
 		LocationIDs: req.LocationIDs,
 		MerchantID:  ac.MerchantID,
 	}
-	cat, err := h.Controller.Update(c.Request().Context(), cat)
+	it, err := h.Controller.Update(c.Request().Context(), it)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newCategory(cat))
+	return c.JSON(http.StatusOK, newItem(it))
 }
 
-func (h *Category) Retrieve(c echo.Context) error {
-	const op = errors.Op("handler.Category.Retrieve")
+func (h *Item) Retrieve(c echo.Context) error {
+	const op = errors.Op("handler.Item.Retrieve")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	m, err := h.Controller.Retrieve(c.Request().Context(), controller.RetrieveCategoryRequest{
+	m, err := h.Controller.Retrieve(c.Request().Context(), controller.RetrieveItemRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	return c.JSON(http.StatusOK, newCategory(m))
+	return c.JSON(http.StatusOK, newItem(m))
 }
 
-func (h *Category) ListAll(c echo.Context) error {
-	const op = errors.Op("handler.Category.ListAll")
+func (h *Item) ListAll(c echo.Context) error {
+	const op = errors.Op("handler.Item.ListAll")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := listAllCategoriesRequest{}
+	req := listAllItemsRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cuss, err := h.Controller.ListAll(c.Request().Context(), controller.ListAllCategoriesRequest{
+	cuss, err := h.Controller.ListAll(c.Request().Context(), controller.ListAllItemsRequest{
 		Limit:      req.Limit,
 		Offset:     req.Offset,
 		MerchantID: ac.MerchantID,
@@ -130,25 +142,25 @@ func (h *Category) ListAll(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]category, len(cuss))
+	res := make([]item, len(cuss))
 	for i, cus := range cuss {
-		res[i] = newCategory(cus)
+		res[i] = newItem(cus)
 	}
-	return c.JSON(http.StatusOK, listCategoriesResponse{res})
+	return c.JSON(http.StatusOK, listItemsResponse{res})
 }
 
-func (h *Category) Delete(c echo.Context) error {
-	const op = errors.Op("handler.Category.Delete")
+func (h *Item) Delete(c echo.Context) error {
+	const op = errors.Op("handler.Item.Delete")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	cus, err := h.Controller.Delete(c.Request().Context(), controller.DeleteCategoryRequest{
+	cus, err := h.Controller.Delete(c.Request().Context(), controller.DeleteItemRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newCategory(cus))
+	return c.JSON(http.StatusOK, newItem(cus))
 }

@@ -57,11 +57,11 @@ func (c *Customer) Create(ctx context.Context, cus entity.Customer) (entity.Cust
 
 func (c *Customer) Update(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
 	const op = errors.Op("controller.Customer.Update")
-	loc, err := c.Repository.Update(ctx, cus)
+	cus, err := c.Repository.Update(ctx, cus)
 	if err != nil {
-		return loc, errors.E(op, err)
+		return cus, errors.E(op, err)
 	}
-	return loc, nil
+	return cus, nil
 }
 
 func (c *Customer) Retrieve(ctx context.Context, req RetrieveCustomerRequest) (entity.Customer, error) {
@@ -110,12 +110,12 @@ func (c *Customer) Delete(ctx context.Context, req DeleteCustomerRequest) (entit
 		return entity.Customer{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external customer")
 	}
 
-	loc, err := c.Repository.Update(ctx, entity.Customer{
+	cus, err = c.Repository.Update(ctx, entity.Customer{
 		ID:     req.ID,
 		Status: entity.StatusShadowDeleted,
 	})
 	if err != nil {
-		return loc, errors.E(op, err)
+		return cus, errors.E(op, err)
 	}
-	return loc, nil
+	return cus, nil
 }
