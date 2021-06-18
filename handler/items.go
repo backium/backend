@@ -32,18 +32,18 @@ func newItem(it entity.Item) item {
 }
 
 type createItemRequest struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	CategoryID  string   `json:"category_id"`
-	LocationIDs []string `json:"location_ids"`
+	Name        string    `json:"name" validate:"required"`
+	Description string    `json:"description" validate:"omitempty,max=100"`
+	CategoryID  string    `json:"category_id" validate:"required"`
+	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type updateItemRequest struct {
-	ID          string   `param:"id"`
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	CategoryID  string   `json:"category_id"`
-	LocationIDs []string `json:"location_ids"`
+	ID          string    `param:"id" validate:"required"`
+	Name        *string   `json:"name" validate:"omitempty,min=1"`
+	Description *string   `json:"description" validate:"omitempty,max=100"`
+	CategoryID  *string   `json:"category_id" validate:"omitempty,min=1"`
+	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type listAllItemsRequest struct {
@@ -69,43 +69,39 @@ func (h *Item) Create(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cat := entity.Item{
-		Name:        req.Name,
-		Description: req.Description,
-		CategoryID:  req.CategoryID,
-		LocationIDs: req.LocationIDs,
-		MerchantID:  ac.MerchantID,
+	it := entity.NewItem()
+	if req.LocationIDs != nil {
+		it.LocationIDs = *req.LocationIDs
 	}
-	cat, err := h.Controller.Create(c.Request().Context(), cat)
-	if err != nil {
-		return errors.E(op, err)
-	}
-	return c.JSON(http.StatusOK, newItem(cat))
-}
+	it.Name = req.Name
+	it.CategoryID = req.CategoryID
+	it.Description = req.Description
+	it.MerchantID = ac.MerchantID
 
-func (h *Item) Update(c echo.Context) error {
-	const op = errors.Op("handler.Item.Update")
-	ac, ok := c.(*AuthContext)
-	if !ok {
-		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
-	}
-	req := updateItemRequest{}
-	if err := bindAndValidate(c, &req); err != nil {
-		return err
-	}
-	it := entity.Item{
-		ID:          req.ID,
-		Name:        req.Name,
-		Description: req.Description,
-		CategoryID:  req.CategoryID,
-		LocationIDs: req.LocationIDs,
-		MerchantID:  ac.MerchantID,
-	}
-	it, err := h.Controller.Update(c.Request().Context(), it)
+	it, err := h.Controller.Create(c.Request().Context(), it)
 	if err != nil {
 		return errors.E(op, err)
 	}
 	return c.JSON(http.StatusOK, newItem(it))
+}
+
+func (h *Item) Update(c echo.Context) error {
+	const op = errors.Op("handler.Item.Update")
+	req := updateItemRequest{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+	it := controller.PartialItem{
+		Name:        req.Name,
+		Description: req.Description,
+		CategoryID:  req.CategoryID,
+		LocationIDs: req.LocationIDs,
+	}
+	uit, err := h.Controller.Update(c.Request().Context(), req.ID, it)
+	if err != nil {
+		return errors.E(op, err)
+	}
+	return c.JSON(http.StatusOK, newItem(uit))
 }
 
 func (h *Item) Retrieve(c echo.Context) error {
@@ -114,14 +110,14 @@ func (h *Item) Retrieve(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	m, err := h.Controller.Retrieve(c.Request().Context(), controller.RetrieveItemRequest{
+	it, err := h.Controller.Retrieve(c.Request().Context(), controller.RetrieveItemRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	return c.JSON(http.StatusOK, newItem(m))
+	return c.JSON(http.StatusOK, newItem(it))
 }
 
 func (h *Item) ListAll(c echo.Context) error {
@@ -134,7 +130,7 @@ func (h *Item) ListAll(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cuss, err := h.Controller.ListAll(c.Request().Context(), controller.ListAllItemsRequest{
+	its, err := h.Controller.ListAll(c.Request().Context(), controller.ListAllItemsRequest{
 		Limit:      req.Limit,
 		Offset:     req.Offset,
 		MerchantID: ac.MerchantID,
@@ -142,9 +138,9 @@ func (h *Item) ListAll(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]item, len(cuss))
-	for i, cus := range cuss {
-		res[i] = newItem(cus)
+	res := make([]item, len(its))
+	for i, it := range its {
+		res[i] = newItem(it)
 	}
 	return c.JSON(http.StatusOK, listItemsResponse{res})
 }
@@ -155,12 +151,12 @@ func (h *Item) Delete(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	cus, err := h.Controller.Delete(c.Request().Context(), controller.DeleteItemRequest{
+	it, err := h.Controller.Delete(c.Request().Context(), controller.DeleteItemRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newItem(cus))
+	return c.JSON(http.StatusOK, newItem(it))
 }
