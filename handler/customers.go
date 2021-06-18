@@ -6,10 +6,11 @@ import (
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
+	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
 )
 
-type customerResource struct {
+type customer struct {
 	ID         string        `json:"id"`
 	Name       string        `json:"name"`
 	Email      string        `json:"email"`
@@ -27,7 +28,7 @@ type address struct {
 	Department string `json:"department"`
 }
 
-func newCustomerResource(cus entity.Customer) customerResource {
+func newCustomer(cus entity.Customer) customer {
 	var addr *address
 	if cus.Address != nil {
 		addr = &address{
@@ -38,11 +39,11 @@ func newCustomerResource(cus entity.Customer) customerResource {
 			Department: cus.Address.Department,
 		}
 	}
-	return customerResource{
+	return customer{
 		ID:         cus.ID,
 		Name:       cus.Name,
 		Email:      cus.Email,
-		Phone:      cus.Phone,
+		Phone:      ptr.GetString(cus.Phone),
 		Address:    addr,
 		MerchantID: cus.MerchantID,
 		Status:     cus.Status,
@@ -70,16 +71,16 @@ func (req *createCustomerRequest) customer() entity.Customer {
 	return entity.Customer{
 		Name:    req.Name,
 		Email:   req.Email,
-		Phone:   req.Phone,
+		Phone:   &req.Phone,
 		Address: addr,
 	}
 }
 
 type updateCustomerRequest struct {
 	ID      string   `param:"id"`
-	Name    string   `json:"name"`
-	Email   string   `json:"email" validate:"omitempty,email"`
-	Phone   string   `json:"phone"`
+	Name    *string  `json:"name" validate:"omitempty,min=1"`
+	Email   *string  `json:"email" validate:"omitempty,email"`
+	Phone   *string  `json:"phone"`
 	Address *address `json:"address"`
 }
 
@@ -96,8 +97,8 @@ func (req *updateCustomerRequest) customer() entity.Customer {
 	}
 	return entity.Customer{
 		ID:      req.ID,
-		Name:    req.Name,
-		Email:   req.Email,
+		Name:    ptr.GetString(req.Name),
+		Email:   ptr.GetString(req.Email),
 		Phone:   req.Phone,
 		Address: addr,
 	}
@@ -109,7 +110,7 @@ type listAllCustomersRequest struct {
 }
 
 type listCustomersResponse struct {
-	Customers []customerResource `json:"customers"`
+	Customers []customer `json:"customers"`
 }
 
 type Customer struct {
@@ -132,7 +133,7 @@ func (h *Customer) Create(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newCustomerResource(cus))
+	return c.JSON(http.StatusOK, newCustomer(cus))
 }
 
 func (h *Customer) Update(c echo.Context) error {
@@ -151,7 +152,7 @@ func (h *Customer) Update(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newCustomerResource(cus))
+	return c.JSON(http.StatusOK, newCustomer(cus))
 }
 
 func (h *Customer) Retrieve(c echo.Context) error {
@@ -167,7 +168,7 @@ func (h *Customer) Retrieve(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
-	return c.JSON(http.StatusOK, newCustomerResource(m))
+	return c.JSON(http.StatusOK, newCustomer(m))
 }
 
 func (h *Customer) ListAll(c echo.Context) error {
@@ -188,9 +189,9 @@ func (h *Customer) ListAll(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]customerResource, len(cuss))
+	res := make([]customer, len(cuss))
 	for i, cus := range cuss {
-		res[i] = newCustomerResource(cus)
+		res[i] = newCustomer(cus)
 	}
 	return c.JSON(http.StatusOK, listCustomersResponse{res})
 }
@@ -208,5 +209,5 @@ func (h *Customer) Delete(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newCustomerResource(cus))
+	return c.JSON(http.StatusOK, newCustomer(cus))
 }

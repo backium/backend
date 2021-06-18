@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
@@ -37,12 +36,20 @@ type ListItemsFilter struct {
 	IDs         []string
 }
 
+type PartialItem struct {
+	Name        *string        `bson:"name,omitempty"`
+	Description *string        `bson:"description,omitempty"`
+	CategoryID  *string        `bson:"category_id,omitempty"`
+	LocationIDs *[]string      `bson:"location_ids,omitempty"`
+	Status      *entity.Status `bson:"status,omitempty"`
+}
+
 type ItemRepository interface {
-	Create(context.Context, entity.Item) (entity.Item, error)
-	Update(context.Context, entity.Item) (entity.Item, error)
+	Create(context.Context, entity.Item) (string, error)
+	Update(context.Context, entity.Item) error
+	UpdatePartial(context.Context, string, PartialItem) error
 	Retrieve(context.Context, string) (entity.Item, error)
 	List(context.Context, ListItemsFilter) ([]entity.Item, error)
-	Delete(context.Context, string) (entity.Item, error)
 }
 
 type Item struct {
@@ -51,22 +58,27 @@ type Item struct {
 
 func (c *Item) Create(ctx context.Context, it entity.Item) (entity.Item, error) {
 	const op = errors.Op("controller.Item.Create")
-	fmt.Println("item", it)
-	it, err := c.Repository.Create(ctx, it)
+	id, err := c.Repository.Create(ctx, it)
 	if err != nil {
-		return it, errors.E(op, err)
+		return entity.Item{}, err
+	}
+	it, err = c.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.Item{}, err
 	}
 	return it, nil
 }
 
-func (c *Item) Update(ctx context.Context, it entity.Item) (entity.Item, error) {
+func (c *Item) Update(ctx context.Context, id string, it PartialItem) (entity.Item, error) {
 	const op = errors.Op("controller.Item.Update")
-	fmt.Println("item", it)
-	it, err := c.Repository.Update(ctx, it)
-	if err != nil {
-		return it, errors.E(op, err)
+	if err := c.Repository.UpdatePartial(ctx, id, it); err != nil {
+		return entity.Item{}, errors.E(op, err)
 	}
-	return it, nil
+	uit, err := c.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.Item{}, err
+	}
+	return uit, nil
 }
 
 func (c *Item) Retrieve(ctx context.Context, req RetrieveItemRequest) (entity.Item, error) {
@@ -75,7 +87,6 @@ func (c *Item) Retrieve(ctx context.Context, req RetrieveItemRequest) (entity.It
 	if err != nil {
 		return entity.Item{}, errors.E(op, err)
 	}
-
 	if it.MerchantID != req.MerchantID {
 		return entity.Item{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external item")
 	}
@@ -115,12 +126,14 @@ func (c *Item) Delete(ctx context.Context, req DeleteItemRequest) (entity.Item, 
 		return entity.Item{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external item")
 	}
 
-	it, err = c.Repository.Update(ctx, entity.Item{
-		ID:     req.ID,
-		Status: entity.StatusShadowDeleted,
-	})
-	if err != nil {
-		return it, errors.E(op, err)
+	status := entity.StatusShadowDeleted
+	update := PartialItem{Status: &status}
+	if err := c.Repository.UpdatePartial(ctx, req.ID, update); err != nil {
+		return entity.Item{}, errors.E(op, err)
 	}
-	return it, nil
+	dit, err := c.Repository.Retrieve(ctx, req.ID)
+	if err != nil {
+		return entity.Item{}, err
+	}
+	return dit, nil
 }

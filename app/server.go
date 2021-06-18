@@ -9,15 +9,16 @@ import (
 )
 
 type Server struct {
-	Echo              *echo.Echo
-	DB                mongo.DB
-	merchantHandler   handler.Merchant
-	authHandler       handler.Auth
-	locationHandler   handler.Location
-	customerHandler   handler.Customer
-	categoryHandler   handler.Category
-	itemHandler       handler.Item
-	SessionRepository handler.SessionRepository
+	Echo                 *echo.Echo
+	DB                   mongo.DB
+	merchantHandler      handler.Merchant
+	authHandler          handler.Auth
+	locationHandler      handler.Location
+	customerHandler      handler.Customer
+	categoryHandler      handler.Category
+	itemHandler          handler.Item
+	itemVariationHandler handler.ItemVariation
+	SessionRepository    handler.SessionRepository
 }
 
 func (s *Server) Setup() error {
@@ -41,6 +42,7 @@ func (s *Server) setupHandlers() {
 	customerRepository := mongo.NewCustomerRepository(s.DB)
 	categoryRepository := mongo.NewCategoryRepository(s.DB)
 	itemRepository := mongo.NewItemRepository(s.DB)
+	itemVariationRepository := mongo.NewItemVariationRepository(s.DB)
 
 	// setup controllers
 	merchantController := controller.Merchant{
@@ -63,6 +65,9 @@ func (s *Server) setupHandlers() {
 	itemController := controller.Item{
 		Repository: itemRepository,
 	}
+	itemVariationController := controller.ItemVariation{
+		Repository: itemVariationRepository,
+	}
 
 	// setup handlers
 	s.authHandler = handler.Auth{
@@ -83,6 +88,9 @@ func (s *Server) setupHandlers() {
 	}
 	s.itemHandler = handler.Item{
 		Controller: itemController,
+	}
+	s.itemVariationHandler = handler.ItemVariation{
+		Controller: itemVariationController,
 	}
 }
 

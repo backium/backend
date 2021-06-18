@@ -29,7 +29,7 @@ func NewItemRepository(db DB) controller.ItemRepository {
 	}
 }
 
-func (r *itemRepository) Create(ctx context.Context, cus entity.Item) (entity.Item, error) {
+func (r *itemRepository) Create(ctx context.Context, cus entity.Item) (string, error) {
 	const op = errors.Op("mongo.itemRepository.Create")
 	if cus.ID == "" {
 		cus.ID = generateID(itemIDPrefix)
@@ -37,27 +37,37 @@ func (r *itemRepository) Create(ctx context.Context, cus entity.Item) (entity.It
 	cus.Status = entity.StatusActive
 	id, err := r.driver.insertOne(ctx, cus)
 	if err != nil {
-		return entity.Item{}, errors.E(op, err)
+		return "", errors.E(op, err)
 	}
-	return r.Retrieve(ctx, id)
+	return id, nil
 }
 
-func (r *itemRepository) Update(ctx context.Context, cus entity.Item) (entity.Item, error) {
+func (r *itemRepository) Update(ctx context.Context, it entity.Item) error {
 	const op = errors.Op("mongo.itemRepository.Update")
-	filter := bson.M{"_id": cus.ID}
-	query := bson.M{"$set": cus}
+	filter := bson.M{"_id": it.ID}
+	query := bson.M{"$set": it}
 	res, err := r.collection.UpdateOne(ctx, filter, query)
 	if err != nil {
-		return entity.Item{}, errors.E(op, errors.KindUnexpected, err)
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	if res.MatchedCount == 0 {
-		return entity.Item{}, errors.E(op, errors.KindNotFound, "item not found")
+		return errors.E(op, errors.KindNotFound, "item not found")
 	}
-	cus, err = r.Retrieve(ctx, cus.ID)
+	return nil
+}
+
+func (r *itemRepository) UpdatePartial(ctx context.Context, id string, it controller.PartialItem) error {
+	const op = errors.Op("mongo.itemRepository.Update")
+	filter := bson.M{"_id": id}
+	query := bson.M{"$set": it}
+	res, err := r.collection.UpdateOne(ctx, filter, query)
 	if err != nil {
-		return entity.Item{}, errors.E(op, err)
+		return errors.E(op, errors.KindUnexpected, err)
 	}
-	return cus, nil
+	if res.MatchedCount == 0 {
+		return errors.E(op, errors.KindNotFound, "item not found")
+	}
+	return nil
 }
 
 func (r *itemRepository) Retrieve(ctx context.Context, id string) (entity.Item, error) {
@@ -96,16 +106,4 @@ func (r *itemRepository) List(ctx context.Context, fil controller.ListItemsFilte
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
 	return cuss, nil
-}
-
-func (r *itemRepository) Delete(ctx context.Context, id string) (entity.Item, error) {
-	const op = errors.Op("mongo.itemRepository.Delete")
-	loc, err := r.Update(ctx, entity.Item{
-		ID:     id,
-		Status: entity.StatusShadowDeleted,
-	})
-	if err != nil {
-		return loc, errors.E(op, err)
-	}
-	return loc, nil
 }
