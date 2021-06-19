@@ -13,7 +13,7 @@ import (
 
 const (
 	categoryIDPrefix       = "cat"
-	categoryCollectionName = "categorys"
+	categoryCollectionName = "categories"
 )
 
 type categoryRepository struct {
@@ -29,45 +29,55 @@ func NewCategoryRepository(db DB) controller.CategoryRepository {
 	}
 }
 
-func (r *categoryRepository) Create(ctx context.Context, cus entity.Category) (entity.Category, error) {
+func (r *categoryRepository) Create(ctx context.Context, cat entity.Category) (string, error) {
 	const op = errors.Op("mongo.categoryRepository.Create")
-	if cus.ID == "" {
-		cus.ID = generateID(categoryIDPrefix)
+	if cat.ID == "" {
+		cat.ID = generateID(categoryIDPrefix)
 	}
-	cus.Status = entity.StatusActive
-	id, err := r.driver.insertOne(ctx, cus)
+	cat.Status = entity.StatusActive
+	id, err := r.driver.insertOne(ctx, cat)
 	if err != nil {
-		return entity.Category{}, errors.E(op, err)
+		return "", errors.E(op, err)
 	}
-	return r.Retrieve(ctx, id)
+	return id, nil
 }
 
-func (r *categoryRepository) Update(ctx context.Context, cus entity.Category) (entity.Category, error) {
+func (r *categoryRepository) Update(ctx context.Context, cat entity.Category) error {
 	const op = errors.Op("mongo.categoryRepository.Update")
-	filter := bson.M{"_id": cus.ID}
-	query := bson.M{"$set": cus}
+	filter := bson.M{"_id": cat.ID}
+	query := bson.M{"$set": cat}
 	res, err := r.collection.UpdateOne(ctx, filter, query)
 	if err != nil {
-		return entity.Category{}, errors.E(op, errors.KindUnexpected, err)
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	if res.MatchedCount == 0 {
-		return entity.Category{}, errors.E(op, errors.KindNotFound, "category not found")
+		return errors.E(op, errors.KindNotFound, "category not found")
 	}
-	cus, err = r.Retrieve(ctx, cus.ID)
+	return nil
+}
+
+func (r *categoryRepository) UpdatePartial(ctx context.Context, id string, cat controller.PartialCategory) error {
+	const op = errors.Op("mongo.categoryRepository.Update")
+	filter := bson.M{"_id": id}
+	query := bson.M{"$set": cat}
+	res, err := r.collection.UpdateOne(ctx, filter, query)
 	if err != nil {
-		return entity.Category{}, errors.E(op, err)
+		return errors.E(op, errors.KindUnexpected, err)
 	}
-	return cus, nil
+	if res.MatchedCount == 0 {
+		return errors.E(op, errors.KindNotFound, "category not found")
+	}
+	return nil
 }
 
 func (r *categoryRepository) Retrieve(ctx context.Context, id string) (entity.Category, error) {
 	const op = errors.Op("mongo.categoryRepository.Retrieve")
-	cusr := entity.Category{}
+	cat := entity.Category{}
 	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
+	if err := r.driver.findOneAndDecode(ctx, &cat, filter); err != nil {
 		return entity.Category{}, errors.E(op, err)
 	}
-	return cusr, nil
+	return cat, nil
 }
 
 func (r *categoryRepository) List(ctx context.Context, fil controller.ListCategoriesFilter) ([]entity.Category, error) {
@@ -91,21 +101,9 @@ func (r *categoryRepository) List(ctx context.Context, fil controller.ListCatego
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var cuss []entity.Category
-	if err := res.All(ctx, &cuss); err != nil {
+	var cats []entity.Category
+	if err := res.All(ctx, &cats); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	return cuss, nil
-}
-
-func (r *categoryRepository) Delete(ctx context.Context, id string) (entity.Category, error) {
-	const op = errors.Op("mongo.categoryRepository.Delete")
-	loc, err := r.Update(ctx, entity.Category{
-		ID:     id,
-		Status: entity.StatusShadowDeleted,
-	})
-	if err != nil {
-		return loc, errors.E(op, err)
-	}
-	return loc, nil
+	return cats, nil
 }

@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/entity"
@@ -25,12 +24,10 @@ func NewMerchantRepository(db DB) controller.MerchantRepository {
 
 func (r *merchantRepository) Create(m entity.Merchant) (entity.Merchant, error) {
 	m.ID = generateID(merchantIDPrefix)
-	fmt.Printf("merchat %+v", m)
 	res, err := r.collection.InsertOne(context.TODO(), m)
 	if err != nil {
 		return entity.Merchant{}, err
 	}
-	fmt.Println("res", res)
 	id := res.InsertedID.(string)
 	return r.Retrieve(id)
 }

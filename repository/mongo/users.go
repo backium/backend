@@ -27,14 +27,14 @@ func NewUserRepository(db DB) controller.UserRepository {
 	}
 }
 
-func (r *userRepository) Create(ctx context.Context, u entity.User) (entity.User, error) {
+func (r *userRepository) Create(ctx context.Context, u entity.User) (string, error) {
 	u.ID = generateID(userIDPrefix)
 	res, err := r.collection.InsertOne(ctx, u)
 	if err != nil {
-		return entity.User{}, err
+		return "", err
 	}
 	id := res.InsertedID.(string)
-	return r.Retrieve(ctx, id)
+	return id, nil
 }
 
 func (r *userRepository) Retrieve(ctx context.Context, id string) (entity.User, error) {

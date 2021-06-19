@@ -8,7 +8,7 @@ import (
 )
 
 type UserRepository interface {
-	Create(context.Context, entity.User) (entity.User, error)
+	Create(context.Context, entity.User) (string, error)
 	Retrieve(context.Context, string) (entity.User, error)
 	RetrieveByEmail(context.Context, string) (entity.User, error)
 }
@@ -57,14 +57,18 @@ func (uc *User) Create(ctx context.Context, req CreateUserRequest) (entity.User,
 	if err != nil {
 		return user, errors.E(op, errors.KindUnexpected, err)
 	}
-	user, err = uc.Repository.Create(ctx, entity.User{
+	id, err := uc.Repository.Create(ctx, entity.User{
 		Email:        req.Email,
 		PasswordHash: hash,
 		Kind:         entity.UserKindOwner,
 		MerchantID:   m.ID,
 	})
 	if err != nil {
-		return user, errors.E(op, errors.KindUnexpected, err)
+		return entity.User{}, errors.E(op, errors.KindUnexpected, err)
+	}
+	user, err = uc.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.User{}, errors.E(op, err)
 	}
 	return user, nil
 }

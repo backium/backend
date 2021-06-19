@@ -6,8 +6,8 @@ type UserKind string
 
 const (
 	UserKindOwner    UserKind = "owner"
-	UserKindEmployee          = "employee"
-	UserKindSuper             = "super"
+	UserKindEmployee UserKind = "employee"
+	UserKindSuper    UserKind = "super"
 )
 
 type User struct {
