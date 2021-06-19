@@ -12,7 +12,7 @@ import (
 type locationResource struct {
 	ID           string        `json:"id"`
 	Name         string        `json:"name"`
-	BusinessName string        `json:"business_name"`
+	BusinessName string        `json:"business_name,omitempty"`
 	MerchantID   string        `json:"merchant_id"`
 	Status       entity.Status `json:"status"`
 }
@@ -28,13 +28,14 @@ func newLocationResource(loc entity.Location) locationResource {
 }
 
 type createLocationRequest struct {
-	Name         string `json:"name"`
+	Name         string `json:"name" validate:"required"`
 	BusinessName string `json:"business_name"`
 }
 
 type updateLocationRequest struct {
-	Name         string `json:"name"`
-	BusinessName string `json:"business_name"`
+	ID           string  `json:"id" param:"id" validate:"required"`
+	Name         *string `json:"name" validate:"omitempty,min=1"`
+	BusinessName *string `json:"business_name" validate:"omitempty"`
 }
 
 type listAllLocationsRequest struct {
@@ -60,11 +61,13 @@ func (h *Location) Create(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	loc, err := h.Controller.Create(c.Request().Context(), entity.Location{
-		Name:         req.Name,
-		BusinessName: req.BusinessName,
-		MerchantID:   ac.MerchantID,
-	})
+
+	loc := entity.NewLocation()
+	loc.Name = req.Name
+	loc.BusinessName = req.BusinessName
+	loc.MerchantID = ac.MerchantID
+
+	loc, err := h.Controller.Create(c.Request().Context(), loc)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -73,24 +76,20 @@ func (h *Location) Create(c echo.Context) error {
 
 func (h *Location) Update(c echo.Context) error {
 	const op = errors.Op("handler.Location.Update")
-	ac, ok := c.(*AuthContext)
-	if !ok {
-		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
-	}
 	req := updateLocationRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	loc, err := h.Controller.Update(c.Request().Context(), entity.Location{
-		ID:           c.Param("id"),
+	loc := controller.PartialLocation{
 		Name:         req.Name,
 		BusinessName: req.BusinessName,
-		MerchantID:   ac.MerchantID,
-	})
+	}
+
+	uloc, err := h.Controller.Update(c.Request().Context(), req.ID, loc)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newLocationResource(loc))
+	return c.JSON(http.StatusOK, newLocationResource(uloc))
 }
 
 func (h *Location) Retrieve(c echo.Context) error {
