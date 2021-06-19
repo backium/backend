@@ -28,14 +28,14 @@ func newCategory(cat entity.Category) category {
 }
 
 type createCategoryRequest struct {
-	Name        string   `json:"name"`
-	LocationIDs []string `json:"location_ids"`
+	Name        string    `json:"name" validate:"required"`
+	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type updateCategoryRequest struct {
-	ID          string   `param:"id"`
-	Name        string   `json:"name"`
-	LocationIDs []string `json:"location_ids"`
+	ID          string    `param:"id" validate:"required"`
+	Name        *string   `json:"name" validate:"omitempty,min=1"`
+	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type listAllCategoriesRequest struct {
@@ -61,11 +61,13 @@ func (h *Category) Create(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cat := entity.Category{
-		Name:        req.Name,
-		LocationIDs: req.LocationIDs,
-		MerchantID:  ac.MerchantID,
+	cat := entity.NewCategory()
+	if req.LocationIDs != nil {
+		cat.LocationIDs = *req.LocationIDs
 	}
+	cat.Name = req.Name
+	cat.MerchantID = ac.MerchantID
+
 	cat, err := h.Controller.Create(c.Request().Context(), cat)
 	if err != nil {
 		return errors.E(op, err)
@@ -75,25 +77,19 @@ func (h *Category) Create(c echo.Context) error {
 
 func (h *Category) Update(c echo.Context) error {
 	const op = errors.Op("handler.Category.Update")
-	ac, ok := c.(*AuthContext)
-	if !ok {
-		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
-	}
 	req := updateCategoryRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cat := entity.Category{
-		ID:          req.ID,
+	cat := controller.PartialCategory{
 		Name:        req.Name,
 		LocationIDs: req.LocationIDs,
-		MerchantID:  ac.MerchantID,
 	}
-	cat, err := h.Controller.Update(c.Request().Context(), cat)
+	ucat, err := h.Controller.Update(c.Request().Context(), req.ID, cat)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newCategory(cat))
+	return c.JSON(http.StatusOK, newCategory(ucat))
 }
 
 func (h *Category) Retrieve(c echo.Context) error {
@@ -107,7 +103,7 @@ func (h *Category) Retrieve(c echo.Context) error {
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return errors.E(op, err)
 	}
 	return c.JSON(http.StatusOK, newCategory(m))
 }

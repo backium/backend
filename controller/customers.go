@@ -131,7 +131,7 @@ func (c *Customer) Delete(ctx context.Context, req DeleteCustomerRequest) (entit
 	}
 	dcus, err := c.Repository.Retrieve(ctx, req.ID)
 	if err != nil {
-		return entity.Customer{}, err
+		return entity.Customer{}, errors.E(op, err)
 	}
 	return dcus, nil
 }

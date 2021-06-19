@@ -35,48 +35,59 @@ type ListCategoriesFilter struct {
 	MerchantID  string
 	IDs         []string
 }
+type PartialCategory struct {
+	Name        *string        `bson:"name,omitempty"`
+	LocationIDs *[]string      `bson:"location_ids,omitempty"`
+	Status      *entity.Status `bson:"status,omitempty"`
+}
 
 type CategoryRepository interface {
-	Create(context.Context, entity.Category) (entity.Category, error)
-	Update(context.Context, entity.Category) (entity.Category, error)
+	Create(context.Context, entity.Category) (string, error)
+	Update(context.Context, entity.Category) error
+	UpdatePartial(context.Context, string, PartialCategory) error
 	Retrieve(context.Context, string) (entity.Category, error)
 	List(context.Context, ListCategoriesFilter) ([]entity.Category, error)
-	Delete(context.Context, string) (entity.Category, error)
 }
 
 type Category struct {
 	Repository CategoryRepository
 }
 
-func (c *Category) Create(ctx context.Context, cus entity.Category) (entity.Category, error) {
+func (c *Category) Create(ctx context.Context, cat entity.Category) (entity.Category, error) {
 	const op = errors.Op("controller.Category.Create")
-	cus, err := c.Repository.Create(ctx, cus)
+	id, err := c.Repository.Create(ctx, cat)
 	if err != nil {
-		return cus, errors.E(op, err)
+		return entity.Category{}, errors.E(op, err)
 	}
-	return cus, nil
+	ncat, err := c.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.Category{}, errors.E(op, err)
+	}
+	return ncat, nil
 }
 
-func (c *Category) Update(ctx context.Context, cus entity.Category) (entity.Category, error) {
+func (c *Category) Update(ctx context.Context, id string, cat PartialCategory) (entity.Category, error) {
 	const op = errors.Op("controller.Category.Update")
-	loc, err := c.Repository.Update(ctx, cus)
-	if err != nil {
-		return loc, errors.E(op, err)
+	if err := c.Repository.UpdatePartial(ctx, id, cat); err != nil {
+		return entity.Category{}, errors.E(op, err)
 	}
-	return loc, nil
+	ucat, err := c.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.Category{}, errors.E(op, err)
+	}
+	return ucat, nil
 }
 
 func (c *Category) Retrieve(ctx context.Context, req RetrieveCategoryRequest) (entity.Category, error) {
 	const op = errors.Op("controller.Category.Retrieve")
-	cus, err := c.Repository.Retrieve(ctx, req.ID)
+	cat, err := c.Repository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return entity.Category{}, errors.E(op, err)
 	}
-
-	if cus.MerchantID != req.MerchantID {
+	if cat.MerchantID != req.MerchantID {
 		return entity.Category{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external category")
 	}
-	return cus, nil
+	return cat, nil
 }
 
 func (c *Category) ListAll(ctx context.Context, req ListAllCategoriesRequest) ([]entity.Category, error) {
@@ -103,21 +114,23 @@ func (c *Category) ListAll(ctx context.Context, req ListAllCategoriesRequest) ([
 
 func (c *Category) Delete(ctx context.Context, req DeleteCategoryRequest) (entity.Category, error) {
 	const op = errors.Op("controller.Category.Delete")
-	cus, err := c.Repository.Retrieve(ctx, req.ID)
+	cat, err := c.Repository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return entity.Category{}, errors.E(op, err)
 	}
 
-	if cus.MerchantID != req.MerchantID {
+	if cat.MerchantID != req.MerchantID {
 		return entity.Category{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external category")
 	}
 
-	loc, err := c.Repository.Update(ctx, entity.Category{
-		ID:     req.ID,
-		Status: entity.StatusShadowDeleted,
-	})
-	if err != nil {
-		return loc, errors.E(op, err)
+	status := entity.StatusShadowDeleted
+	update := PartialCategory{Status: &status}
+	if err := c.Repository.UpdatePartial(ctx, req.ID, update); err != nil {
+		return entity.Category{}, errors.E(op, err)
 	}
-	return loc, nil
+	dcat, err := c.Repository.Retrieve(ctx, req.ID)
+	if err != nil {
+		return entity.Category{}, errors.E(op, err)
+	}
+	return dcat, nil
 }

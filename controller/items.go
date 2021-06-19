@@ -133,7 +133,7 @@ func (c *Item) Delete(ctx context.Context, req DeleteItemRequest) (entity.Item, 
 	}
 	dit, err := c.Repository.Retrieve(ctx, req.ID)
 	if err != nil {
-		return entity.Item{}, err
+		return entity.Item{}, errors.E(op, err)
 	}
 	return dit, nil
 }

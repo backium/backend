@@ -135,7 +135,7 @@ func (c *ItemVariation) Delete(ctx context.Context, req DeleteItemVariationReque
 	}
 	ditvar, err := c.Repository.Retrieve(ctx, req.ID)
 	if err != nil {
-		return entity.ItemVariation{}, err
+		return entity.ItemVariation{}, errors.E(op, err)
 	}
 	return ditvar, nil
 }

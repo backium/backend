@@ -115,7 +115,7 @@ func (h *Item) Retrieve(c echo.Context) error {
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return errors.E(op, err)
 	}
 	return c.JSON(http.StatusOK, newItem(it))
 }
