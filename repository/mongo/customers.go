@@ -29,7 +29,7 @@ func NewCustomerRepository(db DB) controller.CustomerRepository {
 	}
 }
 
-func (r *customerRepository) Create(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
+func (r *customerRepository) Create(ctx context.Context, cus entity.Customer) (string, error) {
 	const op = errors.Op("mongo.customerRepository.Create")
 	if cus.ID == "" {
 		cus.ID = generateID(customerIDPrefix)
@@ -37,27 +37,37 @@ func (r *customerRepository) Create(ctx context.Context, cus entity.Customer) (e
 	cus.Status = entity.StatusActive
 	id, err := r.driver.insertOne(ctx, cus)
 	if err != nil {
-		return entity.Customer{}, errors.E(op, err)
+		return "", errors.E(op, err)
 	}
-	return r.Retrieve(ctx, id)
+	return id, nil
 }
 
-func (r *customerRepository) Update(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
+func (r *customerRepository) Update(ctx context.Context, cus entity.Customer) error {
 	const op = errors.Op("mongo.customerRepository.Update")
 	filter := bson.M{"_id": cus.ID}
 	query := bson.M{"$set": cus}
 	res, err := r.collection.UpdateOne(ctx, filter, query)
 	if err != nil {
-		return entity.Customer{}, errors.E(op, errors.KindUnexpected, err)
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	if res.MatchedCount == 0 {
-		return entity.Customer{}, errors.E(op, errors.KindNotFound, "customer not found")
+		return errors.E(op, errors.KindNotFound, "customer not found")
 	}
-	cus, err = r.Retrieve(ctx, cus.ID)
+	return nil
+}
+
+func (r *customerRepository) UpdatePartial(ctx context.Context, id string, cus controller.PartialCustomer) error {
+	const op = errors.Op("mongo.customerRepository.Update")
+	filter := bson.M{"_id": id}
+	query := bson.M{"$set": cus}
+	res, err := r.collection.UpdateOne(ctx, filter, query)
 	if err != nil {
-		return entity.Customer{}, errors.E(op, err)
+		return errors.E(op, errors.KindUnexpected, err)
 	}
-	return cus, nil
+	if res.MatchedCount == 0 {
+		return errors.E(op, errors.KindNotFound, "customer not found")
+	}
+	return nil
 }
 
 func (r *customerRepository) Retrieve(ctx context.Context, id string) (entity.Customer, error) {
@@ -93,16 +103,4 @@ func (r *customerRepository) List(ctx context.Context, fil controller.ListCustom
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
 	return cuss, nil
-}
-
-func (r *customerRepository) Delete(ctx context.Context, id string) (entity.Customer, error) {
-	const op = errors.Op("mongo.customerRepository.Delete")
-	loc, err := r.Update(ctx, entity.Customer{
-		ID:     id,
-		Status: entity.StatusShadowDeleted,
-	})
-	if err != nil {
-		return loc, errors.E(op, err)
-	}
-	return loc, nil
 }

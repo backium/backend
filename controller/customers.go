@@ -34,12 +34,20 @@ type ListCustomersFilter struct {
 	IDs        []string
 }
 
+type PartialCustomer struct {
+	Name    *string         `bson:"name,omitempty"`
+	Email   *string         `bson:"email,omitempty"`
+	Phone   *string         `bson:"phone,omitempty"`
+	Address *entity.Address `bson:"address,omitempty"`
+	Status  *entity.Status  `bson:"status,omitempty"`
+}
+
 type CustomerRepository interface {
-	Create(context.Context, entity.Customer) (entity.Customer, error)
-	Update(context.Context, entity.Customer) (entity.Customer, error)
+	Create(context.Context, entity.Customer) (string, error)
+	Update(context.Context, entity.Customer) error
+	UpdatePartial(context.Context, string, PartialCustomer) error
 	Retrieve(context.Context, string) (entity.Customer, error)
 	List(context.Context, ListCustomersFilter) ([]entity.Customer, error)
-	Delete(context.Context, string) (entity.Customer, error)
 }
 
 type Customer struct {
@@ -48,20 +56,27 @@ type Customer struct {
 
 func (c *Customer) Create(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
 	const op = errors.Op("controller.Customer.Create")
-	cus, err := c.Repository.Create(ctx, cus)
+	id, err := c.Repository.Create(ctx, cus)
 	if err != nil {
-		return cus, errors.E(op, err)
+		return entity.Customer{}, err
 	}
-	return cus, nil
+	ccus, err := c.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.Customer{}, err
+	}
+	return ccus, nil
 }
 
-func (c *Customer) Update(ctx context.Context, cus entity.Customer) (entity.Customer, error) {
+func (c *Customer) Update(ctx context.Context, id string, cus PartialCustomer) (entity.Customer, error) {
 	const op = errors.Op("controller.Customer.Update")
-	cus, err := c.Repository.Update(ctx, cus)
-	if err != nil {
-		return cus, errors.E(op, err)
+	if err := c.Repository.UpdatePartial(ctx, id, cus); err != nil {
+		return entity.Customer{}, errors.E(op, err)
 	}
-	return cus, nil
+	ucus, err := c.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.Customer{}, err
+	}
+	return ucus, nil
 }
 
 func (c *Customer) Retrieve(ctx context.Context, req RetrieveCustomerRequest) (entity.Customer, error) {
@@ -70,7 +85,6 @@ func (c *Customer) Retrieve(ctx context.Context, req RetrieveCustomerRequest) (e
 	if err != nil {
 		return entity.Customer{}, errors.E(op, err)
 	}
-
 	if cus.MerchantID != req.MerchantID {
 		return entity.Customer{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external customer")
 	}
@@ -101,21 +115,23 @@ func (c *Customer) ListAll(ctx context.Context, req ListAllCustomersRequest) ([]
 
 func (c *Customer) Delete(ctx context.Context, req DeleteCustomerRequest) (entity.Customer, error) {
 	const op = errors.Op("controller.Customer.Delete")
-	cus, err := c.Repository.Retrieve(ctx, req.ID)
+	it, err := c.Repository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return entity.Customer{}, errors.E(op, err)
 	}
 
-	if cus.MerchantID != req.MerchantID {
+	if it.MerchantID != req.MerchantID {
 		return entity.Customer{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external customer")
 	}
 
-	cus, err = c.Repository.Update(ctx, entity.Customer{
-		ID:     req.ID,
-		Status: entity.StatusShadowDeleted,
-	})
-	if err != nil {
-		return cus, errors.E(op, err)
+	status := entity.StatusShadowDeleted
+	update := PartialCustomer{Status: &status}
+	if err := c.Repository.UpdatePartial(ctx, req.ID, update); err != nil {
+		return entity.Customer{}, errors.E(op, err)
 	}
-	return cus, nil
+	dcus, err := c.Repository.Retrieve(ctx, req.ID)
+	if err != nil {
+		return entity.Customer{}, err
+	}
+	return dcus, nil
 }

@@ -8,7 +8,7 @@ import (
 func bindAndValidate(c echo.Context, req interface{}) error {
 	const op = errors.Op("handler.bindAndValidate")
 	if err := c.Bind(req); err != nil {
-		return errors.E(op, errors.KindUnexpected, err)
+		return errors.E(op, errors.KindValidation, err)
 	}
 
 	if err := c.Validate(req); err != nil {

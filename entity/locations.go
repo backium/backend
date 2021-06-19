@@ -7,3 +7,10 @@ type Location struct {
 	MerchantID   string `bson:"merchant_id,omitempty"`
 	Status       Status `bson:"status,omitempty"`
 }
+
+// Creates a Customer with default values
+func NewLocation() Location {
+	return Location{
+		Status: StatusActive,
+	}
+}

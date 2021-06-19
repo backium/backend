@@ -34,34 +34,47 @@ type ListLocationsFilter struct {
 	IDs        []string
 }
 
+type PartialLocation struct {
+	Name         *string        `bson:"name,omitempty"`
+	BusinessName *string        `bson:"business_name,omitempty"`
+	Status       *entity.Status `bson:"status,omitempty"`
+}
+
 type LocationRepository interface {
-	Create(context.Context, entity.Location) (entity.Location, error)
-	Update(context.Context, entity.Location) (entity.Location, error)
+	Create(context.Context, entity.Location) (string, error)
+	Update(context.Context, entity.Location) error
+	UpdatePartial(context.Context, string, PartialLocation) error
 	Retrieve(context.Context, string) (entity.Location, error)
 	List(context.Context, ListLocationsFilter) ([]entity.Location, error)
-	Delete(context.Context, string) (entity.Location, error)
 }
 
 type Location struct {
 	Repository LocationRepository
 }
 
-func (c *Location) Create(ctx context.Context, l entity.Location) (entity.Location, error) {
+func (c *Location) Create(ctx context.Context, loc entity.Location) (entity.Location, error) {
 	const op = errors.Op("controller.Location.Create")
-	loc, err := c.Repository.Create(ctx, l)
+	id, err := c.Repository.Create(ctx, loc)
 	if err != nil {
-		return loc, errors.E(op, err)
+		return entity.Location{}, errors.E(op, err)
+	}
+	loc, err = c.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.Location{}, err
 	}
 	return loc, nil
 }
 
-func (c *Location) Update(ctx context.Context, l entity.Location) (entity.Location, error) {
+func (c *Location) Update(ctx context.Context, id string, loc PartialLocation) (entity.Location, error) {
 	const op = errors.Op("controller.Location.Update")
-	loc, err := c.Repository.Update(ctx, l)
-	if err != nil {
-		return loc, errors.E(op, err)
+	if err := c.Repository.UpdatePartial(ctx, id, loc); err != nil {
+		return entity.Location{}, errors.E(op, err)
 	}
-	return loc, nil
+	uloc, err := c.Repository.Retrieve(ctx, id)
+	if err != nil {
+		return entity.Location{}, err
+	}
+	return uloc, nil
 }
 
 func (c *Location) Retrieve(ctx context.Context, req RetrieveLocationRequest) (entity.Location, error) {
@@ -101,21 +114,23 @@ func (c *Location) ListAll(ctx context.Context, req ListAllLocationsRequest) ([]
 
 func (c *Location) Delete(ctx context.Context, req DeleteLocationRequest) (entity.Location, error) {
 	const op = errors.Op("controller.Location.Delete")
-	l, err := c.Repository.Retrieve(ctx, req.ID)
+	loc, err := c.Repository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return entity.Location{}, errors.E(op, err)
 	}
 
-	if l.MerchantID != req.MerchantID {
+	if loc.MerchantID != req.MerchantID {
 		return entity.Location{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external location")
 	}
 
-	loc, err := c.Repository.Update(ctx, entity.Location{
-		ID:     req.ID,
-		Status: entity.StatusShadowDeleted,
-	})
-	if err != nil {
-		return loc, errors.E(op, err)
+	status := entity.StatusShadowDeleted
+	update := PartialLocation{Status: &status}
+	if err := c.Repository.UpdatePartial(ctx, req.ID, update); err != nil {
+		return entity.Location{}, errors.E(op, err)
 	}
-	return loc, nil
+	dloc, err := c.Repository.Retrieve(ctx, req.ID)
+	if err != nil {
+		return entity.Location{}, err
+	}
+	return dloc, nil
 }

@@ -29,37 +29,43 @@ func NewLocationRepository(db DB) controller.LocationRepository {
 	}
 }
 
-func (r *locationRepository) Create(ctx context.Context, loc entity.Location) (entity.Location, error) {
+func (r *locationRepository) Create(ctx context.Context, loc entity.Location) (string, error) {
 	const op = errors.Op("mongo.locationRepository.Create")
 	loc.ID = generateID(locationIDPrefix)
 	loc.Status = entity.StatusActive
 	id, err := r.driver.insertOne(ctx, loc)
 	if err != nil {
-		return entity.Location{}, errors.E(op, err)
+		return "", errors.E(op, err)
 	}
-	loc, err = r.Retrieve(ctx, id)
-	if err != nil {
-		return entity.Location{}, errors.E(op, err)
-	}
-	return loc, err
+	return id, err
 }
 
-func (r *locationRepository) Update(ctx context.Context, loc entity.Location) (entity.Location, error) {
+func (r *locationRepository) Update(ctx context.Context, loc entity.Location) error {
 	const op = errors.Op("mongo.locationRepository.Update")
 	fil := bson.M{"_id": loc.ID}
 	query := bson.M{"$set": loc}
 	res, err := r.collection.UpdateOne(ctx, fil, query)
 	if err != nil {
-		return entity.Location{}, errors.E(op, errors.KindUnexpected, err)
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	if res.MatchedCount == 0 {
-		return entity.Location{}, errors.E(op, errors.KindNotFound, "location not found")
+		return errors.E(op, errors.KindNotFound, "location not found")
 	}
-	loc, err = r.Retrieve(ctx, loc.ID)
+	return nil
+}
+
+func (r *locationRepository) UpdatePartial(ctx context.Context, id string, loc controller.PartialLocation) error {
+	const op = errors.Op("mongo.locationRepository.Update")
+	fil := bson.M{"_id": id}
+	query := bson.M{"$set": loc}
+	res, err := r.collection.UpdateOne(ctx, fil, query)
 	if err != nil {
-		return loc, errors.E(op, err)
+		return errors.E(op, errors.KindUnexpected, err)
 	}
-	return loc, nil
+	if res.MatchedCount == 0 {
+		return errors.E(op, errors.KindNotFound, "location not found")
+	}
+	return nil
 }
 
 func (r *locationRepository) Retrieve(ctx context.Context, id string) (entity.Location, error) {
@@ -92,13 +98,4 @@ func (r *locationRepository) List(ctx context.Context, fil controller.ListLocati
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
 	return locs, nil
-}
-
-func (r *locationRepository) Delete(ctx context.Context, id string) (entity.Location, error) {
-	const op = errors.Op("mongo.locationRepository.Delete")
-	loc, err := r.Update(ctx, entity.Location{ID: id, Status: entity.StatusShadowDeleted})
-	if err != nil {
-		return loc, errors.E(op, err)
-	}
-	return loc, nil
 }

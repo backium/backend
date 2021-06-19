@@ -6,7 +6,6 @@ import (
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
-	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
 )
 
@@ -15,23 +14,30 @@ type customer struct {
 	Name       string        `json:"name"`
 	Email      string        `json:"email"`
 	Phone      string        `json:"phone"`
-	Address    *address      `json:"address"`
+	Address    *address      `json:"address,omitempty"`
 	MerchantID string        `json:"merchant_id"`
 	Status     entity.Status `json:"status"`
 }
 
 type address struct {
-	Line1      string `json:"line1"`
-	Line2      string `json:"line2"`
-	District   string `json:"district"`
-	Province   string `json:"province"`
-	Department string `json:"department"`
+	Line1      string `json:"line1,omitempty"`
+	Line2      string `json:"line2,omitempty"`
+	District   string `json:"district,omitempty"`
+	Province   string `json:"province,omitempty"`
+	Department string `json:"department,omitempty"`
 }
 
 func newCustomer(cus entity.Customer) customer {
-	var addr *address
+	cusr := customer{
+		ID:         cus.ID,
+		Name:       cus.Name,
+		Email:      cus.Email,
+		Phone:      cus.Phone,
+		MerchantID: cus.MerchantID,
+		Status:     cus.Status,
+	}
 	if cus.Address != nil {
-		addr = &address{
+		cusr.Address = &address{
 			Line1:      cus.Address.Line1,
 			Line2:      cus.Address.Line2,
 			District:   cus.Address.District,
@@ -39,15 +45,7 @@ func newCustomer(cus entity.Customer) customer {
 			Department: cus.Address.Department,
 		}
 	}
-	return customer{
-		ID:         cus.ID,
-		Name:       cus.Name,
-		Email:      cus.Email,
-		Phone:      ptr.GetString(cus.Phone),
-		Address:    addr,
-		MerchantID: cus.MerchantID,
-		Status:     cus.Status,
-	}
+	return cusr
 }
 
 type createCustomerRequest struct {
@@ -57,51 +55,12 @@ type createCustomerRequest struct {
 	Address *address `json:"address"`
 }
 
-func (req *createCustomerRequest) customer() entity.Customer {
-	var addr *entity.Address
-	if req.Address != nil {
-		addr = &entity.Address{
-			Line1:      req.Address.Line1,
-			Line2:      req.Address.Line2,
-			District:   req.Address.District,
-			Province:   req.Address.Province,
-			Department: req.Address.Department,
-		}
-	}
-	return entity.Customer{
-		Name:    req.Name,
-		Email:   req.Email,
-		Phone:   &req.Phone,
-		Address: addr,
-	}
-}
-
 type updateCustomerRequest struct {
 	ID      string   `param:"id"`
 	Name    *string  `json:"name" validate:"omitempty,min=1"`
 	Email   *string  `json:"email" validate:"omitempty,email"`
 	Phone   *string  `json:"phone"`
 	Address *address `json:"address"`
-}
-
-func (req *updateCustomerRequest) customer() entity.Customer {
-	var addr *entity.Address
-	if req.Address != nil {
-		addr = &entity.Address{
-			Line1:      req.Address.Line1,
-			Line2:      req.Address.Line2,
-			District:   req.Address.District,
-			Province:   req.Address.Province,
-			Department: req.Address.Department,
-		}
-	}
-	return entity.Customer{
-		ID:      req.ID,
-		Name:    ptr.GetString(req.Name),
-		Email:   ptr.GetString(req.Email),
-		Phone:   req.Phone,
-		Address: addr,
-	}
 }
 
 type listAllCustomersRequest struct {
@@ -127,7 +86,19 @@ func (h *Customer) Create(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cus := req.customer()
+	cus := entity.NewCustomer()
+	if req.Address != nil {
+		cus.Address = &entity.Address{
+			Line1:      req.Address.Line1,
+			Line2:      req.Address.Line2,
+			District:   req.Address.District,
+			Province:   req.Address.Province,
+			Department: req.Address.Department,
+		}
+	}
+	cus.Name = req.Name
+	cus.Email = req.Email
+	cus.Phone = req.Phone
 	cus.MerchantID = ac.MerchantID
 	cus, err := h.Controller.Create(c.Request().Context(), cus)
 	if err != nil {
@@ -138,21 +109,29 @@ func (h *Customer) Create(c echo.Context) error {
 
 func (h *Customer) Update(c echo.Context) error {
 	const op = errors.Op("handler.Customer.Update")
-	ac, ok := c.(*AuthContext)
-	if !ok {
-		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
-	}
 	req := updateCustomerRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cus := req.customer()
-	cus.MerchantID = ac.MerchantID
-	cus, err := h.Controller.Update(c.Request().Context(), cus)
+	cus := controller.PartialCustomer{
+		Name:  req.Name,
+		Email: req.Email,
+		Phone: req.Phone,
+	}
+	if req.Address != nil {
+		cus.Address = &entity.Address{
+			Line1:      req.Address.Line1,
+			Line2:      req.Address.Line2,
+			Department: req.Address.Department,
+			District:   req.Address.District,
+			Province:   req.Address.Province,
+		}
+	}
+	ucus, err := h.Controller.Update(c.Request().Context(), req.ID, cus)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newCustomer(cus))
+	return c.JSON(http.StatusOK, newCustomer(ucus))
 }
 
 func (h *Customer) Retrieve(c echo.Context) error {
