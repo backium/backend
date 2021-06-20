@@ -18,6 +18,7 @@ type Server struct {
 	categoryHandler      handler.Category
 	itemHandler          handler.Item
 	itemVariationHandler handler.ItemVariation
+	taxHandler           handler.Tax
 	SessionRepository    handler.SessionRepository
 }
 
@@ -43,6 +44,7 @@ func (s *Server) setupHandlers() {
 	categoryRepository := mongo.NewCategoryRepository(s.DB)
 	itemRepository := mongo.NewItemRepository(s.DB)
 	itemVariationRepository := mongo.NewItemVariationRepository(s.DB)
+	taxRepository := mongo.NewTaxRepository(s.DB)
 
 	// setup controllers
 	merchantController := controller.Merchant{
@@ -68,6 +70,9 @@ func (s *Server) setupHandlers() {
 	itemVariationController := controller.ItemVariation{
 		Repository: itemVariationRepository,
 	}
+	taxController := controller.Tax{
+		Repository: taxRepository,
+	}
 
 	// setup handlers
 	s.authHandler = handler.Auth{
@@ -91,6 +96,9 @@ func (s *Server) setupHandlers() {
 	}
 	s.itemVariationHandler = handler.ItemVariation{
 		Controller: itemVariationController,
+	}
+	s.taxHandler = handler.Tax{
+		Controller: taxController,
 	}
 }
 
