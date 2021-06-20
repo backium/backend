@@ -3,8 +3,8 @@ package mongo
 import (
 	"context"
 
-	"github.com/backium/backend/controller"
-	"github.com/backium/backend/entity"
+	"github.com/backium/backend/base"
+	"github.com/backium/backend/catalog"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,7 +21,7 @@ type categoryRepository struct {
 	driver     *mongoDriver
 }
 
-func NewCategoryRepository(db DB) controller.CategoryRepository {
+func NewCategoryRepository(db DB) catalog.CategoryRepository {
 	coll := db.Collection(categoryCollectionName)
 	return &categoryRepository{
 		collection: coll,
@@ -29,12 +29,12 @@ func NewCategoryRepository(db DB) controller.CategoryRepository {
 	}
 }
 
-func (r *categoryRepository) Create(ctx context.Context, cat entity.Category) (string, error) {
+func (r *categoryRepository) Create(ctx context.Context, cat catalog.Category) (string, error) {
 	const op = errors.Op("mongo.categoryRepository.Create")
 	if cat.ID == "" {
 		cat.ID = generateID(categoryIDPrefix)
 	}
-	cat.Status = entity.StatusActive
+	cat.Status = base.StatusActive
 	id, err := r.driver.insertOne(ctx, cat)
 	if err != nil {
 		return "", errors.E(op, err)
@@ -42,7 +42,7 @@ func (r *categoryRepository) Create(ctx context.Context, cat entity.Category) (s
 	return id, nil
 }
 
-func (r *categoryRepository) Update(ctx context.Context, cat entity.Category) error {
+func (r *categoryRepository) Update(ctx context.Context, cat catalog.Category) error {
 	const op = errors.Op("mongo.categoryRepository.Update")
 	filter := bson.M{"_id": cat.ID}
 	query := bson.M{"$set": cat}
@@ -56,7 +56,7 @@ func (r *categoryRepository) Update(ctx context.Context, cat entity.Category) er
 	return nil
 }
 
-func (r *categoryRepository) UpdatePartial(ctx context.Context, id string, cat controller.PartialCategory) error {
+func (r *categoryRepository) UpdatePartial(ctx context.Context, id string, cat catalog.CategoryPartial) error {
 	const op = errors.Op("mongo.categoryRepository.Update")
 	filter := bson.M{"_id": id}
 	query := bson.M{"$set": cat}
@@ -70,23 +70,23 @@ func (r *categoryRepository) UpdatePartial(ctx context.Context, id string, cat c
 	return nil
 }
 
-func (r *categoryRepository) Retrieve(ctx context.Context, id string) (entity.Category, error) {
+func (r *categoryRepository) Retrieve(ctx context.Context, id string) (catalog.Category, error) {
 	const op = errors.Op("mongo.categoryRepository.Retrieve")
-	cat := entity.Category{}
+	cat := catalog.Category{}
 	filter := bson.M{"_id": id}
 	if err := r.driver.findOneAndDecode(ctx, &cat, filter); err != nil {
-		return entity.Category{}, errors.E(op, err)
+		return catalog.Category{}, errors.E(op, err)
 	}
 	return cat, nil
 }
 
-func (r *categoryRepository) List(ctx context.Context, fil controller.ListCategoriesFilter) ([]entity.Category, error) {
+func (r *categoryRepository) List(ctx context.Context, fil catalog.CategoryFilter) ([]catalog.Category, error) {
 	const op = errors.Op("mongo.categoryRepository.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": entity.StatusShadowDeleted}}
+	mfil := bson.M{"status": bson.M{"$ne": base.StatusShadowDeleted}}
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}
@@ -101,7 +101,7 @@ func (r *categoryRepository) List(ctx context.Context, fil controller.ListCatego
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var cats []entity.Category
+	var cats []catalog.Category
 	if err := res.All(ctx, &cats); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

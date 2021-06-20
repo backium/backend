@@ -1,4 +1,4 @@
-package entity
+package base
 
 type Status string
 

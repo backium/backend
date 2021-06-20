@@ -1,4 +1,4 @@
-package entity
+package base
 
 type Address struct {
 	Line1      string `bson:"line1,omitempty"`

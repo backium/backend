@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 
+	"github.com/backium/backend/base"
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
@@ -32,7 +33,7 @@ func NewLocationRepository(db DB) controller.LocationRepository {
 func (r *locationRepository) Create(ctx context.Context, loc entity.Location) (string, error) {
 	const op = errors.Op("mongo.locationRepository.Create")
 	loc.ID = generateID(locationIDPrefix)
-	loc.Status = entity.StatusActive
+	loc.Status = base.StatusActive
 	id, err := r.driver.insertOne(ctx, loc)
 	if err != nil {
 		return "", errors.E(op, err)
@@ -84,7 +85,7 @@ func (r *locationRepository) List(ctx context.Context, fil controller.ListLocati
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": entity.StatusShadowDeleted}}
+	mfil := bson.M{"status": bson.M{"$ne": base.StatusShadowDeleted}}
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}

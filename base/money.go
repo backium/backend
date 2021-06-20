@@ -1,4 +1,4 @@
-package entity
+package base
 
 type Money struct {
 	Amount   int64  `bson:"amount"`

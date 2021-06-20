@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/backium/backend/base"
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
@@ -10,13 +11,13 @@ import (
 )
 
 type customer struct {
-	ID         string        `json:"id"`
-	Name       string        `json:"name"`
-	Email      string        `json:"email"`
-	Phone      string        `json:"phone"`
-	Address    *address      `json:"address,omitempty"`
-	MerchantID string        `json:"merchant_id"`
-	Status     entity.Status `json:"status"`
+	ID         string      `json:"id"`
+	Name       string      `json:"name"`
+	Email      string      `json:"email"`
+	Phone      string      `json:"phone"`
+	Address    *address    `json:"address,omitempty"`
+	MerchantID string      `json:"merchant_id"`
+	Status     base.Status `json:"status"`
 }
 
 type address struct {
@@ -88,7 +89,7 @@ func (h *Customer) Create(c echo.Context) error {
 	}
 	cus := entity.NewCustomer()
 	if req.Address != nil {
-		cus.Address = &entity.Address{
+		cus.Address = &base.Address{
 			Line1:      req.Address.Line1,
 			Line2:      req.Address.Line2,
 			District:   req.Address.District,
@@ -119,7 +120,7 @@ func (h *Customer) Update(c echo.Context) error {
 		Phone: req.Phone,
 	}
 	if req.Address != nil {
-		cus.Address = &entity.Address{
+		cus.Address = &base.Address{
 			Line1:      req.Address.Line1,
 			Line2:      req.Address.Line2,
 			Department: req.Address.Department,

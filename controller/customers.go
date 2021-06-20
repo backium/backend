@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 
+	"github.com/backium/backend/base"
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
 )
@@ -35,11 +36,11 @@ type ListCustomersFilter struct {
 }
 
 type PartialCustomer struct {
-	Name    *string         `bson:"name,omitempty"`
-	Email   *string         `bson:"email,omitempty"`
-	Phone   *string         `bson:"phone,omitempty"`
-	Address *entity.Address `bson:"address,omitempty"`
-	Status  *entity.Status  `bson:"status,omitempty"`
+	Name    *string       `bson:"name,omitempty"`
+	Email   *string       `bson:"email,omitempty"`
+	Phone   *string       `bson:"phone,omitempty"`
+	Address *base.Address `bson:"address,omitempty"`
+	Status  *base.Status  `bson:"status,omitempty"`
 }
 
 type CustomerRepository interface {
@@ -124,7 +125,7 @@ func (c *Customer) Delete(ctx context.Context, req DeleteCustomerRequest) (entit
 		return entity.Customer{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external customer")
 	}
 
-	status := entity.StatusShadowDeleted
+	status := base.StatusShadowDeleted
 	update := PartialCustomer{Status: &status}
 	if err := c.Repository.UpdatePartial(ctx, req.ID, update); err != nil {
 		return entity.Customer{}, errors.E(op, err)

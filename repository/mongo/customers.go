@@ -3,6 +3,7 @@ package mongo
 import (
 	"context"
 
+	"github.com/backium/backend/base"
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
@@ -34,7 +35,7 @@ func (r *customerRepository) Create(ctx context.Context, cus entity.Customer) (s
 	if cus.ID == "" {
 		cus.ID = generateID(customerIDPrefix)
 	}
-	cus.Status = entity.StatusActive
+	cus.Status = base.StatusActive
 	id, err := r.driver.insertOne(ctx, cus)
 	if err != nil {
 		return "", errors.E(op, err)
@@ -86,7 +87,7 @@ func (r *customerRepository) List(ctx context.Context, fil controller.ListCustom
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": entity.StatusShadowDeleted}}
+	mfil := bson.M{"status": bson.M{"$ne": base.StatusShadowDeleted}}
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}

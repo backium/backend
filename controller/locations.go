@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 
+	"github.com/backium/backend/base"
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
 )
@@ -35,9 +36,9 @@ type ListLocationsFilter struct {
 }
 
 type PartialLocation struct {
-	Name         *string        `bson:"name,omitempty"`
-	BusinessName *string        `bson:"business_name,omitempty"`
-	Status       *entity.Status `bson:"status,omitempty"`
+	Name         *string      `bson:"name,omitempty"`
+	BusinessName *string      `bson:"business_name,omitempty"`
+	Status       *base.Status `bson:"status,omitempty"`
 }
 
 type LocationRepository interface {
@@ -123,7 +124,7 @@ func (c *Location) Delete(ctx context.Context, req DeleteLocationRequest) (entit
 		return entity.Location{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external location")
 	}
 
-	status := entity.StatusShadowDeleted
+	status := base.StatusShadowDeleted
 	update := PartialLocation{Status: &status}
 	if err := c.Repository.UpdatePartial(ctx, req.ID, update); err != nil {
 		return entity.Location{}, errors.E(op, err)

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/backium/backend/base"
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/entity"
 	"github.com/backium/backend/errors"
@@ -10,11 +11,11 @@ import (
 )
 
 type locationResource struct {
-	ID           string        `json:"id"`
-	Name         string        `json:"name"`
-	BusinessName string        `json:"business_name,omitempty"`
-	MerchantID   string        `json:"merchant_id"`
-	Status       entity.Status `json:"status"`
+	ID           string      `json:"id"`
+	Name         string      `json:"name"`
+	BusinessName string      `json:"business_name,omitempty"`
+	MerchantID   string      `json:"merchant_id"`
+	Status       base.Status `json:"status"`
 }
 
 func newLocationResource(loc entity.Location) locationResource {

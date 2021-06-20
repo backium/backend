@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/backium/backend/catalog"
 	"github.com/backium/backend/controller"
 	"github.com/backium/backend/handler"
 	"github.com/backium/backend/repository/mongo"
@@ -47,31 +48,19 @@ func (s *Server) setupHandlers() {
 	taxRepository := mongo.NewTaxRepository(s.DB)
 
 	// setup controllers
-	merchantController := controller.Merchant{
-		Repository: merchantRepository,
-	}
+	locationController := controller.Location{Repository: locationRepository}
+	customerController := controller.Customer{Repository: customerRepository}
+	merchantController := controller.Merchant{Repository: merchantRepository}
 	userController := controller.User{
 		Repository:         userRepository,
 		MerchantRepository: merchantRepository,
 		LocationRepository: locationRepository,
 	}
-	locationController := controller.Location{
-		Repository: locationRepository,
-	}
-	customerController := controller.Customer{
-		Repository: customerRepository,
-	}
-	categoryController := controller.Category{
-		Repository: categoryRepository,
-	}
-	itemController := controller.Item{
-		Repository: itemRepository,
-	}
-	itemVariationController := controller.ItemVariation{
-		Repository: itemVariationRepository,
-	}
-	taxController := controller.Tax{
-		Repository: taxRepository,
+	catalogController := catalog.Controller{
+		CategoryRepository:      categoryRepository,
+		ItemRepository:          itemRepository,
+		ItemVariationRepository: itemVariationRepository,
+		TaxRepository:           taxRepository,
 	}
 
 	// setup handlers
@@ -79,27 +68,13 @@ func (s *Server) setupHandlers() {
 		Controller:        userController,
 		SessionRepository: s.SessionRepository,
 	}
-	s.merchantHandler = handler.Merchant{
-		Controller: merchantController,
-	}
-	s.locationHandler = handler.Location{
-		Controller: locationController,
-	}
-	s.customerHandler = handler.Customer{
-		Controller: customerController,
-	}
-	s.categoryHandler = handler.Category{
-		Controller: categoryController,
-	}
-	s.itemHandler = handler.Item{
-		Controller: itemController,
-	}
-	s.itemVariationHandler = handler.ItemVariation{
-		Controller: itemVariationController,
-	}
-	s.taxHandler = handler.Tax{
-		Controller: taxController,
-	}
+	s.merchantHandler = handler.Merchant{Controller: merchantController}
+	s.locationHandler = handler.Location{Controller: locationController}
+	s.customerHandler = handler.Customer{Controller: customerController}
+	s.itemVariationHandler = handler.ItemVariation{Controller: catalogController}
+	s.categoryHandler = handler.Category{Controller: catalogController}
+	s.itemHandler = handler.Item{Controller: catalogController}
+	s.taxHandler = handler.Tax{Controller: catalogController}
 }
 
 func (s *Server) ListenAndServe(port string) {
