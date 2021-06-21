@@ -1,4 +1,4 @@
-package base
+package core
 
 type Status string
 

@@ -1,4 +1,4 @@
-package base
+package core
 
 type Money struct {
 	Amount   int64  `bson:"amount"`
