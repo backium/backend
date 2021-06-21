@@ -20,6 +20,7 @@ type Server struct {
 	itemHandler          handler.Item
 	itemVariationHandler handler.ItemVariation
 	taxHandler           handler.Tax
+	discountHandler      handler.Discount
 	SessionRepository    handler.SessionRepository
 }
 
@@ -46,6 +47,7 @@ func (s *Server) setupHandlers() {
 	itemRepository := mongo.NewItemRepository(s.DB)
 	itemVariationRepository := mongo.NewItemVariationRepository(s.DB)
 	taxRepository := mongo.NewTaxRepository(s.DB)
+	discountRepository := mongo.NewDiscountRepository(s.DB)
 
 	// setup controllers
 	locationController := controller.Location{Repository: locationRepository}
@@ -61,6 +63,7 @@ func (s *Server) setupHandlers() {
 		ItemRepository:          itemRepository,
 		ItemVariationRepository: itemVariationRepository,
 		TaxRepository:           taxRepository,
+		DiscountRepository:      discountRepository,
 	}
 
 	// setup handlers
@@ -75,6 +78,7 @@ func (s *Server) setupHandlers() {
 	s.categoryHandler = handler.Category{Controller: catalogController}
 	s.itemHandler = handler.Item{Controller: catalogController}
 	s.taxHandler = handler.Tax{Controller: catalogController}
+	s.discountHandler = handler.Discount{Controller: catalogController}
 }
 
 func (s *Server) ListenAndServe(port string) {

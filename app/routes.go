@@ -56,6 +56,12 @@ func (s *Server) setupRoutes() {
 	userGroup.POST("/taxes", s.taxHandler.Create)
 	userGroup.PUT("/taxes/:id", s.taxHandler.Update)
 	userGroup.DELETE("/taxes/:id", s.taxHandler.Delete)
+
+	userGroup.GET("/discounts/:id", s.discountHandler.Retrieve)
+	userGroup.GET("/discounts", s.discountHandler.ListAll)
+	userGroup.POST("/discounts", s.discountHandler.Create)
+	userGroup.PUT("/discounts/:id", s.discountHandler.Update)
+	userGroup.DELETE("/discounts/:id", s.discountHandler.Delete)
 }
 
 func (s *Server) loggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {

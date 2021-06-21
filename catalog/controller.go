@@ -12,6 +12,7 @@ const (
 	maxReturnedItems          = 50
 	maxReturnedItemVariations = 50
 	maxReturnedTaxes          = 50
+	maxReturnedDiscounts      = 50
 )
 
 type Controller struct {
@@ -19,6 +20,7 @@ type Controller struct {
 	ItemRepository          ItemRepository
 	ItemVariationRepository ItemVariationRepository
 	TaxRepository           TaxRepository
+	DiscountRepository      DiscountRepository
 }
 
 func (c *Controller) CreateCategory(ctx context.Context, cat Category) (Category, error) {
@@ -350,6 +352,89 @@ func (c *Controller) DeleteTax(ctx context.Context, req TaxDeleteRequest) (Tax, 
 	return dit, nil
 }
 
+func (c *Controller) CreateDiscount(ctx context.Context, it Discount) (Discount, error) {
+	const op = errors.Op("controller.Discount.Create")
+	id, err := c.DiscountRepository.Create(ctx, it)
+	if err != nil {
+		return Discount{}, err
+	}
+	it, err = c.DiscountRepository.Retrieve(ctx, id)
+	if err != nil {
+		return Discount{}, err
+	}
+	return it, nil
+}
+
+func (c *Controller) UpdateDiscount(ctx context.Context, id string, it DiscountPartial) (Discount, error) {
+	const op = errors.Op("controller.Discount.Update")
+	if err := c.DiscountRepository.UpdatePartial(ctx, id, it); err != nil {
+		return Discount{}, errors.E(op, err)
+	}
+	uit, err := c.DiscountRepository.Retrieve(ctx, id)
+	if err != nil {
+		return Discount{}, err
+	}
+	return uit, nil
+}
+
+func (c *Controller) RetrieveDiscount(ctx context.Context, req DiscountRetrieveRequest) (Discount, error) {
+	const op = errors.Op("controller.Discount.Retrieve")
+	it, err := c.DiscountRepository.Retrieve(ctx, req.ID)
+	if err != nil {
+		return Discount{}, errors.E(op, err)
+	}
+	if it.MerchantID != req.MerchantID {
+		return Discount{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external Discount")
+	}
+	return it, nil
+}
+
+func (c *Controller) ListDiscount(ctx context.Context, req DiscountListRequest) ([]Discount, error) {
+	const op = errors.Op("controller.Discount.ListAll")
+	limit := int64(maxReturnedDiscounts)
+	offset := int64(0)
+	if req.Limit != nil {
+		limit = *req.Limit
+	}
+	if req.Offset != nil {
+		offset = *req.Offset
+	}
+
+	its, err := c.DiscountRepository.List(ctx, DiscountFilter{
+		MerchantID: req.MerchantID,
+		Limit:      limit,
+		Offset:     offset,
+	})
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+	return its, nil
+}
+
+func (c *Controller) DeleteDiscount(ctx context.Context, req DiscountDeleteRequest) (Discount, error) {
+	const op = errors.Op("controller.Discount.Delete")
+	it, err := c.DiscountRepository.Retrieve(ctx, req.ID)
+	if err != nil {
+		return Discount{}, errors.E(op, err)
+	}
+
+	if it.MerchantID != req.MerchantID {
+		return Discount{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external discount")
+	}
+
+	status := base.StatusShadowDeleted
+	update := DiscountPartial{Status: &status}
+	if err := c.DiscountRepository.UpdatePartial(ctx, req.ID, update); err != nil {
+		return Discount{}, errors.E(op, err)
+	}
+	dit, err := c.DiscountRepository.Retrieve(ctx, req.ID)
+	if err != nil {
+		return Discount{}, errors.E(op, err)
+	}
+	return dit, nil
+}
+
+
 type CategoryRetrieveRequest struct {
 	ID         string
 	MerchantID string
@@ -443,6 +528,31 @@ type TaxListRequest struct {
 }
 
 type TaxFilter struct {
+	Limit       int64
+	Offset      int64
+	LocationIDs []string
+	MerchantID  string
+	IDs         []string
+}
+
+type DiscountRetrieveRequest struct {
+	ID         string
+	MerchantID string
+}
+
+type DiscountDeleteRequest struct {
+	ID         string
+	MerchantID string
+}
+
+type DiscountListRequest struct {
+	Limit       *int64
+	Offset      *int64
+	LocationIDs []string
+	MerchantID  string
+}
+
+type DiscountFilter struct {
 	Limit       int64
 	Offset      int64
 	LocationIDs []string

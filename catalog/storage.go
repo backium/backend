@@ -35,3 +35,11 @@ type TaxRepository interface {
 	Retrieve(context.Context, string) (Tax, error)
 	List(context.Context, TaxFilter) ([]Tax, error)
 }
+
+type DiscountRepository interface {
+	Create(context.Context, Discount) (string, error)
+	Update(context.Context, Discount) error
+	UpdatePartial(context.Context, string, DiscountPartial) error
+	Retrieve(context.Context, string) (Discount, error)
+	List(context.Context, DiscountFilter) ([]Discount, error)
+}
