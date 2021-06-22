@@ -6,8 +6,6 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-const maxReturnedTaxes = 50
-
 type TaxPartial struct {
 	Name        *string   `bson:"name,omitempty"`
 	Percentage  *int      `bson:"percentage,omitempty"`
@@ -39,38 +37,34 @@ type TaxRepository interface {
 	List(context.Context, TaxFilter) ([]Tax, error)
 }
 
-type TaxService struct {
-	TaxRepository TaxRepository
-}
-
-func (c *TaxService) CreateTax(ctx context.Context, it Tax) (Tax, error) {
+func (svc *CatalogService) CreateTax(ctx context.Context, it Tax) (Tax, error) {
 	const op = errors.Op("controller.Tax.Create")
-	id, err := c.TaxRepository.Create(ctx, it)
+	id, err := svc.TaxRepository.Create(ctx, it)
 	if err != nil {
 		return Tax{}, err
 	}
-	it, err = c.TaxRepository.Retrieve(ctx, id)
+	it, err = svc.TaxRepository.Retrieve(ctx, id)
 	if err != nil {
 		return Tax{}, err
 	}
 	return it, nil
 }
 
-func (c *TaxService) UpdateTax(ctx context.Context, id string, it TaxPartial) (Tax, error) {
+func (svc *CatalogService) UpdateTax(ctx context.Context, id string, it TaxPartial) (Tax, error) {
 	const op = errors.Op("controller.Tax.Update")
-	if err := c.TaxRepository.UpdatePartial(ctx, id, it); err != nil {
+	if err := svc.TaxRepository.UpdatePartial(ctx, id, it); err != nil {
 		return Tax{}, errors.E(op, err)
 	}
-	uit, err := c.TaxRepository.Retrieve(ctx, id)
+	uit, err := svc.TaxRepository.Retrieve(ctx, id)
 	if err != nil {
 		return Tax{}, err
 	}
 	return uit, nil
 }
 
-func (c *TaxService) RetrieveTax(ctx context.Context, req TaxRetrieveRequest) (Tax, error) {
+func (svc *CatalogService) RetrieveTax(ctx context.Context, req TaxRetrieveRequest) (Tax, error) {
 	const op = errors.Op("controller.Tax.Retrieve")
-	it, err := c.TaxRepository.Retrieve(ctx, req.ID)
+	it, err := svc.TaxRepository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
@@ -80,7 +74,7 @@ func (c *TaxService) RetrieveTax(ctx context.Context, req TaxRetrieveRequest) (T
 	return it, nil
 }
 
-func (c *TaxService) ListTax(ctx context.Context, req TaxListRequest) ([]Tax, error) {
+func (svc *CatalogService) ListTax(ctx context.Context, req TaxListRequest) ([]Tax, error) {
 	const op = errors.Op("controller.Tax.ListAll")
 	limit := int64(maxReturnedTaxes)
 	offset := int64(0)
@@ -91,7 +85,7 @@ func (c *TaxService) ListTax(ctx context.Context, req TaxListRequest) ([]Tax, er
 		offset = *req.Offset
 	}
 
-	its, err := c.TaxRepository.List(ctx, TaxFilter{
+	its, err := svc.TaxRepository.List(ctx, TaxFilter{
 		MerchantID: req.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
@@ -102,9 +96,9 @@ func (c *TaxService) ListTax(ctx context.Context, req TaxListRequest) ([]Tax, er
 	return its, nil
 }
 
-func (c *TaxService) DeleteTax(ctx context.Context, req TaxDeleteRequest) (Tax, error) {
+func (svc *CatalogService) DeleteTax(ctx context.Context, req TaxDeleteRequest) (Tax, error) {
 	const op = errors.Op("controller.Tax.Delete")
-	it, err := c.TaxRepository.Retrieve(ctx, req.ID)
+	it, err := svc.TaxRepository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
@@ -115,10 +109,10 @@ func (c *TaxService) DeleteTax(ctx context.Context, req TaxDeleteRequest) (Tax, 
 
 	status := StatusShadowDeleted
 	update := TaxPartial{Status: &status}
-	if err := c.TaxRepository.UpdatePartial(ctx, req.ID, update); err != nil {
+	if err := svc.TaxRepository.UpdatePartial(ctx, req.ID, update); err != nil {
 		return Tax{}, errors.E(op, err)
 	}
-	dit, err := c.TaxRepository.Retrieve(ctx, req.ID)
+	dit, err := svc.TaxRepository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}

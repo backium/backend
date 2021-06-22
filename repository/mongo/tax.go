@@ -3,8 +3,7 @@ package mongo
 import (
 	"context"
 
-	"github.com/backium/backend/base"
-	"github.com/backium/backend/catalog"
+	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,7 +20,7 @@ type taxRepository struct {
 	driver     *mongoDriver
 }
 
-func NewTaxRepository(db DB) catalog.TaxRepository {
+func NewTaxRepository(db DB) core.TaxRepository {
 	coll := db.Collection(taxCollectionName)
 	return &taxRepository{
 		collection: coll,
@@ -29,12 +28,12 @@ func NewTaxRepository(db DB) catalog.TaxRepository {
 	}
 }
 
-func (r *taxRepository) Create(ctx context.Context, tax catalog.Tax) (string, error) {
+func (r *taxRepository) Create(ctx context.Context, tax core.Tax) (string, error) {
 	const op = errors.Op("mongo.taxRepository.Create")
 	if tax.ID == "" {
 		tax.ID = generateID(taxIDPrefix)
 	}
-	tax.Status = base.StatusActive
+	tax.Status = core.StatusActive
 	id, err := r.driver.insertOne(ctx, tax)
 	if err != nil {
 		return "", errors.E(op, err)
@@ -42,7 +41,7 @@ func (r *taxRepository) Create(ctx context.Context, tax catalog.Tax) (string, er
 	return id, nil
 }
 
-func (r *taxRepository) Update(ctx context.Context, it catalog.Tax) error {
+func (r *taxRepository) Update(ctx context.Context, it core.Tax) error {
 	const op = errors.Op("mongo.taxRepository.Update")
 	filter := bson.M{"_id": it.ID}
 	query := bson.M{"$set": it}
@@ -56,7 +55,7 @@ func (r *taxRepository) Update(ctx context.Context, it catalog.Tax) error {
 	return nil
 }
 
-func (r *taxRepository) UpdatePartial(ctx context.Context, id string, it catalog.TaxPartial) error {
+func (r *taxRepository) UpdatePartial(ctx context.Context, id string, it core.TaxPartial) error {
 	const op = errors.Op("mongo.taxRepository.Update")
 	filter := bson.M{"_id": id}
 	query := bson.M{"$set": it}
@@ -70,23 +69,23 @@ func (r *taxRepository) UpdatePartial(ctx context.Context, id string, it catalog
 	return nil
 }
 
-func (r *taxRepository) Retrieve(ctx context.Context, id string) (catalog.Tax, error) {
+func (r *taxRepository) Retrieve(ctx context.Context, id string) (core.Tax, error) {
 	const op = errors.Op("mongo.taxRepository.Retrieve")
-	tax := catalog.Tax{}
+	tax := core.Tax{}
 	filter := bson.M{"_id": id}
 	if err := r.driver.findOneAndDecode(ctx, &tax, filter); err != nil {
-		return catalog.Tax{}, errors.E(op, err)
+		return core.Tax{}, errors.E(op, err)
 	}
 	return tax, nil
 }
 
-func (r *taxRepository) List(ctx context.Context, fil catalog.TaxFilter) ([]catalog.Tax, error) {
+func (r *taxRepository) List(ctx context.Context, fil core.TaxFilter) ([]core.Tax, error) {
 	const op = errors.Op("mongo.taxRepository.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": base.StatusShadowDeleted}}
+	mfil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}
@@ -101,7 +100,7 @@ func (r *taxRepository) List(ctx context.Context, fil catalog.TaxFilter) ([]cata
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var taxes []catalog.Tax
+	var taxes []core.Tax
 	if err := res.All(ctx, &taxes); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

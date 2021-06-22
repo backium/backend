@@ -1,9 +1,9 @@
-package handler
+package http
 
 import (
 	"context"
 
-	"github.com/backium/backend/entity"
+	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
@@ -25,10 +25,10 @@ type Session struct {
 	ID         string
 	UserID     string
 	MerchantID string
-	Kind       entity.UserKind
+	Kind       core.UserKind
 }
 
-func newSession(u entity.User) Session {
+func newSession(u core.User) Session {
 	id, err := gonanoid.New()
 	if err != nil {
 		panic(err)
@@ -70,7 +70,7 @@ func DecodeSession(encodedSession string) (Session, error) {
 		ID:         id,
 		UserID:     userID,
 		MerchantID: merchantID,
-		Kind:       entity.UserKind(kind),
+		Kind:       core.UserKind(kind),
 	}, nil
 }
 

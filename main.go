@@ -3,14 +3,14 @@ package main
 import (
 	"log"
 
-	"github.com/backium/backend/app"
+	"github.com/backium/backend/http"
 	"github.com/backium/backend/repository/mongo"
 	"github.com/backium/backend/repository/redis"
 	"github.com/labstack/echo/v4"
 )
 
 func main() {
-	config, err := app.LoadConfig(".")
+	config, err := http.LoadConfig(".")
 	if err != nil {
 		panic(err)
 	}
@@ -19,11 +19,28 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	userRepository := mongo.NewUserRepository(db)
+	merchantRepository := mongo.NewMerchantRepository(db)
+	locationRepository := mongo.NewLocationRepository(db)
+	customerRepository := mongo.NewCustomerRepository(db)
+	categoryRepository := mongo.NewCategoryRepository(db)
+	itemRepository := mongo.NewItemRepository(db)
+	itemVariationRepository := mongo.NewItemVariationRepository(db)
+	taxRepository := mongo.NewTaxRepository(db)
+
 	redis := redis.NewSessionRepository(config.RedisURI, config.RedisPassword)
-	s := app.Server{
-		Echo:              echo.New(),
-		DB:                db,
-		SessionRepository: redis,
+	s := http.Server{
+		Echo:                    echo.New(),
+		DB:                      db,
+		UserRepository:          userRepository,
+		MerchantRepository:      merchantRepository,
+		LocationRepository:      locationRepository,
+		CustomerRepository:      customerRepository,
+		CategoryRepository:      categoryRepository,
+		ItemRepository:          itemRepository,
+		ItemVariationRepository: itemVariationRepository,
+		TaxRepository:           taxRepository,
+		SessionRepository:       redis,
 	}
 	s.Setup()
 	s.ListenAndServe(config.Port)

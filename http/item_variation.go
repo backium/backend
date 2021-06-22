@@ -1,20 +1,20 @@
-package handler
+package http
 
 import (
 	"net/http"
 
-	"github.com/backium/backend/base"
-	"github.com/backium/backend/catalog"
+	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
 )
 
-type ItemVariation struct {
-	Controller catalog.Controller
+type MoneyResponse struct {
+	Amount   *int64 `json:"amount" validate:"required"`
+	Currency string `json:"currency" validate:"required"`
 }
 
-func (h *ItemVariation) Create(c echo.Context) error {
+func (h *Handler) CreateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Create")
 	ac, ok := c.(*AuthContext)
 	if !ok {
@@ -25,7 +25,7 @@ func (h *ItemVariation) Create(c echo.Context) error {
 		return err
 	}
 
-	itvar := catalog.NewItemVariation()
+	itvar := core.NewItemVariation()
 	// override defaults
 	if req.LocationIDs != nil {
 		itvar.LocationIDs = *req.LocationIDs
@@ -33,61 +33,61 @@ func (h *ItemVariation) Create(c echo.Context) error {
 	itvar.Name = req.Name
 	itvar.SKU = req.SKU
 	itvar.ItemID = req.ItemID
-	itvar.Price = base.Money{
+	itvar.Price = core.Money{
 		Amount:   ptr.GetInt64(req.Price.Amount),
 		Currency: req.Price.Currency,
 	}
 	itvar.MerchantID = ac.MerchantID
 
-	itvar, err := h.Controller.CreateItemVariation(c.Request().Context(), itvar)
+	itvar, err := h.CatalogService.CreateItemVariation(c.Request().Context(), itvar)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newItemVariationResponse(itvar))
+	return c.JSON(http.StatusOK, NewItemVariation(itvar))
 }
 
-func (h *ItemVariation) Update(c echo.Context) error {
+func (h *Handler) UpdateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Update")
 	req := ItemVariationUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
 
-	itvar := catalog.PartialItemVariation{
+	itvar := core.PartialItemVariation{
 		Name:        req.Name,
 		SKU:         req.SKU,
 		LocationIDs: req.LocationIDs,
 	}
 	if req.Price != nil {
-		itvar.Price = &base.Money{
+		itvar.Price = &core.Money{
 			Amount:   ptr.GetInt64(req.Price.Amount),
 			Currency: req.Price.Currency,
 		}
 	}
-	uitvar, err := h.Controller.UpdateItemVariation(c.Request().Context(), req.ID, itvar)
+	uitvar, err := h.CatalogService.UpdateItemVariation(c.Request().Context(), req.ID, itvar)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newItemVariationResponse(uitvar))
+	return c.JSON(http.StatusOK, NewItemVariation(uitvar))
 }
 
-func (h *ItemVariation) Retrieve(c echo.Context) error {
+func (h *Handler) RetrieveItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Retrieve")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	m, err := h.Controller.RetrieveItemVariation(c.Request().Context(), catalog.ItemVariationRetrieveRequest{
+	m, err := h.CatalogService.RetrieveItemVariation(c.Request().Context(), core.ItemVariationRetrieveRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newItemVariationResponse(m))
+	return c.JSON(http.StatusOK, NewItemVariation(m))
 }
 
-func (h *ItemVariation) ListAll(c echo.Context) error {
+func (h *Handler) ListItemVariations(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.ListAll")
 	ac, ok := c.(*AuthContext)
 	if !ok {
@@ -97,7 +97,7 @@ func (h *ItemVariation) ListAll(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cuss, err := h.Controller.ListItemVariation(c.Request().Context(), catalog.ItemVariationListRequest{
+	cuss, err := h.CatalogService.ListItemVariation(c.Request().Context(), core.ItemVariationListRequest{
 		Limit:      req.Limit,
 		Offset:     req.Offset,
 		MerchantID: ac.MerchantID,
@@ -105,30 +105,30 @@ func (h *ItemVariation) ListAll(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]ItemVariationResponse, len(cuss))
+	res := make([]ItemVariation, len(cuss))
 	for i, cus := range cuss {
-		res[i] = newItemVariationResponse(cus)
+		res[i] = NewItemVariation(cus)
 	}
 	return c.JSON(http.StatusOK, ItemVariationListResponse{res})
 }
 
-func (h *ItemVariation) Delete(c echo.Context) error {
+func (h *Handler) DeleteItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Delete")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	cus, err := h.Controller.DeleteItemVariation(c.Request().Context(), catalog.ItemVariationDeleteRequest{
+	cus, err := h.CatalogService.DeleteItemVariation(c.Request().Context(), core.ItemVariationDeleteRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newItemVariationResponse(cus))
+	return c.JSON(http.StatusOK, NewItemVariation(cus))
 }
 
-type ItemVariationResponse struct {
+type ItemVariation struct {
 	ID          string        `json:"id"`
 	Name        string        `json:"name"`
 	SKU         string        `json:"sku,omitempty"`
@@ -136,11 +136,11 @@ type ItemVariationResponse struct {
 	Price       MoneyResponse `json:"price"`
 	LocationIDs []string      `json:"location_ids"`
 	MerchantID  string        `json:"merchant_id"`
-	Status      base.Status   `json:"status"`
+	Status      core.Status   `json:"status"`
 }
 
-func newItemVariationResponse(itvar catalog.ItemVariation) ItemVariationResponse {
-	return ItemVariationResponse{
+func NewItemVariation(itvar core.ItemVariation) ItemVariation {
+	return ItemVariation{
 		ID:     itvar.ID,
 		Name:   itvar.Name,
 		SKU:    itvar.SKU,
@@ -177,5 +177,5 @@ type ItemVariationListRequest struct {
 }
 
 type ItemVariationListResponse struct {
-	ItemVariations []ItemVariationResponse `json:"itemVariations"`
+	ItemVariations []ItemVariation `json:"itemVariations"`
 }

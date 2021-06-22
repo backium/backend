@@ -6,10 +6,6 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-const (
-	maxReturnedCategories = 50
-)
-
 type CategoryRepository interface {
 	Create(context.Context, Category) (string, error)
 	Update(context.Context, Category) error
@@ -39,38 +35,34 @@ func NewCategory() Category {
 	}
 }
 
-type CategoryService struct {
-	CategoryRepository CategoryRepository
-}
-
-func (c *CategoryService) CreateCategory(ctx context.Context, cat Category) (Category, error) {
+func (svc *CatalogService) CreateCategory(ctx context.Context, cat Category) (Category, error) {
 	const op = errors.Op("controller.Category.Create")
-	id, err := c.CategoryRepository.Create(ctx, cat)
+	id, err := svc.CategoryRepository.Create(ctx, cat)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
-	ncat, err := c.CategoryRepository.Retrieve(ctx, id)
+	ncat, err := svc.CategoryRepository.Retrieve(ctx, id)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
 	return ncat, nil
 }
 
-func (c *CategoryService) UpdateCategory(ctx context.Context, id string, cat CategoryPartial) (Category, error) {
+func (svc *CatalogService) UpdateCategory(ctx context.Context, id string, cat CategoryPartial) (Category, error) {
 	const op = errors.Op("controller.Category.Update")
-	if err := c.CategoryRepository.UpdatePartial(ctx, id, cat); err != nil {
+	if err := svc.CategoryRepository.UpdatePartial(ctx, id, cat); err != nil {
 		return Category{}, errors.E(op, err)
 	}
-	ucat, err := c.CategoryRepository.Retrieve(ctx, id)
+	ucat, err := svc.CategoryRepository.Retrieve(ctx, id)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
 	return ucat, nil
 }
 
-func (c *CategoryService) RetrieveCategory(ctx context.Context, req CategoryRetrieveRequest) (Category, error) {
+func (svc *CatalogService) RetrieveCategory(ctx context.Context, req CategoryRetrieveRequest) (Category, error) {
 	const op = errors.Op("controller.Category.Retrieve")
-	cat, err := c.CategoryRepository.Retrieve(ctx, req.ID)
+	cat, err := svc.CategoryRepository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
@@ -80,7 +72,7 @@ func (c *CategoryService) RetrieveCategory(ctx context.Context, req CategoryRetr
 	return cat, nil
 }
 
-func (c *CategoryService) ListCategory(ctx context.Context, req CategoryListRequest) ([]Category, error) {
+func (svc *CatalogService) ListCategory(ctx context.Context, req CategoryListRequest) ([]Category, error) {
 	const op = errors.Op("controller.Category.ListAll")
 	limit := int64(maxReturnedCategories)
 	offset := int64(0)
@@ -91,7 +83,7 @@ func (c *CategoryService) ListCategory(ctx context.Context, req CategoryListRequ
 		offset = *req.Offset
 	}
 
-	cuss, err := c.CategoryRepository.List(ctx, CategoryFilter{
+	cuss, err := svc.CategoryRepository.List(ctx, CategoryFilter{
 		MerchantID: req.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
@@ -102,9 +94,9 @@ func (c *CategoryService) ListCategory(ctx context.Context, req CategoryListRequ
 	return cuss, nil
 }
 
-func (c *CategoryService) DeleteCategory(ctx context.Context, req CategoryDeleteRequest) (Category, error) {
+func (svc *CatalogService) DeleteCategory(ctx context.Context, req CategoryDeleteRequest) (Category, error) {
 	const op = errors.Op("controller.Category.Delete")
-	cat, err := c.CategoryRepository.Retrieve(ctx, req.ID)
+	cat, err := svc.CategoryRepository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
@@ -115,10 +107,10 @@ func (c *CategoryService) DeleteCategory(ctx context.Context, req CategoryDelete
 
 	status := StatusShadowDeleted
 	update := CategoryPartial{Status: &status}
-	if err := c.CategoryRepository.UpdatePartial(ctx, req.ID, update); err != nil {
+	if err := svc.CategoryRepository.UpdatePartial(ctx, req.ID, update); err != nil {
 		return Category{}, errors.E(op, err)
 	}
-	dcat, err := c.CategoryRepository.Retrieve(ctx, req.ID)
+	dcat, err := svc.CategoryRepository.Retrieve(ctx, req.ID)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}

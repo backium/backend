@@ -3,8 +3,7 @@ package mongo
 import (
 	"context"
 
-	"github.com/backium/backend/base"
-	"github.com/backium/backend/catalog"
+	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,7 +20,7 @@ type itemRepository struct {
 	driver     *mongoDriver
 }
 
-func NewItemRepository(db DB) catalog.ItemRepository {
+func NewItemRepository(db DB) core.ItemRepository {
 	coll := db.Collection(itemCollectionName)
 	return &itemRepository{
 		collection: coll,
@@ -29,12 +28,12 @@ func NewItemRepository(db DB) catalog.ItemRepository {
 	}
 }
 
-func (r *itemRepository) Create(ctx context.Context, cus catalog.Item) (string, error) {
+func (r *itemRepository) Create(ctx context.Context, cus core.Item) (string, error) {
 	const op = errors.Op("mongo.itemRepository.Create")
 	if cus.ID == "" {
 		cus.ID = generateID(itemIDPrefix)
 	}
-	cus.Status = base.StatusActive
+	cus.Status = core.StatusActive
 	id, err := r.driver.insertOne(ctx, cus)
 	if err != nil {
 		return "", errors.E(op, err)
@@ -42,7 +41,7 @@ func (r *itemRepository) Create(ctx context.Context, cus catalog.Item) (string, 
 	return id, nil
 }
 
-func (r *itemRepository) Update(ctx context.Context, it catalog.Item) error {
+func (r *itemRepository) Update(ctx context.Context, it core.Item) error {
 	const op = errors.Op("mongo.itemRepository.Update")
 	filter := bson.M{"_id": it.ID}
 	query := bson.M{"$set": it}
@@ -56,7 +55,7 @@ func (r *itemRepository) Update(ctx context.Context, it catalog.Item) error {
 	return nil
 }
 
-func (r *itemRepository) UpdatePartial(ctx context.Context, id string, it catalog.PartialItem) error {
+func (r *itemRepository) UpdatePartial(ctx context.Context, id string, it core.PartialItem) error {
 	const op = errors.Op("mongo.itemRepository.Update")
 	filter := bson.M{"_id": id}
 	query := bson.M{"$set": it}
@@ -70,23 +69,23 @@ func (r *itemRepository) UpdatePartial(ctx context.Context, id string, it catalo
 	return nil
 }
 
-func (r *itemRepository) Retrieve(ctx context.Context, id string) (catalog.Item, error) {
+func (r *itemRepository) Retrieve(ctx context.Context, id string) (core.Item, error) {
 	const op = errors.Op("mongo.itemRepository.Retrieve")
-	cusr := catalog.Item{}
+	cusr := core.Item{}
 	filter := bson.M{"_id": id}
 	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
-		return catalog.Item{}, errors.E(op, err)
+		return core.Item{}, errors.E(op, err)
 	}
 	return cusr, nil
 }
 
-func (r *itemRepository) List(ctx context.Context, fil catalog.ItemFilter) ([]catalog.Item, error) {
+func (r *itemRepository) List(ctx context.Context, fil core.ItemFilter) ([]core.Item, error) {
 	const op = errors.Op("mongo.itemRepository.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": base.StatusShadowDeleted}}
+	mfil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}
@@ -101,7 +100,7 @@ func (r *itemRepository) List(ctx context.Context, fil catalog.ItemFilter) ([]ca
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var cuss []catalog.Item
+	var cuss []core.Item
 	if err := res.All(ctx, &cuss); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

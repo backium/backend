@@ -8,7 +8,7 @@ import (
 
 const maxReturnedLocations = 50
 
-type PartialLocation struct {
+type LocationPartial struct {
 	Name         *string `bson:"name,omitempty"`
 	BusinessName *string `bson:"business_name,omitempty"`
 	Status       *Status `bson:"status,omitempty"`
@@ -32,7 +32,7 @@ func NewLocation() Location {
 type LocationRepository interface {
 	Create(context.Context, Location) (string, error)
 	Update(context.Context, Location) error
-	UpdatePartial(context.Context, string, PartialLocation) error
+	UpdatePartial(context.Context, string, LocationPartial) error
 	Retrieve(context.Context, string) (Location, error)
 	List(context.Context, ListLocationsFilter) ([]Location, error)
 }
@@ -54,7 +54,7 @@ func (svc *LocationService) Create(ctx context.Context, loc Location) (Location,
 	return loc, nil
 }
 
-func (svc *LocationService) Update(ctx context.Context, id string, loc PartialLocation) (Location, error) {
+func (svc *LocationService) Update(ctx context.Context, id string, loc LocationPartial) (Location, error) {
 	const op = errors.Op("controller.Location.Update")
 	if err := svc.LocationRepository.UpdatePartial(ctx, id, loc); err != nil {
 		return Location{}, errors.E(op, err)
@@ -113,7 +113,7 @@ func (c *LocationService) Delete(ctx context.Context, req DeleteLocationRequest)
 	}
 
 	status := StatusShadowDeleted
-	update := PartialLocation{Status: &status}
+	update := LocationPartial{Status: &status}
 	if err := c.LocationRepository.UpdatePartial(ctx, req.ID, update); err != nil {
 		return Location{}, errors.E(op, err)
 	}

@@ -3,9 +3,7 @@ package mongo
 import (
 	"context"
 
-	"github.com/backium/backend/base"
-	"github.com/backium/backend/controller"
-	"github.com/backium/backend/entity"
+	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,7 +20,7 @@ type customerRepository struct {
 	driver     *mongoDriver
 }
 
-func NewCustomerRepository(db DB) controller.CustomerRepository {
+func NewCustomerRepository(db DB) core.CustomerRepository {
 	coll := db.Collection(customerCollectionName)
 	return &customerRepository{
 		collection: coll,
@@ -30,12 +28,12 @@ func NewCustomerRepository(db DB) controller.CustomerRepository {
 	}
 }
 
-func (r *customerRepository) Create(ctx context.Context, cus entity.Customer) (string, error) {
+func (r *customerRepository) Create(ctx context.Context, cus core.Customer) (string, error) {
 	const op = errors.Op("mongo.customerRepository.Create")
 	if cus.ID == "" {
 		cus.ID = generateID(customerIDPrefix)
 	}
-	cus.Status = base.StatusActive
+	cus.Status = core.StatusActive
 	id, err := r.driver.insertOne(ctx, cus)
 	if err != nil {
 		return "", errors.E(op, err)
@@ -43,7 +41,7 @@ func (r *customerRepository) Create(ctx context.Context, cus entity.Customer) (s
 	return id, nil
 }
 
-func (r *customerRepository) Update(ctx context.Context, cus entity.Customer) error {
+func (r *customerRepository) Update(ctx context.Context, cus core.Customer) error {
 	const op = errors.Op("mongo.customerRepository.Update")
 	filter := bson.M{"_id": cus.ID}
 	query := bson.M{"$set": cus}
@@ -57,7 +55,7 @@ func (r *customerRepository) Update(ctx context.Context, cus entity.Customer) er
 	return nil
 }
 
-func (r *customerRepository) UpdatePartial(ctx context.Context, id string, cus controller.PartialCustomer) error {
+func (r *customerRepository) UpdatePartial(ctx context.Context, id string, cus core.PartialCustomer) error {
 	const op = errors.Op("mongo.customerRepository.Update")
 	filter := bson.M{"_id": id}
 	query := bson.M{"$set": cus}
@@ -71,23 +69,23 @@ func (r *customerRepository) UpdatePartial(ctx context.Context, id string, cus c
 	return nil
 }
 
-func (r *customerRepository) Retrieve(ctx context.Context, id string) (entity.Customer, error) {
+func (r *customerRepository) Retrieve(ctx context.Context, id string) (core.Customer, error) {
 	const op = errors.Op("mongo.customerRepository.Retrieve")
-	cusr := entity.Customer{}
+	cusr := core.Customer{}
 	filter := bson.M{"_id": id}
 	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
-		return entity.Customer{}, errors.E(op, err)
+		return core.Customer{}, errors.E(op, err)
 	}
 	return cusr, nil
 }
 
-func (r *customerRepository) List(ctx context.Context, fil controller.ListCustomersFilter) ([]entity.Customer, error) {
+func (r *customerRepository) List(ctx context.Context, fil core.ListCustomersFilter) ([]core.Customer, error) {
 	const op = errors.Op("mongo.customerRepository.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": base.StatusShadowDeleted}}
+	mfil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}
@@ -99,7 +97,7 @@ func (r *customerRepository) List(ctx context.Context, fil controller.ListCustom
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var cuss []entity.Customer
+	var cuss []core.Customer
 	if err := res.All(ctx, &cuss); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

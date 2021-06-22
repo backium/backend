@@ -1,19 +1,14 @@
-package handler
+package http
 
 import (
 	"net/http"
 
-	"github.com/backium/backend/base"
-	"github.com/backium/backend/catalog"
+	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"github.com/labstack/echo/v4"
 )
 
-type Tax struct {
-	Controller catalog.Controller
-}
-
-func (h *Tax) Create(c echo.Context) error {
+func (h *Handler) CreateTax(c echo.Context) error {
 	const op = errors.Op("handler.Tax.Create")
 	ac, ok := c.(*AuthContext)
 	if !ok {
@@ -23,7 +18,7 @@ func (h *Tax) Create(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	t := catalog.NewTax()
+	t := core.NewTax()
 	if req.LocationIDs != nil {
 		t.LocationIDs = *req.LocationIDs
 	}
@@ -31,48 +26,48 @@ func (h *Tax) Create(c echo.Context) error {
 	t.Percentage = *req.Percentage
 	t.MerchantID = ac.MerchantID
 
-	t, err := h.Controller.CreateTax(c.Request().Context(), t)
+	t, err := h.CatalogService.CreateTax(c.Request().Context(), t)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newTaxResponse(t))
+	return c.JSON(http.StatusOK, NewTax(t))
 }
 
-func (h *Tax) Update(c echo.Context) error {
+func (h *Handler) UpdateTax(c echo.Context) error {
 	const op = errors.Op("handler.Tax.Update")
 	req := TaxUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	t := catalog.TaxPartial{
+	t := core.TaxPartial{
 		Name:        req.Name,
 		Percentage:  req.Percentage,
 		LocationIDs: req.LocationIDs,
 	}
-	ut, err := h.Controller.UpdateTax(c.Request().Context(), req.ID, t)
+	ut, err := h.CatalogService.UpdateTax(c.Request().Context(), req.ID, t)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newTaxResponse(ut))
+	return c.JSON(http.StatusOK, NewTax(ut))
 }
 
-func (h *Tax) Retrieve(c echo.Context) error {
+func (h *Handler) RetrieveTax(c echo.Context) error {
 	const op = errors.Op("handler.Tax.Retrieve")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	it, err := h.Controller.RetrieveTax(c.Request().Context(), catalog.TaxRetrieveRequest{
+	it, err := h.CatalogService.RetrieveTax(c.Request().Context(), core.TaxRetrieveRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newTaxResponse(it))
+	return c.JSON(http.StatusOK, NewTax(it))
 }
 
-func (h *Tax) ListAll(c echo.Context) error {
+func (h *Handler) ListTaxes(c echo.Context) error {
 	const op = errors.Op("handler.Tax.ListAll")
 	ac, ok := c.(*AuthContext)
 	if !ok {
@@ -82,7 +77,7 @@ func (h *Tax) ListAll(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	its, err := h.Controller.ListTax(c.Request().Context(), catalog.TaxListRequest{
+	its, err := h.CatalogService.ListTax(c.Request().Context(), core.TaxListRequest{
 		Limit:      req.Limit,
 		Offset:     req.Offset,
 		MerchantID: ac.MerchantID,
@@ -90,40 +85,40 @@ func (h *Tax) ListAll(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]TaxResponse, len(its))
+	res := make([]Tax, len(its))
 	for i, it := range its {
-		res[i] = newTaxResponse(it)
+		res[i] = NewTax(it)
 	}
 	return c.JSON(http.StatusOK, TaxListResponse{res})
 }
 
-func (h *Tax) Delete(c echo.Context) error {
+func (h *Handler) DeleteTax(c echo.Context) error {
 	const op = errors.Op("handler.Tax.Delete")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	it, err := h.Controller.DeleteTax(c.Request().Context(), catalog.TaxDeleteRequest{
+	it, err := h.CatalogService.DeleteTax(c.Request().Context(), core.TaxDeleteRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, newTaxResponse(it))
+	return c.JSON(http.StatusOK, NewTax(it))
 }
 
-type TaxResponse struct {
+type Tax struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
 	Percentage  int         `json:"percentage"`
 	LocationIDs []string    `json:"location_ids"`
 	MerchantID  string      `json:"merchant_id"`
-	Status      base.Status `json:"status"`
+	Status      core.Status `json:"status"`
 }
 
-func newTaxResponse(t catalog.Tax) TaxResponse {
-	return TaxResponse{
+func NewTax(t core.Tax) Tax {
+	return Tax{
 		ID:          t.ID,
 		Name:        t.Name,
 		Percentage:  t.Percentage,
@@ -152,5 +147,5 @@ type TaxListRequest struct {
 }
 
 type TaxListResponse struct {
-	Taxes []TaxResponse `json:"taxes"`
+	Taxes []Tax `json:"taxes"`
 }

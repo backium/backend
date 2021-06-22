@@ -6,8 +6,6 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-const maxReturnedItemVariations = 50
-
 type PartialItemVariation struct {
 	Name        *string   `bson:"name,omitempty"`
 	SKU         *string   `bson:"sku,omitempty"`
@@ -43,11 +41,7 @@ type ItemVariationRepository interface {
 	List(context.Context, ItemVariationFilter) ([]ItemVariation, error)
 }
 
-type ItemVariationService struct {
-	ItemVariationRepository ItemVariationRepository
-}
-
-func (c *ItemVariationService) CreateItemVariation(ctx context.Context, itvar ItemVariation) (ItemVariation, error) {
+func (c *CatalogService) CreateItemVariation(ctx context.Context, itvar ItemVariation) (ItemVariation, error) {
 	const op = errors.Op("controller.ItemVariation.Create")
 	id, err := c.ItemVariationRepository.Create(ctx, itvar)
 	if err != nil {
@@ -60,7 +54,7 @@ func (c *ItemVariationService) CreateItemVariation(ctx context.Context, itvar It
 	return uitvar, nil
 }
 
-func (c *ItemVariationService) UpdateItemVariation(ctx context.Context, id string, itvar PartialItemVariation) (ItemVariation, error) {
+func (c *CatalogService) UpdateItemVariation(ctx context.Context, id string, itvar PartialItemVariation) (ItemVariation, error) {
 	const op = errors.Op("controller.ItemVariation.Update")
 	if err := c.ItemVariationRepository.UpdatePartial(ctx, id, itvar); err != nil {
 		return ItemVariation{}, errors.E(op, err)
@@ -72,7 +66,7 @@ func (c *ItemVariationService) UpdateItemVariation(ctx context.Context, id strin
 	return uitvar, nil
 }
 
-func (c *ItemVariationService) RetrieveItemVariation(ctx context.Context, req ItemVariationRetrieveRequest) (ItemVariation, error) {
+func (c *CatalogService) RetrieveItemVariation(ctx context.Context, req ItemVariationRetrieveRequest) (ItemVariation, error) {
 	const op = errors.Op("controller.ItemVariation.Retrieve")
 	itvar, err := c.ItemVariationRepository.Retrieve(ctx, req.ID)
 	if err != nil {
@@ -85,7 +79,7 @@ func (c *ItemVariationService) RetrieveItemVariation(ctx context.Context, req It
 	return itvar, nil
 }
 
-func (c *ItemVariationService) ListItemVariation(ctx context.Context, req ItemVariationListRequest) ([]ItemVariation, error) {
+func (c *CatalogService) ListItemVariation(ctx context.Context, req ItemVariationListRequest) ([]ItemVariation, error) {
 	const op = errors.Op("controller.ItemVariation.ListAll")
 	limit := int64(maxReturnedItemVariations)
 	offset := int64(0)
@@ -107,7 +101,7 @@ func (c *ItemVariationService) ListItemVariation(ctx context.Context, req ItemVa
 	return itvars, nil
 }
 
-func (c *ItemVariationService) DeleteItemVariation(ctx context.Context, req ItemVariationDeleteRequest) (ItemVariation, error) {
+func (c *CatalogService) DeleteItemVariation(ctx context.Context, req ItemVariationDeleteRequest) (ItemVariation, error) {
 	const op = errors.Op("controller.ItemVariation.Delete")
 	itvar, err := c.ItemVariationRepository.Retrieve(ctx, req.ID)
 	if err != nil {

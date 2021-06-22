@@ -3,9 +3,7 @@ package mongo
 import (
 	"context"
 
-	"github.com/backium/backend/base"
-	"github.com/backium/backend/controller"
-	"github.com/backium/backend/entity"
+	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,7 +20,7 @@ type locationRepository struct {
 	driver     *mongoDriver
 }
 
-func NewLocationRepository(db DB) controller.LocationRepository {
+func NewLocationRepository(db DB) core.LocationRepository {
 	coll := db.Collection(locationCollectionName)
 	return &locationRepository{
 		collection: coll,
@@ -30,10 +28,10 @@ func NewLocationRepository(db DB) controller.LocationRepository {
 	}
 }
 
-func (r *locationRepository) Create(ctx context.Context, loc entity.Location) (string, error) {
+func (r *locationRepository) Create(ctx context.Context, loc core.Location) (string, error) {
 	const op = errors.Op("mongo.locationRepository.Create")
 	loc.ID = generateID(locationIDPrefix)
-	loc.Status = base.StatusActive
+	loc.Status = core.StatusActive
 	id, err := r.driver.insertOne(ctx, loc)
 	if err != nil {
 		return "", errors.E(op, err)
@@ -41,7 +39,7 @@ func (r *locationRepository) Create(ctx context.Context, loc entity.Location) (s
 	return id, err
 }
 
-func (r *locationRepository) Update(ctx context.Context, loc entity.Location) error {
+func (r *locationRepository) Update(ctx context.Context, loc core.Location) error {
 	const op = errors.Op("mongo.locationRepository.Update")
 	fil := bson.M{"_id": loc.ID}
 	query := bson.M{"$set": loc}
@@ -55,7 +53,7 @@ func (r *locationRepository) Update(ctx context.Context, loc entity.Location) er
 	return nil
 }
 
-func (r *locationRepository) UpdatePartial(ctx context.Context, id string, loc controller.PartialLocation) error {
+func (r *locationRepository) UpdatePartial(ctx context.Context, id string, loc core.LocationPartial) error {
 	const op = errors.Op("mongo.locationRepository.Update")
 	fil := bson.M{"_id": id}
 	query := bson.M{"$set": loc}
@@ -69,23 +67,23 @@ func (r *locationRepository) UpdatePartial(ctx context.Context, id string, loc c
 	return nil
 }
 
-func (r *locationRepository) Retrieve(ctx context.Context, id string) (entity.Location, error) {
+func (r *locationRepository) Retrieve(ctx context.Context, id string) (core.Location, error) {
 	const op = errors.Op("mongo.locationRepository.Retrieve")
-	locr := entity.Location{}
+	locr := core.Location{}
 	filter := bson.M{"_id": id}
 	if err := r.driver.findOneAndDecode(ctx, &locr, filter); err != nil {
-		return entity.Location{}, errors.E(op, err)
+		return core.Location{}, errors.E(op, err)
 	}
 	return locr, nil
 }
 
-func (r *locationRepository) List(ctx context.Context, fil controller.ListLocationsFilter) ([]entity.Location, error) {
+func (r *locationRepository) List(ctx context.Context, fil core.ListLocationsFilter) ([]core.Location, error) {
 	const op = errors.Op("mongo.locationRepository.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": base.StatusShadowDeleted}}
+	mfil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}
@@ -94,7 +92,7 @@ func (r *locationRepository) List(ctx context.Context, fil controller.ListLocati
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	locs := []entity.Location{}
+	locs := []core.Location{}
 	if err := res.All(ctx, &locs); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

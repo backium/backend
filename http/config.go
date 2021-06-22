@@ -1,4 +1,4 @@
-package app
+package http
 
 import "github.com/spf13/viper"
 

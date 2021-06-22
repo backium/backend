@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/backium/backend/base"
-	"github.com/backium/backend/catalog"
+	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,7 +21,7 @@ type itemVariationRepository struct {
 	driver     *mongoDriver
 }
 
-func NewItemVariationRepository(db DB) catalog.ItemVariationRepository {
+func NewItemVariationRepository(db DB) core.ItemVariationRepository {
 	coll := db.Collection(itemVariationCollectionName)
 	return &itemVariationRepository{
 		collection: coll,
@@ -30,12 +29,12 @@ func NewItemVariationRepository(db DB) catalog.ItemVariationRepository {
 	}
 }
 
-func (r *itemVariationRepository) Create(ctx context.Context, itvar catalog.ItemVariation) (string, error) {
+func (r *itemVariationRepository) Create(ctx context.Context, itvar core.ItemVariation) (string, error) {
 	const op = errors.Op("mongo.itemVariationRepository.Create")
 	if itvar.ID == "" {
 		itvar.ID = generateID(itemVariationIDPrefix)
 	}
-	itvar.Status = base.StatusActive
+	itvar.Status = core.StatusActive
 	id, err := r.driver.insertOne(ctx, itvar)
 	if err != nil {
 		return "", errors.E(op, err)
@@ -43,7 +42,7 @@ func (r *itemVariationRepository) Create(ctx context.Context, itvar catalog.Item
 	return id, nil
 }
 
-func (r *itemVariationRepository) Update(ctx context.Context, itvar catalog.ItemVariation) error {
+func (r *itemVariationRepository) Update(ctx context.Context, itvar core.ItemVariation) error {
 	const op = errors.Op("mongo.itemVariationRepository.Update")
 	filter := bson.M{"_id": itvar.ID}
 	query := bson.M{"$set": itvar}
@@ -57,7 +56,7 @@ func (r *itemVariationRepository) Update(ctx context.Context, itvar catalog.Item
 	return nil
 }
 
-func (r *itemVariationRepository) UpdatePartial(ctx context.Context, id string, itvar catalog.PartialItemVariation) error {
+func (r *itemVariationRepository) UpdatePartial(ctx context.Context, id string, itvar core.PartialItemVariation) error {
 	const op = errors.Op("mongo.itemVariationRepository.Update")
 	filter := bson.M{"_id": id}
 	query := bson.M{"$set": itvar}
@@ -72,23 +71,23 @@ func (r *itemVariationRepository) UpdatePartial(ctx context.Context, id string, 
 	return nil
 }
 
-func (r *itemVariationRepository) Retrieve(ctx context.Context, id string) (catalog.ItemVariation, error) {
+func (r *itemVariationRepository) Retrieve(ctx context.Context, id string) (core.ItemVariation, error) {
 	const op = errors.Op("mongo.itemVariationRepository.Retrieve")
-	cusr := catalog.ItemVariation{}
+	cusr := core.ItemVariation{}
 	filter := bson.M{"_id": id}
 	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
-		return catalog.ItemVariation{}, errors.E(op, err)
+		return core.ItemVariation{}, errors.E(op, err)
 	}
 	return cusr, nil
 }
 
-func (r *itemVariationRepository) List(ctx context.Context, fil catalog.ItemVariationFilter) ([]catalog.ItemVariation, error) {
+func (r *itemVariationRepository) List(ctx context.Context, fil core.ItemVariationFilter) ([]core.ItemVariation, error) {
 	const op = errors.Op("mongo.itemVariationRepository.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": base.StatusShadowDeleted}}
+	mfil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}
@@ -103,7 +102,7 @@ func (r *itemVariationRepository) List(ctx context.Context, fil catalog.ItemVari
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var itvars []catalog.ItemVariation
+	var itvars []core.ItemVariation
 	if err := res.All(ctx, &itvars); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

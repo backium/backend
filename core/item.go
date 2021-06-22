@@ -6,10 +6,6 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-const (
-	maxReturnedItems = 50
-)
-
 type PartialItem struct {
 	Name        *string   `bson:"name,omitempty"`
 	Description *string   `bson:"description,omitempty"`
@@ -44,11 +40,7 @@ type ItemRepository interface {
 	List(context.Context, ItemFilter) ([]Item, error)
 }
 
-type ItemService struct {
-	ItemRepository ItemRepository
-}
-
-func (c *ItemService) CreateItem(ctx context.Context, it Item) (Item, error) {
+func (c *CatalogService) CreateItem(ctx context.Context, it Item) (Item, error) {
 	const op = errors.Op("controller.Item.Create")
 	id, err := c.ItemRepository.Create(ctx, it)
 	if err != nil {
@@ -61,7 +53,7 @@ func (c *ItemService) CreateItem(ctx context.Context, it Item) (Item, error) {
 	return it, nil
 }
 
-func (c *ItemService) UpdateItem(ctx context.Context, id string, it PartialItem) (Item, error) {
+func (c *CatalogService) UpdateItem(ctx context.Context, id string, it PartialItem) (Item, error) {
 	const op = errors.Op("controller.Item.Update")
 	if err := c.ItemRepository.UpdatePartial(ctx, id, it); err != nil {
 		return Item{}, errors.E(op, err)
@@ -73,7 +65,7 @@ func (c *ItemService) UpdateItem(ctx context.Context, id string, it PartialItem)
 	return uit, nil
 }
 
-func (c *ItemService) RetrieveItem(ctx context.Context, req ItemRetrieveRequest) (Item, error) {
+func (c *CatalogService) RetrieveItem(ctx context.Context, req ItemRetrieveRequest) (Item, error) {
 	const op = errors.Op("controller.Item.Retrieve")
 	it, err := c.ItemRepository.Retrieve(ctx, req.ID)
 	if err != nil {
@@ -85,7 +77,7 @@ func (c *ItemService) RetrieveItem(ctx context.Context, req ItemRetrieveRequest)
 	return it, nil
 }
 
-func (c *ItemService) ListItem(ctx context.Context, req ItemListRequest) ([]Item, error) {
+func (c *CatalogService) ListItem(ctx context.Context, req ItemListRequest) ([]Item, error) {
 	const op = errors.Op("controller.Item.ListAll")
 	limit := int64(maxReturnedItems)
 	offset := int64(0)
@@ -107,7 +99,7 @@ func (c *ItemService) ListItem(ctx context.Context, req ItemListRequest) ([]Item
 	return its, nil
 }
 
-func (c *ItemService) DeleteItem(ctx context.Context, req ItemDeleteRequest) (Item, error) {
+func (c *CatalogService) DeleteItem(ctx context.Context, req ItemDeleteRequest) (Item, error) {
 	const op = errors.Op("controller.Item.Delete")
 	it, err := c.ItemRepository.Retrieve(ctx, req.ID)
 	if err != nil {
