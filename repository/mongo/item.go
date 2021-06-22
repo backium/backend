@@ -11,38 +11,38 @@ import (
 )
 
 const (
-	taxIDPrefix       = "tax"
-	taxCollectionName = "taxes"
+	itemIDPrefix       = "item"
+	itemCollectionName = "items"
 )
 
-type taxRepository struct {
+type itemRepository struct {
 	collection *mongo.Collection
 	driver     *mongoDriver
 }
 
-func NewTaxRepository(db DB) core.TaxRepository {
-	coll := db.Collection(taxCollectionName)
-	return &taxRepository{
+func NewItemRepository(db DB) core.ItemRepository {
+	coll := db.Collection(itemCollectionName)
+	return &itemRepository{
 		collection: coll,
 		driver:     &mongoDriver{Collection: coll},
 	}
 }
 
-func (r *taxRepository) Create(ctx context.Context, tax core.Tax) (string, error) {
-	const op = errors.Op("mongo.taxRepository.Create")
-	if tax.ID == "" {
-		tax.ID = generateID(taxIDPrefix)
+func (r *itemRepository) Create(ctx context.Context, cus core.Item) (string, error) {
+	const op = errors.Op("mongo.itemRepository.Create")
+	if cus.ID == "" {
+		cus.ID = generateID(itemIDPrefix)
 	}
-	tax.Status = core.StatusActive
-	id, err := r.driver.insertOne(ctx, tax)
+	cus.Status = core.StatusActive
+	id, err := r.driver.insertOne(ctx, cus)
 	if err != nil {
 		return "", errors.E(op, err)
 	}
 	return id, nil
 }
 
-func (r *taxRepository) Update(ctx context.Context, it core.Tax) error {
-	const op = errors.Op("mongo.taxRepository.Update")
+func (r *itemRepository) Update(ctx context.Context, it core.Item) error {
+	const op = errors.Op("mongo.itemRepository.Update")
 	filter := bson.M{"_id": it.ID}
 	query := bson.M{"$set": it}
 	res, err := r.collection.UpdateOne(ctx, filter, query)
@@ -50,13 +50,13 @@ func (r *taxRepository) Update(ctx context.Context, it core.Tax) error {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
 	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "tax not found")
+		return errors.E(op, errors.KindNotFound, "item not found")
 	}
 	return nil
 }
 
-func (r *taxRepository) UpdatePartial(ctx context.Context, id string, it core.TaxPartial) error {
-	const op = errors.Op("mongo.taxRepository.Update")
+func (r *itemRepository) UpdatePartial(ctx context.Context, id string, it core.PartialItem) error {
+	const op = errors.Op("mongo.itemRepository.Update")
 	filter := bson.M{"_id": id}
 	query := bson.M{"$set": it}
 	res, err := r.collection.UpdateOne(ctx, filter, query)
@@ -64,23 +64,23 @@ func (r *taxRepository) UpdatePartial(ctx context.Context, id string, it core.Ta
 		return errors.E(op, errors.KindUnexpected, err)
 	}
 	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "tax not found")
+		return errors.E(op, errors.KindNotFound, "item not found")
 	}
 	return nil
 }
 
-func (r *taxRepository) Retrieve(ctx context.Context, id string) (core.Tax, error) {
-	const op = errors.Op("mongo.taxRepository.Retrieve")
-	tax := core.Tax{}
+func (r *itemRepository) Retrieve(ctx context.Context, id string) (core.Item, error) {
+	const op = errors.Op("mongo.itemRepository.Retrieve")
+	cusr := core.Item{}
 	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &tax, filter); err != nil {
-		return core.Tax{}, errors.E(op, err)
+	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
+		return core.Item{}, errors.E(op, err)
 	}
-	return tax, nil
+	return cusr, nil
 }
 
-func (r *taxRepository) List(ctx context.Context, fil core.TaxFilter) ([]core.Tax, error) {
-	const op = errors.Op("mongo.taxRepository.List")
+func (r *itemRepository) List(ctx context.Context, fil core.ItemFilter) ([]core.Item, error) {
+	const op = errors.Op("mongo.itemRepository.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
@@ -100,9 +100,9 @@ func (r *taxRepository) List(ctx context.Context, fil core.TaxFilter) ([]core.Ta
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var taxes []core.Tax
-	if err := res.All(ctx, &taxes); err != nil {
+	var cuss []core.Item
+	if err := res.All(ctx, &cuss); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	return taxes, nil
+	return cuss, nil
 }

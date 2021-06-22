@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/backium/backend/handler"
+	"github.com/backium/backend/http"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -22,7 +22,7 @@ func NewSessionRepository(addr string, password string) *redisRepository {
 	}
 }
 
-func (r *redisRepository) Set(ctx context.Context, s handler.Session) error {
+func (r *redisRepository) Set(ctx context.Context, s http.Session) error {
 	b, err := json.Marshal(s)
 	if err != nil {
 		return err
@@ -33,8 +33,8 @@ func (r *redisRepository) Set(ctx context.Context, s handler.Session) error {
 	return nil
 }
 
-func (r *redisRepository) Get(ctx context.Context, id string) (handler.Session, error) {
-	s := handler.Session{}
+func (r *redisRepository) Get(ctx context.Context, id string) (http.Session, error) {
+	s := http.Session{}
 	bs, err := r.client.Get(ctx, id).Result()
 	if err != nil {
 		return s, err
