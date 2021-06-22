@@ -17,7 +17,7 @@ type Server struct {
 	CustomerRepository      core.CustomerRepository
 	CategoryRepository      core.CategoryRepository
 	ItemRepository          core.ItemRepository
-	ItemVariationRepository core.ItemVariationRepository
+	ItemVariationRepository core.ItemVariationStorage
 	TaxRepository           core.TaxRepository
 	SessionRepository       SessionRepository
 }

@@ -10,6 +10,6 @@ const (
 type CatalogService struct {
 	CategoryRepository      CategoryRepository
 	ItemRepository          ItemRepository
-	ItemVariationRepository ItemVariationRepository
+	ItemVariationRepository ItemVariationStorage
 	TaxRepository           TaxRepository
 }

@@ -21,7 +21,7 @@ type itemVariationRepository struct {
 	driver     *mongoDriver
 }
 
-func NewItemVariationRepository(db DB) core.ItemVariationRepository {
+func NewItemVariationRepository(db DB) core.ItemVariationStorage {
 	coll := db.Collection(itemVariationCollectionName)
 	return &itemVariationRepository{
 		collection: coll,
