@@ -32,6 +32,16 @@ func NewItem() Item {
 	}
 }
 
+func (it *Item) ItemVariations(vars []ItemVariation) []ItemVariation {
+	itemVars := []ItemVariation{}
+	for _, itvar := range vars {
+		if itvar.ItemID == it.ID {
+			itemVars = append(itemVars, itvar)
+		}
+	}
+	return itemVars
+}
+
 type ItemRepository interface {
 	Create(context.Context, Item) (string, error)
 	Update(context.Context, Item) error

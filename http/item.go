@@ -59,14 +59,23 @@ func (h *Handler) RetrieveItem(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	it, err := h.CatalogService.RetrieveItem(c.Request().Context(), core.ItemRetrieveRequest{
+	ctx := c.Request().Context()
+	it, err := h.CatalogService.RetrieveItem(ctx, core.ItemRetrieveRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewItem(it))
+	itvars, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationListRequest{
+		ItemIDs: []string{it.ID},
+	})
+	resp := NewItem(it)
+	for _, itvar := range itvars {
+		resp.Variations = append(resp.Variations, NewItemVariation(itvar))
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) ListItems(c echo.Context) error {
@@ -79,7 +88,8 @@ func (h *Handler) ListItems(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	its, err := h.CatalogService.ListItem(c.Request().Context(), core.ItemListRequest{
+	ctx := c.Request().Context()
+	its, err := h.CatalogService.ListItem(ctx, core.ItemListRequest{
 		Limit:      req.Limit,
 		Offset:     req.Offset,
 		MerchantID: ac.MerchantID,
@@ -87,11 +97,21 @@ func (h *Handler) ListItems(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]Item, len(its))
+
+	ids := make([]string, len(its))
 	for i, it := range its {
-		res[i] = NewItem(it)
+		ids[i] = it.ID
 	}
-	return c.JSON(http.StatusOK, ItemListResponse{res})
+	itvars, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationListRequest{
+		ItemIDs: ids,
+	})
+	resp := make([]Item, len(its))
+	for i, it := range its {
+		vars := it.ItemVariations(itvars)
+		resp[i] = NewItem(it)
+		resp[i].Variations = NewItemVariations(vars)
+	}
+	return c.JSON(http.StatusOK, ItemListResponse{resp})
 }
 
 func (h *Handler) DeleteItem(c echo.Context) error {
@@ -111,13 +131,14 @@ func (h *Handler) DeleteItem(c echo.Context) error {
 }
 
 type Item struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	CategoryID  string      `json:"category_id"`
-	LocationIDs []string    `json:"location_ids"`
-	MerchantID  string      `json:"merchant_id"`
-	Status      core.Status `json:"status"`
+	ID          string          `json:"id"`
+	Name        string          `json:"name"`
+	Description string          `json:"description"`
+	CategoryID  string          `json:"category_id"`
+	Variations  []ItemVariation `json:"variations"`
+	LocationIDs []string        `json:"location_ids"`
+	MerchantID  string          `json:"merchant_id"`
+	Status      core.Status     `json:"status"`
 }
 
 func NewItem(it core.Item) Item {
@@ -126,6 +147,7 @@ func NewItem(it core.Item) Item {
 		Name:        it.Name,
 		Description: it.Description,
 		CategoryID:  it.CategoryID,
+		Variations:  []ItemVariation{},
 		LocationIDs: it.LocationIDs,
 		MerchantID:  it.MerchantID,
 		Status:      it.Status,

@@ -6,7 +6,7 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-type PartialItemVariation struct {
+type ItemVariationPartial struct {
 	Name        *string   `bson:"name,omitempty"`
 	SKU         *string   `bson:"sku,omitempty"`
 	Price       *Money    `bson:"price,omitempty"`
@@ -36,7 +36,7 @@ func NewItemVariation() ItemVariation {
 type ItemVariationRepository interface {
 	Create(context.Context, ItemVariation) (string, error)
 	Update(context.Context, ItemVariation) error
-	UpdatePartial(context.Context, string, PartialItemVariation) error
+	UpdatePartial(context.Context, string, ItemVariationPartial) error
 	Retrieve(context.Context, string) (ItemVariation, error)
 	List(context.Context, ItemVariationFilter) ([]ItemVariation, error)
 }
@@ -54,7 +54,7 @@ func (c *CatalogService) CreateItemVariation(ctx context.Context, itvar ItemVari
 	return uitvar, nil
 }
 
-func (c *CatalogService) UpdateItemVariation(ctx context.Context, id string, itvar PartialItemVariation) (ItemVariation, error) {
+func (c *CatalogService) UpdateItemVariation(ctx context.Context, id string, itvar ItemVariationPartial) (ItemVariation, error) {
 	const op = errors.Op("controller.ItemVariation.Update")
 	if err := c.ItemVariationRepository.UpdatePartial(ctx, id, itvar); err != nil {
 		return ItemVariation{}, errors.E(op, err)
@@ -91,6 +91,7 @@ func (c *CatalogService) ListItemVariation(ctx context.Context, req ItemVariatio
 	}
 
 	itvars, err := c.ItemVariationRepository.List(ctx, ItemVariationFilter{
+		ItemIDs:    req.ItemIDs,
 		MerchantID: req.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
@@ -113,7 +114,7 @@ func (c *CatalogService) DeleteItemVariation(ctx context.Context, req ItemVariat
 	}
 
 	status := StatusShadowDeleted
-	update := PartialItemVariation{Status: &status}
+	update := ItemVariationPartial{Status: &status}
 	if err := c.ItemVariationRepository.UpdatePartial(ctx, req.ID, update); err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
@@ -137,6 +138,7 @@ type ItemVariationDeleteRequest struct {
 type ItemVariationListRequest struct {
 	Limit       *int64
 	Offset      *int64
+	ItemIDs     []string
 	LocationIDs []string
 	MerchantID  string
 }
@@ -144,6 +146,7 @@ type ItemVariationListRequest struct {
 type ItemVariationFilter struct {
 	Limit       int64
 	Offset      int64
+	ItemIDs     []string
 	LocationIDs []string
 	MerchantID  string
 	IDs         []string

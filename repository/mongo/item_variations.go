@@ -56,7 +56,7 @@ func (r *itemVariationRepository) Update(ctx context.Context, itvar core.ItemVar
 	return nil
 }
 
-func (r *itemVariationRepository) UpdatePartial(ctx context.Context, id string, itvar core.PartialItemVariation) error {
+func (r *itemVariationRepository) UpdatePartial(ctx context.Context, id string, itvar core.ItemVariationPartial) error {
 	const op = errors.Op("mongo.itemVariationRepository.Update")
 	filter := bson.M{"_id": id}
 	query := bson.M{"$set": itvar}
@@ -96,6 +96,9 @@ func (r *itemVariationRepository) List(ctx context.Context, fil core.ItemVariati
 	}
 	if fil.LocationIDs != nil {
 		mfil["location_ids"] = bson.M{"$in": fil.LocationIDs}
+	}
+	if fil.ItemIDs != nil {
+		mfil["item_id"] = bson.M{"$in": fil.ItemIDs}
 	}
 
 	res, err := r.collection.Find(ctx, mfil, fo)

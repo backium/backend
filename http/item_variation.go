@@ -53,7 +53,7 @@ func (h *Handler) UpdateItemVariation(c echo.Context) error {
 		return err
 	}
 
-	itvar := core.PartialItemVariation{
+	itvar := core.ItemVariationPartial{
 		Name:        req.Name,
 		SKU:         req.SKU,
 		LocationIDs: req.LocationIDs,
@@ -153,6 +153,14 @@ func NewItemVariation(itvar core.ItemVariation) ItemVariation {
 		MerchantID:  itvar.MerchantID,
 		Status:      itvar.Status,
 	}
+}
+
+func NewItemVariations(itvars []core.ItemVariation) []ItemVariation {
+	vars := make([]ItemVariation, len(itvars))
+	for i, itvar := range itvars {
+		vars[i] = NewItemVariation(itvar)
+	}
+	return vars
 }
 
 type ItemVariationCreateRequest struct {
