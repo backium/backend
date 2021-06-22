@@ -56,11 +56,12 @@ func (s *Server) setupHandlers() {
 
 	// setup handlers
 	s.Handler = Handler{
-		LocationService: locationService,
-		CustomerService: customerService,
-		MerchantService: merchantService,
-		UserService:     userService,
-		CatalogService:  catalogService,
+		LocationService:   locationService,
+		CustomerService:   customerService,
+		MerchantService:   merchantService,
+		UserService:       userService,
+		CatalogService:    catalogService,
+		SessionRepository: s.SessionRepository,
 	}
 }
 
