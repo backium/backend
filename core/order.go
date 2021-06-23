@@ -3,13 +3,10 @@ package core
 import (
 	"context"
 	"errors"
-
-	d "github.com/shopspring/decimal"
 )
 
 var (
 	ErrInvalidOrder = errors.New("invalid order")
-	hundred         = d.NewFromInt(100)
 )
 
 type Order struct {
@@ -21,11 +18,22 @@ type Order struct {
 	MerchantID string      `bson:"merchant_id"`
 	CreatedAt  int64       `bson:"created_at"`
 	UpdatedAt  int64       `bson:"updated_at"`
+	Schema     OrderSchema `bson:"schema"`
+}
+
+func NewOrder(locationID, merchantID string) Order {
+	return Order{
+		ID:         generateID("order"),
+		Items:      []OrderItem{},
+		LocationID: locationID,
+		MerchantID: merchantID,
+	}
 }
 
 type OrderItem struct {
 	UID          string                `bson:"uid"`
 	VariationID  string                `bson:"variation_id"`
+	Name         string                `bson:"name"`
 	Quantity     int64                 `bson:"quantity"`
 	Total        Money                 `bson:"total"`
 	BasePrice    Money                 `bson:"base_price"`
@@ -38,15 +46,9 @@ type OrderItemAppliedTax struct {
 }
 
 type OrderTax struct {
-	UID string `bson:"uid"`
-	ID  string `bson:"id"`
-}
-
-func NewOrder() Order {
-	return Order{
-		ID:    generateID("order"),
-		Items: []OrderItem{},
-	}
+	UID   string   `bson:"uid"`
+	ID    string   `bson:"id"`
+	Scope TaxScope `bson:"scope"`
 }
 
 type OrderStorage interface {
@@ -54,139 +56,38 @@ type OrderStorage interface {
 	Get(context.Context, string) (Order, error)
 }
 
-// OrderBuilder is used to calculate and set the monetary fields of an order.
-type OrderBuilder struct {
-	ItemVariationStorage ItemVariationStorage
-	TaxStorage           TaxStorage
+// OrderSchema represents a potential order to be created.
+type OrderSchema struct {
+	Items      []OrderSchemaItem
+	Taxes      []OrderSchemaTax
+	LocationID string
+	MerchantID string
 }
 
-func NewOrderBuilder(ivs ItemVariationStorage, ts TaxStorage) *OrderBuilder {
-	return &OrderBuilder{
-		ItemVariationStorage: ivs,
-		TaxStorage:           ts,
+func (sch *OrderSchema) itemVariationIDs() []string {
+	ids := make([]string, len(sch.Items))
+	for i, it := range sch.Items {
+		ids[i] = it.VariationID
 	}
+	return ids
 }
 
-// Build will take a snapshot of the order catalog object prices (items, taxes,
-// discounts, etc) and return an order with item base prices set, discounts applied,
-// taxes applied, and all gross-related fields set.
-func (c *OrderBuilder) Build(ctx context.Context, order Order) (Order, error) {
-	vids := make([]string, len(order.Items))
-	for i, item := range order.Items {
-		vids[i] = item.VariationID
+func (sch *OrderSchema) taxIDs() []string {
+	ids := make([]string, len(sch.Items))
+	for i, it := range sch.Taxes {
+		ids[i] = it.ID
 	}
-	tids := make([]string, len(order.Taxes))
-	for i, t := range order.Taxes {
-		tids[i] = t.ID
-	}
+	return ids
+}
 
-	taxes, err := c.TaxStorage.List(ctx, TaxFilter{
-		IDs: tids,
-	})
-	itemVars, err := c.ItemVariationStorage.List(ctx, ItemVariationFilter{
-		IDs: vids,
-	})
-	if err != nil {
-		return Order{}, err
-	}
-	if len(itemVars) == 0 {
-		return Order{}, ErrInvalidOrder
-	}
-	for _, v := range itemVars {
-		if v.Price.Currency != "PEN" {
-			return Order{}, ErrInvalidOrder
-		}
-	}
+type OrderSchemaItem struct {
+	UID         string
+	VariationID string
+	Quantity    int64
+}
 
-	// Calculate base price and starting total for each item
-	for i, it := range order.Items {
-		itvar := ItemVariation{}
-		for _, v := range itemVars {
-			if v.ID == it.VariationID {
-				itvar = v
-				break
-			}
-		}
-		if itvar.ID == "" {
-			return Order{}, ErrInvalidOrder
-		}
-		order.Items[i].BasePrice = Money{
-			Amount:   itvar.Price.Amount,
-			Currency: "PEN",
-		}
-		order.Items[i].Total = Money{
-			Amount:   itvar.Price.Amount * it.Quantity,
-			Currency: "PEN",
-		}
-	}
-
-	// Calculate current items total for tax calculation
-	var itemsTotal int64
-	for _, it := range order.Items {
-		itemsTotal += it.Total.Amount
-	}
-
-	// Populate map from uid to Tax
-	orderTax := map[string]Tax{}
-	for _, ot := range order.Taxes {
-		for _, t := range taxes {
-			if t.ID == ot.ID {
-				orderTax[ot.UID] = t
-				break
-			}
-		}
-		if _, ok := orderTax[ot.UID]; !ok {
-			return Order{}, ErrInvalidOrder
-		}
-	}
-
-	// Precompute order level tax to be applied
-	orderTaxAmount := map[string]int64{}
-	orderTaxRemainder := map[string]int64{}
-	for _, ot := range order.Taxes {
-		t := orderTax[ot.UID]
-		ptg := d.NewFromInt(t.Percentage).Div(hundred)
-		amount := d.NewFromInt(itemsTotal).Mul(ptg).RoundBank(0).IntPart()
-		orderTaxAmount[ot.UID] = amount
-		orderTaxRemainder[ot.UID] = amount
-	}
-
-	// Apply order level tax to each item proportionally
-	for i, it := range order.Items {
-		itemTotal := it.Total.Amount
-		for _, ot := range order.Taxes {
-			var amount int64
-			if i < len(order.Items)-1 {
-				// Apply tax proportionally : taxItem = taxTotal * itemTotal / itemsTotal
-				factor := d.NewFromInt(itemTotal).Div(d.NewFromInt(itemsTotal))
-				amount = d.NewFromInt(orderTaxAmount[ot.UID]).Mul(factor).RoundBank(0).IntPart()
-			} else {
-				amount = orderTaxRemainder[ot.UID]
-			}
-
-			applied := OrderItemAppliedTax{
-				TaxUID: ot.UID,
-				Applied: Money{
-					Amount:   amount,
-					Currency: "PEN",
-				},
-			}
-			order.Items[i].AppliedTaxes = append(it.AppliedTaxes, applied)
-			order.Items[i].Total.Amount += amount
-			orderTaxRemainder[ot.UID] -= amount
-		}
-	}
-
-	// Calculate order totals
-	var orderTotal int64
-	for _, it := range order.Items {
-		orderTotal += it.Total.Amount
-	}
-
-	order.Total = Money{
-		Amount:   orderTotal,
-		Currency: "PEN",
-	}
-
-	return order, nil
+type OrderSchemaTax struct {
+	UID   string
+	ID    string
+	Scope TaxScope
 }

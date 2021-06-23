@@ -19,19 +19,19 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	proto := core.ProtoOrder{
+	proto := core.OrderSchema{
 		LocationID: req.LocationID,
 		MerchantID: ac.MerchantID,
 	}
 	for _, it := range req.Items {
-		proto.Items = append(proto.Items, core.ProtoOrderItem{
+		proto.Items = append(proto.Items, core.OrderSchemaItem{
 			UID:         it.UID,
 			VariationID: it.VariationID,
 			Quantity:    it.Quantity,
 		})
 	}
 	for _, ot := range req.Taxes {
-		proto.Taxes = append(proto.Taxes, core.ProtoOrderTax{
+		proto.Taxes = append(proto.Taxes, core.OrderSchemaTax{
 			UID: ot.UID,
 			ID:  ot.ID,
 		})
@@ -58,9 +58,34 @@ type Order struct {
 type OrderItem struct {
 	UID          string                `json:"uid"`
 	VariationID  string                `json:"variation_id"`
+	Name         string                `json:"name"`
 	Quantity     int64                 `json:"quantity"`
 	AppliedTaxes []OrderItemAppliedTax `json:"applied_taxes"`
 	Total        Money                 `json:"total"`
+}
+
+func NewOrderItem(it core.OrderItem) OrderItem {
+	taxes := make([]OrderItemAppliedTax, len(it.AppliedTaxes))
+	for i, t := range it.AppliedTaxes {
+		taxes[i] = OrderItemAppliedTax{
+			TaxUID: t.TaxUID,
+			Applied: Money{
+				Amount:   ptr.Int64(t.Applied.Amount),
+				Currency: t.Applied.Currency,
+			},
+		}
+	}
+	return OrderItem{
+		UID:         it.UID,
+		VariationID: it.VariationID,
+		Name:        it.Name,
+		Quantity:    it.Quantity,
+		Total: Money{
+			Amount:   ptr.Int64(it.Total.Amount),
+			Currency: it.Total.Currency,
+		},
+		AppliedTaxes: taxes,
+	}
 }
 
 type OrderItemAppliedTax struct {
@@ -76,26 +101,7 @@ type OrderTax struct {
 func NewOrder(o core.Order) Order {
 	items := make([]OrderItem, len(o.Items))
 	for i, oi := range o.Items {
-		taxes := make([]OrderItemAppliedTax, len(oi.AppliedTaxes))
-		for i, t := range oi.AppliedTaxes {
-			taxes[i] = OrderItemAppliedTax{
-				TaxUID: t.TaxUID,
-				Applied: Money{
-					Amount:   ptr.Int64(t.Applied.Amount),
-					Currency: t.Applied.Currency,
-				},
-			}
-		}
-		items[i] = OrderItem{
-			UID:         oi.UID,
-			VariationID: oi.VariationID,
-			Quantity:    oi.Quantity,
-			Total: Money{
-				Amount:   ptr.Int64(oi.Total.Amount),
-				Currency: oi.Total.Currency,
-			},
-			AppliedTaxes: taxes,
-		}
+		items[i] = NewOrderItem(oi)
 	}
 	return Order{
 		ID:    o.ID,

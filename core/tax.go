@@ -6,6 +6,13 @@ import (
 	"github.com/backium/backend/errors"
 )
 
+type TaxScope string
+
+const (
+	TaxScopeOrder TaxScope = "order"
+	TaxScopeItem  TaxScope = "item"
+)
+
 type Tax struct {
 	ID          string   `bson:"_id"`
 	Name        string   `bson:"name,omitempty"`

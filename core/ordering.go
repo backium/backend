@@ -4,6 +4,11 @@ import (
 	"context"
 
 	"github.com/backium/backend/errors"
+	d "github.com/shopspring/decimal"
+)
+
+var (
+	hundred = d.NewFromInt(100)
 )
 
 type OrderingService struct {
@@ -12,61 +17,134 @@ type OrderingService struct {
 	TaxStorage           TaxStorage
 }
 
-func (svc *OrderingService) CreateOrder(ctx context.Context, proto ProtoOrder) (Order, error) {
+func (s *OrderingService) CreateOrder(ctx context.Context, sch OrderSchema) (Order, error) {
 	const op = errors.Op("core/OrderingService.CreateOrder")
-	preOrder := NewOrder()
-	preOrder.LocationID = proto.LocationID
-	preOrder.MerchantID = proto.MerchantID
-
-	for _, it := range proto.Items {
-		preOrder.Items = append(preOrder.Items, OrderItem{
-			UID:         it.UID,
-			VariationID: it.VariationID,
-			Quantity:    it.Quantity,
-		})
-	}
-	for _, t := range proto.Taxes {
-		preOrder.Taxes = append(preOrder.Taxes, OrderTax{
-			UID: t.UID,
-			ID:  t.ID,
-		})
-	}
-
-	c := NewOrderBuilder(svc.ItemVariationStorage, svc.TaxStorage)
-	order, err := c.Build(ctx, preOrder)
-	if err == ErrInvalidOrder {
-		return Order{}, errors.E(op, err, errors.KindValidation)
-	}
+	order, err := s.build(ctx, sch)
 	if err != nil {
-		return Order{}, errors.E(op, err, errors.KindUnexpected)
-	}
-
-	if err := svc.OrderStorage.Put(ctx, order); err != nil {
 		return Order{}, errors.E(op, err)
 	}
-	norder, err := svc.OrderStorage.Get(ctx, order.ID)
+
+	if err := s.OrderStorage.Put(ctx, order); err != nil {
+		return Order{}, errors.E(op, err)
+	}
+	norder, err := s.OrderStorage.Get(ctx, order.ID)
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}
 	return norder, nil
 }
 
-// ProtoOrder represents a potential order to be created.
-type ProtoOrder struct {
-	LocationID string
-	MerchantID string
-	Items      []ProtoOrderItem
-	Taxes      []ProtoOrderTax
-}
+// Build creates a new order from an schema, will all monetary fields set
+// TODO: Add item level taxes and order level discounts
+func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (Order, error) {
+	const op = errors.Op("core/OrderingService.build")
+	if sch.LocationID == "" || sch.MerchantID == "" {
+		return Order{}, errors.E(op, errors.KindValidation, "Invalid order schema")
+	}
+	order := NewOrder(sch.LocationID, sch.MerchantID)
+	order.Schema = sch
+	currency := "PEN"
 
-type ProtoOrderItem struct {
-	UID         string
-	VariationID string
-	Quantity    int64
-}
+	items, err := s.ItemVariationStorage.List(ctx, ItemVariationFilter{
+		IDs: sch.itemVariationIDs(),
+	})
+	if err != nil {
+		return Order{}, errors.E(op, err)
+	}
+	taxes, err := s.TaxStorage.List(ctx, TaxFilter{
+		IDs: sch.taxIDs(),
+	})
 
-type ProtoOrderTax struct {
-	UID   string
-	ID    string
-	Scope string
+	// Save items by UID for easy access
+	itemLookup := map[string]ItemVariation{}
+	for _, oit := range sch.Items {
+		for _, it := range items {
+			if it.ID == oit.VariationID {
+				itemLookup[oit.UID] = it
+			}
+		}
+		if _, ok := itemLookup[oit.UID]; !ok {
+			return Order{}, errors.E(op, errors.KindValidation, "Unknow items in order")
+		}
+	}
+
+	// Save taxes by UID for easy access
+	taxLookup := map[string]Tax{}
+	for _, ot := range sch.Taxes {
+		for _, t := range taxes {
+			if t.ID == ot.ID {
+				taxLookup[ot.UID] = t
+			}
+		}
+		if _, ok := taxLookup[ot.UID]; !ok {
+			return Order{}, errors.E(op, errors.KindValidation, "Unknow taxes in order")
+		}
+	}
+
+	// Set order items and calculate initial totals
+	var itemsTotalAmount int64
+	for _, schItem := range sch.Items {
+		item := itemLookup[schItem.UID]
+		orderItem := OrderItem{
+			UID:         schItem.UID,
+			VariationID: schItem.VariationID,
+			Name:        item.Name,
+			Quantity:    schItem.Quantity,
+			BasePrice: Money{
+				Amount:   item.Price.Amount,
+				Currency: currency,
+			},
+			Total: Money{
+				Amount:   item.Price.Amount * schItem.Quantity,
+				Currency: currency,
+			},
+		}
+		order.Items = append(order.Items, orderItem)
+		itemsTotalAmount += orderItem.Total.Amount
+	}
+
+	// Precompute order level taxes amount
+	taxTotalAmount := map[string]int64{}
+	for _, ot := range sch.Taxes {
+		t := taxLookup[ot.UID]
+		ptg := d.NewFromInt(t.Percentage).Div(hundred)
+		total := d.NewFromInt(itemsTotalAmount)
+		taxTotalAmount[ot.UID] = ptg.Mul(total).RoundBank(0).IntPart()
+	}
+
+	// Apply order level taxes
+	for i, ordItem := range order.Items {
+		var appliedTaxes []OrderItemAppliedTax
+		var itemTaxTotalAmount int64
+		itemAmount := ordItem.Total.Amount
+		for _, schTax := range sch.Taxes {
+			total := d.NewFromInt(taxTotalAmount[schTax.UID])
+			factor := d.NewFromInt(itemAmount).Div(d.NewFromInt(itemsTotalAmount))
+			itemTaxAmount := total.Mul(factor).RoundBank(0).IntPart()
+
+			applied := OrderItemAppliedTax{
+				TaxUID: schTax.UID,
+				Applied: Money{
+					Amount:   itemTaxAmount,
+					Currency: currency,
+				},
+			}
+			itemTaxTotalAmount += itemTaxAmount
+			appliedTaxes = append(appliedTaxes, applied)
+		}
+		order.Items[i].Total.Amount += itemTaxTotalAmount
+		order.Items[i].AppliedTaxes = append(ordItem.AppliedTaxes, appliedTaxes...)
+	}
+
+	// Calculate order totals
+	var totalAmount int64
+	for _, ordItem := range order.Items {
+		totalAmount += ordItem.Total.Amount
+	}
+	order.Total = Money{
+		Amount:   totalAmount,
+		Currency: currency,
+	}
+
+	return order, nil
 }
