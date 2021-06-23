@@ -9,7 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type MoneyResponse struct {
+type Money struct {
 	Amount   *int64 `json:"amount" validate:"required"`
 	Currency string `json:"currency" validate:"required"`
 }
@@ -129,14 +129,14 @@ func (h *Handler) DeleteItemVariation(c echo.Context) error {
 }
 
 type ItemVariation struct {
-	ID          string        `json:"id"`
-	Name        string        `json:"name"`
-	SKU         string        `json:"sku,omitempty"`
-	ItemID      string        `json:"item_id"`
-	Price       MoneyResponse `json:"price"`
-	LocationIDs []string      `json:"location_ids"`
-	MerchantID  string        `json:"merchant_id"`
-	Status      core.Status   `json:"status"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	SKU         string      `json:"sku,omitempty"`
+	ItemID      string      `json:"item_id"`
+	Price       Money       `json:"price"`
+	LocationIDs []string    `json:"location_ids"`
+	MerchantID  string      `json:"merchant_id"`
+	Status      core.Status `json:"status"`
 }
 
 func NewItemVariation(itvar core.ItemVariation) ItemVariation {
@@ -145,7 +145,7 @@ func NewItemVariation(itvar core.ItemVariation) ItemVariation {
 		Name:   itvar.Name,
 		SKU:    itvar.SKU,
 		ItemID: itvar.ItemID,
-		Price: MoneyResponse{
+		Price: Money{
 			Amount:   &itvar.Price.Amount,
 			Currency: itvar.Price.Currency,
 		},
@@ -164,19 +164,19 @@ func NewItemVariations(itvars []core.ItemVariation) []ItemVariation {
 }
 
 type ItemVariationCreateRequest struct {
-	Name        string         `json:"name" validate:"required"`
-	SKU         string         `json:"sku"`
-	ItemID      string         `json:"item_id" validate:"required"`
-	Price       *MoneyResponse `json:"price" validate:"required"`
-	LocationIDs *[]string      `json:"location_ids" validate:"omitempty,dive,required"`
+	Name        string    `json:"name" validate:"required"`
+	SKU         string    `json:"sku"`
+	ItemID      string    `json:"item_id" validate:"required"`
+	Price       *Money    `json:"price" validate:"required"`
+	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type ItemVariationUpdateRequest struct {
-	ID          string         `param:"id" validate:"required"`
-	Name        *string        `json:"name" validate:"omitempty,min=1"`
-	SKU         *string        `json:"sku"`
-	Price       *MoneyResponse `json:"price"`
-	LocationIDs *[]string      `json:"location_ids" validate:"omitempty,dive,required"`
+	ID          string    `param:"id" validate:"required"`
+	Name        *string   `json:"name" validate:"omitempty,min=1"`
+	SKU         *string   `json:"sku"`
+	Price       *Money    `json:"price"`
+	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type ItemVariationListRequest struct {

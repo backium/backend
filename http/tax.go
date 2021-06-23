@@ -26,7 +26,8 @@ func (h *Handler) CreateTax(c echo.Context) error {
 	t.Percentage = *req.Percentage
 	t.MerchantID = ac.MerchantID
 
-	t, err := h.CatalogService.CreateTax(c.Request().Context(), t)
+	ctx := c.Request().Context()
+	t, err := h.CatalogService.PutTax(ctx, t)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -35,20 +36,71 @@ func (h *Handler) CreateTax(c echo.Context) error {
 
 func (h *Handler) UpdateTax(c echo.Context) error {
 	const op = errors.Op("handler.Tax.Update")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	req := TaxUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	t := core.TaxPartial{
-		Name:        req.Name,
-		Percentage:  req.Percentage,
-		LocationIDs: req.LocationIDs,
+	ctx := c.Request().Context()
+	t, err := h.CatalogService.GetTax(ctx, core.TaxRetrieveRequest{
+		ID:         req.ID,
+		MerchantID: ac.MerchantID,
+	})
+	if err != nil {
+		return errors.E(op, err)
 	}
-	ut, err := h.CatalogService.UpdateTax(c.Request().Context(), req.ID, t)
+
+	if req.Name != nil {
+		t.Name = *req.Name
+	}
+	if req.Percentage != nil {
+		t.Percentage = *req.Percentage
+	}
+	if req.LocationIDs != nil {
+		t.LocationIDs = *req.LocationIDs
+	}
+
+	ut, err := h.CatalogService.PutTax(ctx, t)
 	if err != nil {
 		return errors.E(op, err)
 	}
 	return c.JSON(http.StatusOK, NewTax(ut))
+}
+
+func (h *Handler) BatchCreateTax(c echo.Context) error {
+	const op = errors.Op("http/Handler.BatchCreateTax")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+	req := TaxBatchCreateRequest{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+	tt := make([]core.Tax, len(req.Taxes))
+	for i, tr := range req.Taxes {
+		tt[i] = core.NewTax()
+		if tr.LocationIDs != nil {
+			tt[i].LocationIDs = *tr.LocationIDs
+		}
+		tt[i].Name = tr.Name
+		tt[i].Percentage = *tr.Percentage
+		tt[i].MerchantID = ac.MerchantID
+	}
+
+	ctx := c.Request().Context()
+	tt, err := h.CatalogService.PutTaxes(ctx, tt)
+	if err != nil {
+		return errors.E(op, err)
+	}
+	res := make([]Tax, len(tt))
+	for i, t := range tt {
+		res[i] = NewTax(t)
+	}
+	return c.JSON(http.StatusOK, TaxListResponse{Taxes: res})
 }
 
 func (h *Handler) RetrieveTax(c echo.Context) error {
@@ -57,7 +109,8 @@ func (h *Handler) RetrieveTax(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	it, err := h.CatalogService.RetrieveTax(c.Request().Context(), core.TaxRetrieveRequest{
+	ctx := c.Request().Context()
+	it, err := h.CatalogService.GetTax(ctx, core.TaxRetrieveRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
@@ -77,7 +130,8 @@ func (h *Handler) ListTaxes(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	its, err := h.CatalogService.ListTax(c.Request().Context(), core.TaxListRequest{
+	ctx := c.Request().Context()
+	its, err := h.CatalogService.ListTax(ctx, core.TaxListRequest{
 		Limit:      req.Limit,
 		Offset:     req.Offset,
 		MerchantID: ac.MerchantID,
@@ -98,7 +152,8 @@ func (h *Handler) DeleteTax(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	it, err := h.CatalogService.DeleteTax(c.Request().Context(), core.TaxDeleteRequest{
+	ctx := c.Request().Context()
+	it, err := h.CatalogService.DeleteTax(ctx, core.TaxDeleteRequest{
 		ID:         c.Param("id"),
 		MerchantID: ac.MerchantID,
 	})
@@ -111,9 +166,11 @@ func (h *Handler) DeleteTax(c echo.Context) error {
 type Tax struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
-	Percentage  int         `json:"percentage"`
+	Percentage  int64       `json:"percentage"`
 	LocationIDs []string    `json:"location_ids"`
 	MerchantID  string      `json:"merchant_id"`
+	CreatedAt   int64       `json:"created_at"`
+	UpdatedAt   int64       `json:"updated_at"`
 	Status      core.Status `json:"status"`
 }
 
@@ -124,21 +181,27 @@ func NewTax(t core.Tax) Tax {
 		Percentage:  t.Percentage,
 		LocationIDs: t.LocationIDs,
 		MerchantID:  t.MerchantID,
+		CreatedAt:   t.CreatedAt,
+		UpdatedAt:   t.UpdatedAt,
 		Status:      t.Status,
 	}
 }
 
 type TaxCreateRequest struct {
 	Name        string    `json:"name" validate:"required"`
-	Percentage  *int      `json:"percentage" validate:"required,min=0,max=100"`
+	Percentage  *int64    `json:"percentage" validate:"required,min=0,max=100"`
 	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type TaxUpdateRequest struct {
 	ID          string    `param:"id" validate:"required"`
 	Name        *string   `json:"name" validate:"omitempty,min=1"`
-	Percentage  *int      `json:"percentage" validate:"omitempty,min=0,max=100"`
+	Percentage  *int64    `json:"percentage" validate:"omitempty,min=0,max=100"`
 	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+}
+
+type TaxBatchCreateRequest struct {
+	Taxes []TaxCreateRequest
 }
 
 type TaxListRequest struct {

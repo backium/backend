@@ -5,20 +5,20 @@ import (
 )
 
 type mockOrderStorage struct {
-	CreateFunc func(context.Context, Order) (string, error)
-	OrderFunc  func(context.Context, string) (Order, error)
+	PutFn func(context.Context, Order) error
+	GetFn func(context.Context, string) (Order, error)
 }
 
 func NewMockOrderStorage() *mockOrderStorage {
 	return &mockOrderStorage{}
 }
 
-func (s *mockOrderStorage) Create(ctx context.Context, order Order) (string, error) {
-	return s.CreateFunc(ctx, order)
+func (s *mockOrderStorage) Put(ctx context.Context, order Order) error {
+	return s.PutFn(ctx, order)
 }
 
-func (s *mockOrderStorage) Order(ctx context.Context, id string) (Order, error) {
-	return s.OrderFunc(ctx, id)
+func (s *mockOrderStorage) Get(ctx context.Context, id string) (Order, error) {
+	return s.GetFn(ctx, id)
 }
 
 type mockItemVariationStorage struct {
@@ -51,4 +51,31 @@ func (m *mockItemVariationStorage) Retrieve(ctx context.Context, id string) (Ite
 
 func (m *mockItemVariationStorage) List(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
 	return m.ListFunc(ctx, fil)
+}
+
+type mockTaxStorage struct {
+	PutFn      func(context.Context, Tax) error
+	PutBatchFn func(context.Context, []Tax) error
+	GetFn      func(context.Context, string) (Tax, error)
+	ListFn     func(context.Context, TaxFilter) ([]Tax, error)
+}
+
+func NewMockTaxStorage() *mockTaxStorage {
+	return &mockTaxStorage{}
+}
+
+func (m *mockTaxStorage) Put(ctx context.Context, t Tax) error {
+	return m.PutFn(ctx, t)
+}
+
+func (m *mockTaxStorage) PutBatch(ctx context.Context, batch []Tax) error {
+	return m.PutBatchFn(ctx, batch)
+}
+
+func (m *mockTaxStorage) Get(ctx context.Context, id string) (Tax, error) {
+	return m.Get(ctx, id)
+}
+
+func (m *mockTaxStorage) List(ctx context.Context, fil TaxFilter) ([]Tax, error) {
+	return m.ListFn(ctx, fil)
 }

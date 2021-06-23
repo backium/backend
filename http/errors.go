@@ -33,7 +33,7 @@ func errorHandler(err error, c echo.Context) {
 	case errors.Is(err, errors.KindValidation):
 		code = http.StatusBadRequest
 		serr.Type = ErrTypeInvalidRequest
-		serr.Message = "Validation error"
+		serr.Message = "Validation error: " + err.Error()
 	case errors.Is(err, errors.KindInvalidCredentials):
 		code = http.StatusBadRequest
 		serr.Type = ErrTypeAuthentication

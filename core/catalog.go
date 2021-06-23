@@ -11,5 +11,5 @@ type CatalogService struct {
 	CategoryRepository      CategoryRepository
 	ItemRepository          ItemRepository
 	ItemVariationRepository ItemVariationStorage
-	TaxRepository           TaxRepository
+	TaxStorage              TaxStorage
 }

@@ -1,12 +1,11 @@
 package http
 
 import (
-	"net/http"
 	"reflect"
+	"strings"
 	"unicode"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
 )
 
 type Validator struct {
@@ -18,6 +17,13 @@ func NewValidator() (*Validator, error) {
 	if err := v.RegisterValidation("password", validatePassword); err != nil {
 		return nil, err
 	}
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
+	})
 
 	return &Validator{
 		validator: v,
@@ -26,7 +32,7 @@ func NewValidator() (*Validator, error) {
 
 func (cv *Validator) Validate(i interface{}) error {
 	if err := cv.validator.Struct(i); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		return err
 	}
 	return nil
 }
