@@ -84,6 +84,10 @@ var testcases = []OrderingTestCase{
 					},
 				},
 			},
+			TotalTax: Money{
+				Amount:   0,
+				Currency: "PEN",
+			},
 			Total: Money{
 				Amount:   3000,
 				Currency: "PEN",
@@ -105,7 +109,7 @@ var testcases = []OrderingTestCase{
 		Taxes: []Tax{
 			{
 				ID:         "tax1_id",
-				Name:       "IGV",
+				Name:       "tax1",
 				Percentage: 20,
 			},
 		},
@@ -121,8 +125,9 @@ var testcases = []OrderingTestCase{
 			},
 			Taxes: []OrderSchemaTax{
 				{
-					UID: "tax1_uid",
-					ID:  "tax1_id",
+					UID:   "tax1_uid",
+					ID:    "tax1_id",
+					Scope: TaxScopeOrder,
 				},
 			},
 		},
@@ -154,6 +159,22 @@ var testcases = []OrderingTestCase{
 					},
 				},
 			},
+			Taxes: []OrderTax{
+				{
+					UID:   "tax1_uid",
+					ID:    "tax1_id",
+					Name:  "tax1",
+					Scope: TaxScopeOrder,
+					Applied: Money{
+						Amount:   200,
+						Currency: "PEN",
+					},
+				},
+			},
+			TotalTax: Money{
+				Amount:   200,
+				Currency: "PEN",
+			},
 			Total: Money{
 				Amount:   1200,
 				Currency: "PEN",
@@ -183,7 +204,7 @@ var testcases = []OrderingTestCase{
 		Taxes: []Tax{
 			{
 				ID:         "tax1_id",
-				Name:       "IGV",
+				Name:       "tax1",
 				Percentage: 20,
 			},
 		},
@@ -204,8 +225,9 @@ var testcases = []OrderingTestCase{
 			},
 			Taxes: []OrderSchemaTax{
 				{
-					UID: "tax1_uid",
-					ID:  "tax1_id",
+					UID:   "tax1_uid",
+					ID:    "tax1_id",
+					Scope: TaxScopeOrder,
 				},
 			},
 		},
@@ -260,6 +282,22 @@ var testcases = []OrderingTestCase{
 					},
 				},
 			},
+			Taxes: []OrderTax{
+				{
+					UID:   "tax1_uid",
+					ID:    "tax1_id",
+					Scope: TaxScopeOrder,
+					Name:  "tax1",
+					Applied: Money{
+						Amount:   1100,
+						Currency: "PEN",
+					},
+				},
+			},
+			TotalTax: Money{
+				Amount:   1100,
+				Currency: "PEN",
+			},
 			Total: Money{
 				Amount:   6600,
 				Currency: "PEN",
@@ -303,12 +341,25 @@ func TestCreateOrder(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(order.Total, tc.Order.Total) {
-				t.Errorf("incorrent order total:\ngot: %v\nwant: %v\n", order.Total.Amount, tc.Order.Total.Amount)
+				t.Errorf("incorrent order total:\ngot: %v\nwant: %v\n", order.Total, tc.Order.Total)
+			}
+
+			if !reflect.DeepEqual(order.TotalTax, tc.Order.TotalTax) {
+				t.Errorf("incorrent order total tax:\ngot: %v\nwant: %v\n", order.TotalTax, tc.Order.TotalTax)
 			}
 
 			for i, it := range order.Items {
 				if !reflect.DeepEqual(it, tc.Order.Items[i]) {
 					t.Errorf("incorrect order item[%v]:\ngot: %+v\nwant: %+v\n", i, it, tc.Order.Items[i])
+				}
+			}
+
+			if len(order.Taxes) != len(tc.Order.Taxes) {
+				t.Errorf("incorrect number of order taxes:\ngot: %v\nwant: %v\n", len(order.Taxes), len(tc.Order.Taxes))
+			}
+			for i, ot := range order.Taxes {
+				if !reflect.DeepEqual(ot, tc.Order.Taxes[i]) {
+					t.Errorf("incorrect order tax[%v]:\ngot: %+v\nwant: %+v\n", i, ot, tc.Order.Taxes[i])
 				}
 			}
 		})

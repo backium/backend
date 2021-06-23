@@ -32,8 +32,9 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	}
 	for _, ot := range req.Taxes {
 		proto.Taxes = append(proto.Taxes, core.OrderSchemaTax{
-			UID: ot.UID,
-			ID:  ot.ID,
+			UID:   ot.UID,
+			ID:    ot.ID,
+			Scope: ot.Scope,
 		})
 	}
 
@@ -49,10 +50,40 @@ type Order struct {
 	ID         string      `json:"id"`
 	Items      []OrderItem `json:"items"`
 	Total      Money       `json:"total"`
+	TotalTax   Money       `json:"total_tax"`
+	Taxes      []OrderTax  `json:"taxes"`
 	LocationID string      `json:"location_id"`
 	MerchantID string      `json:"merchant_id"`
 	CreatedAt  int64       `json:"created_at"`
 	UpdatedAt  int64       `json:"updated_at"`
+}
+
+func NewOrder(o core.Order) Order {
+	items := make([]OrderItem, len(o.Items))
+	for i, oi := range o.Items {
+		items[i] = NewOrderItem(oi)
+	}
+	taxes := make([]OrderTax, len(o.Taxes))
+	for i, ot := range o.Taxes {
+		taxes[i] = NewOrderTax(ot)
+	}
+	return Order{
+		ID:    o.ID,
+		Items: items,
+		Taxes: taxes,
+		TotalTax: Money{
+			Amount:   ptr.Int64(o.TotalTax.Amount),
+			Currency: o.TotalTax.Currency,
+		},
+		Total: Money{
+			Amount:   ptr.Int64(o.Total.Amount),
+			Currency: o.Total.Currency,
+		},
+		LocationID: o.LocationID,
+		MerchantID: o.MerchantID,
+		CreatedAt:  o.CreatedAt,
+		UpdatedAt:  o.UpdatedAt,
+	}
 }
 
 type OrderItem struct {
@@ -94,26 +125,23 @@ type OrderItemAppliedTax struct {
 }
 
 type OrderTax struct {
-	UID string `json:"uid"`
-	ID  string `json:"id"`
+	UID     string        `json:"uid"`
+	ID      string        `json:"id"`
+	Scope   core.TaxScope `json:"scope"`
+	Name    string        `json:"name"`
+	Applied Money         `json:"applied"`
 }
 
-func NewOrder(o core.Order) Order {
-	items := make([]OrderItem, len(o.Items))
-	for i, oi := range o.Items {
-		items[i] = NewOrderItem(oi)
-	}
-	return Order{
-		ID:    o.ID,
-		Items: items,
-		Total: Money{
-			Amount:   ptr.Int64(o.Total.Amount),
-			Currency: o.Total.Currency,
+func NewOrderTax(ot core.OrderTax) OrderTax {
+	return OrderTax{
+		UID:   ot.UID,
+		ID:    ot.ID,
+		Scope: ot.Scope,
+		Name:  ot.Name,
+		Applied: Money{
+			Amount:   ptr.Int64(ot.Applied.Amount),
+			Currency: ot.Applied.Currency,
 		},
-		LocationID: o.LocationID,
-		MerchantID: o.MerchantID,
-		CreatedAt:  o.CreatedAt,
-		UpdatedAt:  o.UpdatedAt,
 	}
 }
 
@@ -124,8 +152,9 @@ type OrderItemRequest struct {
 }
 
 type OrderTaxRequest struct {
-	UID string `json:"uid" validate:"required"`
-	ID  string `json:"id" validate:"required"`
+	UID   string        `json:"uid" validate:"required"`
+	ID    string        `json:"id" validate:"required"`
+	Scope core.TaxScope `json:"scope" validate:"required"`
 }
 
 type OrderCreateRequest struct {

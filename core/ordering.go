@@ -103,13 +103,26 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (Order, er
 		itemsTotalAmount += orderItem.Total.Amount
 	}
 
-	// Precompute order level taxes amount
+	// Compute and save order level taxes amount
 	taxTotalAmount := map[string]int64{}
 	for _, ot := range sch.Taxes {
 		t := taxLookup[ot.UID]
 		ptg := d.NewFromInt(t.Percentage).Div(hundred)
 		total := d.NewFromInt(itemsTotalAmount)
-		taxTotalAmount[ot.UID] = ptg.Mul(total).RoundBank(0).IntPart()
+		amount := ptg.Mul(total).RoundBank(0).IntPart()
+		taxTotalAmount[ot.UID] = amount
+
+		ordTax := OrderTax{
+			UID:   ot.UID,
+			ID:    t.ID,
+			Name:  t.Name,
+			Scope: ot.Scope,
+			Applied: Money{
+				Amount:   amount,
+				Currency: currency,
+			},
+		}
+		order.Taxes = append(order.Taxes, ordTax)
 	}
 
 	// Apply order level taxes
@@ -137,12 +150,22 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (Order, er
 	}
 
 	// Calculate order totals
-	var totalAmount int64
+	var (
+		orderTotalAmount    int64
+		orderTotalTaxAmount int64
+	)
 	for _, ordItem := range order.Items {
-		totalAmount += ordItem.Total.Amount
+		orderTotalAmount += ordItem.Total.Amount
+	}
+	for _, v := range taxTotalAmount {
+		orderTotalTaxAmount += v
+	}
+	order.TotalTax = Money{
+		Amount:   orderTotalTaxAmount,
+		Currency: currency,
 	}
 	order.Total = Money{
-		Amount:   totalAmount,
+		Amount:   orderTotalAmount,
 		Currency: currency,
 	}
 

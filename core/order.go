@@ -14,6 +14,7 @@ type Order struct {
 	Items      []OrderItem `bson:"items"`
 	Taxes      []OrderTax  `bson:"taxes"`
 	Total      Money       `bson:"total"`
+	TotalTax   Money       `bson:"total_tax"`
 	LocationID string      `bson:"location_id"`
 	MerchantID string      `bson:"merchant_id"`
 	CreatedAt  int64       `bson:"created_at"`
@@ -46,9 +47,11 @@ type OrderItemAppliedTax struct {
 }
 
 type OrderTax struct {
-	UID   string   `bson:"uid"`
-	ID    string   `bson:"id"`
-	Scope TaxScope `bson:"scope"`
+	UID     string   `bson:"uid"`
+	ID      string   `bson:"id"`
+	Name    string   `bson:"name"`
+	Scope   TaxScope `bson:"scope"`
+	Applied Money    `bson:"applied"`
 }
 
 type OrderStorage interface {
