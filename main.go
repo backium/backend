@@ -26,7 +26,8 @@ func main() {
 	categoryRepository := mongo.NewCategoryRepository(db)
 	itemRepository := mongo.NewItemRepository(db)
 	itemVariationRepository := mongo.NewItemVariationRepository(db)
-	taxRepository := mongo.NewTaxRepository(db)
+	taxStorage := mongo.NewTaxStorage(db)
+	orderStorage := mongo.NewOrderStorage(db)
 
 	redis := redis.NewSessionRepository(config.RedisURI, config.RedisPassword)
 	s := http.Server{
@@ -39,7 +40,8 @@ func main() {
 		CategoryRepository:      categoryRepository,
 		ItemRepository:          itemRepository,
 		ItemVariationRepository: itemVariationRepository,
-		TaxRepository:           taxRepository,
+		TaxStorage:              taxStorage,
+		OrderStorage:            orderStorage,
 		SessionRepository:       redis,
 	}
 	s.Setup()

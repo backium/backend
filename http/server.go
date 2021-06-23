@@ -17,8 +17,9 @@ type Server struct {
 	CustomerRepository      core.CustomerRepository
 	CategoryRepository      core.CategoryRepository
 	ItemRepository          core.ItemRepository
-	ItemVariationRepository core.ItemVariationRepository
-	TaxRepository           core.TaxRepository
+	ItemVariationRepository core.ItemVariationStorage
+	TaxStorage              core.TaxStorage
+	OrderStorage            core.OrderStorage
 	SessionRepository       SessionRepository
 }
 
@@ -51,7 +52,12 @@ func (s *Server) setupHandlers() {
 		CategoryRepository:      s.CategoryRepository,
 		ItemRepository:          s.ItemRepository,
 		ItemVariationRepository: s.ItemVariationRepository,
-		TaxRepository:           s.TaxRepository,
+		TaxStorage:              s.TaxStorage,
+	}
+	orderingService := core.OrderingService{
+		OrderStorage:         s.OrderStorage,
+		ItemVariationStorage: s.ItemVariationRepository,
+		TaxStorage:           s.TaxStorage,
 	}
 
 	// setup handlers
@@ -61,6 +67,7 @@ func (s *Server) setupHandlers() {
 		MerchantService:   merchantService,
 		UserService:       userService,
 		CatalogService:    catalogService,
+		OrderingService:   orderingService,
 		SessionRepository: s.SessionRepository,
 	}
 }

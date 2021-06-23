@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
@@ -11,76 +12,80 @@ import (
 )
 
 const (
-	taxIDPrefix       = "tax"
 	taxCollectionName = "taxes"
 )
 
-type taxRepository struct {
+type taxStorage struct {
 	collection *mongo.Collection
+	client     *mongo.Client
 	driver     *mongoDriver
 }
 
-func NewTaxRepository(db DB) core.TaxRepository {
+func NewTaxStorage(db DB) core.TaxStorage {
 	coll := db.Collection(taxCollectionName)
-	return &taxRepository{
+	return &taxStorage{
 		collection: coll,
+		client:     db.client,
 		driver:     &mongoDriver{Collection: coll},
 	}
 }
 
-func (r *taxRepository) Create(ctx context.Context, tax core.Tax) (string, error) {
-	const op = errors.Op("mongo.taxRepository.Create")
-	if tax.ID == "" {
-		tax.ID = generateID(taxIDPrefix)
-	}
-	tax.Status = core.StatusActive
-	id, err := r.driver.insertOne(ctx, tax)
-	if err != nil {
-		return "", errors.E(op, err)
-	}
-	return id, nil
-}
-
-func (r *taxRepository) Update(ctx context.Context, it core.Tax) error {
-	const op = errors.Op("mongo.taxRepository.Update")
-	filter := bson.M{"_id": it.ID}
-	query := bson.M{"$set": it}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+func (s *taxStorage) Put(ctx context.Context, t core.Tax) error {
+	const op = errors.Op("mongo/taxStorage.Put")
+	now := time.Now().Unix()
+	t.UpdatedAt = now
+	f := bson.M{"_id": t.ID}
+	u := bson.M{"$set": t}
+	opts := options.Update().SetUpsert(true)
+	res, err := s.collection.UpdateOne(ctx, f, u, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "tax not found")
+	// Update created_at field if upserted
+	if res.UpsertedCount == 1 {
+		t.CreatedAt = now
+		query := bson.M{"$set": t}
+		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		if err != nil {
+			return errors.E(op, errors.KindUnexpected, err)
+		}
 	}
 	return nil
 }
 
-func (r *taxRepository) UpdatePartial(ctx context.Context, id string, it core.TaxPartial) error {
-	const op = errors.Op("mongo.taxRepository.Update")
-	filter := bson.M{"_id": id}
-	query := bson.M{"$set": it}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+func (s *taxStorage) PutBatch(ctx context.Context, batch []core.Tax) error {
+	const op = errors.Op("mongo/taxStorage.PutBatch")
+	sess, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "tax not found")
+
+	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		for _, t := range batch {
+			if err := s.Put(sessCtx, t); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	return nil
 }
 
-func (r *taxRepository) Retrieve(ctx context.Context, id string) (core.Tax, error) {
-	const op = errors.Op("mongo.taxRepository.Retrieve")
+func (s *taxStorage) Get(ctx context.Context, id string) (core.Tax, error) {
+	const op = errors.Op("mongo/taxStorage/Get")
 	tax := core.Tax{}
 	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &tax, filter); err != nil {
+	if err := s.driver.findOneAndDecode(ctx, &tax, filter); err != nil {
 		return core.Tax{}, errors.E(op, err)
 	}
 	return tax, nil
 }
 
-func (r *taxRepository) List(ctx context.Context, fil core.TaxFilter) ([]core.Tax, error) {
-	const op = errors.Op("mongo.taxRepository.List")
+func (s *taxStorage) List(ctx context.Context, fil core.TaxFilter) ([]core.Tax, error) {
+	const op = errors.Op("mongo/taxStorage.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
@@ -96,7 +101,7 @@ func (r *taxRepository) List(ctx context.Context, fil core.TaxFilter) ([]core.Ta
 		mfil["location_ids"] = bson.M{"$in": fil.LocationIDs}
 	}
 
-	res, err := r.collection.Find(ctx, mfil, fo)
+	res, err := s.collection.Find(ctx, mfil, fo)
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

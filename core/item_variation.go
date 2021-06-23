@@ -33,7 +33,7 @@ func NewItemVariation() ItemVariation {
 	}
 }
 
-type ItemVariationRepository interface {
+type ItemVariationStorage interface {
 	Create(context.Context, ItemVariation) (string, error)
 	Update(context.Context, ItemVariation) error
 	UpdatePartial(context.Context, string, ItemVariationPartial) error

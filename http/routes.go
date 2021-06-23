@@ -57,6 +57,9 @@ func (s *Server) setupRoutes() {
 	userGroup.POST("/taxes", s.Handler.CreateTax)
 	userGroup.PUT("/taxes/:id", s.Handler.UpdateTax)
 	userGroup.DELETE("/taxes/:id", s.Handler.DeleteTax)
+	userGroup.POST("/taxes/batch", s.Handler.BatchCreateTax)
+
+	userGroup.POST("/orders", s.Handler.CreateOrder)
 }
 
 func (s *Server) loggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {

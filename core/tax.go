@@ -6,65 +6,73 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-type TaxPartial struct {
-	Name        *string   `bson:"name,omitempty"`
-	Percentage  *int      `bson:"percentage,omitempty"`
-	LocationIDs *[]string `bson:"location_ids,omitempty"`
-	Status      *Status   `bson:"status,omitempty"`
-}
+type TaxScope string
+
+const (
+	TaxScopeOrder TaxScope = "order"
+	TaxScopeItem  TaxScope = "item"
+)
 
 type Tax struct {
 	ID          string   `bson:"_id"`
 	Name        string   `bson:"name,omitempty"`
-	Percentage  int      `bson:"percentage"`
+	Percentage  int64    `bson:"percentage"`
 	LocationIDs []string `bson:"location_ids"`
 	MerchantID  string   `bson:"merchant_id,omitempty"`
+	CreatedAt   int64    `bson:"created_at"`
+	UpdatedAt   int64    `bson:"updated_at"`
 	Status      Status   `bson:"status,omitempty"`
 }
 
 func NewTax() Tax {
 	return Tax{
+		ID:          generateID("tax"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
 	}
 }
 
-type TaxRepository interface {
-	Create(context.Context, Tax) (string, error)
-	Update(context.Context, Tax) error
-	UpdatePartial(context.Context, string, TaxPartial) error
-	Retrieve(context.Context, string) (Tax, error)
+type TaxStorage interface {
+	Put(context.Context, Tax) error
+	PutBatch(context.Context, []Tax) error
+	Get(context.Context, string) (Tax, error)
 	List(context.Context, TaxFilter) ([]Tax, error)
 }
 
-func (svc *CatalogService) CreateTax(ctx context.Context, it Tax) (Tax, error) {
+func (svc *CatalogService) PutTax(ctx context.Context, t Tax) (Tax, error) {
 	const op = errors.Op("controller.Tax.Create")
-	id, err := svc.TaxRepository.Create(ctx, it)
+	if err := svc.TaxStorage.Put(ctx, t); err != nil {
+		return Tax{}, err
+	}
+	t, err := svc.TaxStorage.Get(ctx, t.ID)
 	if err != nil {
 		return Tax{}, err
 	}
-	it, err = svc.TaxRepository.Retrieve(ctx, id)
-	if err != nil {
-		return Tax{}, err
-	}
-	return it, nil
+	return t, nil
 }
 
-func (svc *CatalogService) UpdateTax(ctx context.Context, id string, it TaxPartial) (Tax, error) {
-	const op = errors.Op("controller.Tax.Update")
-	if err := svc.TaxRepository.UpdatePartial(ctx, id, it); err != nil {
-		return Tax{}, errors.E(op, err)
+func (svc *CatalogService) PutTaxes(ctx context.Context, tt []Tax) ([]Tax, error) {
+	const op = errors.Op("controller.Tax.Create")
+	if err := svc.TaxStorage.PutBatch(ctx, tt); err != nil {
+		return nil, err
 	}
-	uit, err := svc.TaxRepository.Retrieve(ctx, id)
+	ids := make([]string, len(tt))
+	for i, t := range tt {
+		ids[i] = t.ID
+	}
+	tt, err := svc.TaxStorage.List(ctx, TaxFilter{
+		Limit: int64(len(tt)),
+		IDs:   ids,
+	})
 	if err != nil {
-		return Tax{}, err
+		return nil, err
 	}
-	return uit, nil
+	return tt, nil
 }
 
-func (svc *CatalogService) RetrieveTax(ctx context.Context, req TaxRetrieveRequest) (Tax, error) {
+func (svc *CatalogService) GetTax(ctx context.Context, req TaxRetrieveRequest) (Tax, error) {
 	const op = errors.Op("controller.Tax.Retrieve")
-	it, err := svc.TaxRepository.Retrieve(ctx, req.ID)
+	it, err := svc.TaxStorage.Get(ctx, req.ID)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
@@ -85,7 +93,7 @@ func (svc *CatalogService) ListTax(ctx context.Context, req TaxListRequest) ([]T
 		offset = *req.Offset
 	}
 
-	its, err := svc.TaxRepository.List(ctx, TaxFilter{
+	its, err := svc.TaxStorage.List(ctx, TaxFilter{
 		MerchantID: req.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
@@ -98,25 +106,24 @@ func (svc *CatalogService) ListTax(ctx context.Context, req TaxListRequest) ([]T
 
 func (svc *CatalogService) DeleteTax(ctx context.Context, req TaxDeleteRequest) (Tax, error) {
 	const op = errors.Op("controller.Tax.Delete")
-	it, err := svc.TaxRepository.Retrieve(ctx, req.ID)
+	tax, err := svc.TaxStorage.Get(ctx, req.ID)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
 
-	if it.MerchantID != req.MerchantID {
+	if tax.MerchantID != req.MerchantID {
 		return Tax{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external tax")
 	}
 
-	status := StatusShadowDeleted
-	update := TaxPartial{Status: &status}
-	if err := svc.TaxRepository.UpdatePartial(ctx, req.ID, update); err != nil {
+	tax.Status = StatusShadowDeleted
+	if err := svc.TaxStorage.Put(ctx, tax); err != nil {
 		return Tax{}, errors.E(op, err)
 	}
-	dit, err := svc.TaxRepository.Retrieve(ctx, req.ID)
+	resp, err := svc.TaxStorage.Get(ctx, req.ID)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
-	return dit, nil
+	return resp, nil
 }
 
 type TaxRetrieveRequest struct {
