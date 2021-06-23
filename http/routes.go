@@ -59,6 +59,13 @@ func (s *Server) setupRoutes() {
 	userGroup.DELETE("/taxes/:id", s.Handler.DeleteTax)
 	userGroup.POST("/taxes/batch", s.Handler.BatchCreateTax)
 
+	userGroup.GET("/discounts/:id", s.Handler.RetrieveDiscount)
+	userGroup.GET("/discounts", s.Handler.ListDiscounts)
+	userGroup.POST("/discounts", s.Handler.CreateDiscount)
+	userGroup.PUT("/discounts/:id", s.Handler.UpdateDiscount)
+	userGroup.DELETE("/discounts/:id", s.Handler.DeleteDiscount)
+	userGroup.POST("/discounts/batch", s.Handler.BatchCreateDiscount)
+
 	userGroup.POST("/orders", s.Handler.CreateOrder)
 }
 

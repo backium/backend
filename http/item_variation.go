@@ -185,5 +185,5 @@ type ItemVariationListRequest struct {
 }
 
 type ItemVariationListResponse struct {
-	ItemVariations []ItemVariation `json:"itemVariations"`
+	ItemVariations []ItemVariation `json:"item_variations"`
 }

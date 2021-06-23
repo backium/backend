@@ -27,6 +27,7 @@ func main() {
 	itemRepository := mongo.NewItemRepository(db)
 	itemVariationRepository := mongo.NewItemVariationRepository(db)
 	taxStorage := mongo.NewTaxStorage(db)
+	discountStorage := mongo.NewDiscountStorage(db)
 	orderStorage := mongo.NewOrderStorage(db)
 
 	redis := redis.NewSessionRepository(config.RedisURI, config.RedisPassword)
@@ -41,6 +42,7 @@ func main() {
 		ItemRepository:          itemRepository,
 		ItemVariationRepository: itemVariationRepository,
 		TaxStorage:              taxStorage,
+		DiscountStorage:         discountStorage,
 		OrderStorage:            orderStorage,
 		SessionRepository:       redis,
 	}
