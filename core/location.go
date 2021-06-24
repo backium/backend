@@ -6,141 +6,120 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-const maxReturnedLocations = 50
-
-type LocationPartial struct {
-	Name         *string `bson:"name,omitempty"`
-	BusinessName *string `bson:"business_name,omitempty"`
-	Status       *Status `bson:"status,omitempty"`
-}
+const (
+	maxReturnedLocations     = 50
+	defaultReturnedLocations = 10
+)
 
 type Location struct {
 	ID           string `bson:"_id"`
 	Name         string `bson:"name,omitempty"`
 	BusinessName string `bson:"business_name,omitempty"`
 	MerchantID   string `bson:"merchant_id,omitempty"`
+	CreatedAt    int64  `bson:"created_at"`
+	UpdatedAt    int64  `bson:"updated_at"`
 	Status       Status `bson:"status,omitempty"`
 }
 
-// Creates a Customer with default values
+// Creates a Location with default values
 func NewLocation() Location {
 	return Location{
+		ID:     generateID("loc"),
 		Status: StatusActive,
 	}
 }
 
-type LocationRepository interface {
-	Create(context.Context, Location) (string, error)
-	Update(context.Context, Location) error
-	UpdatePartial(context.Context, string, LocationPartial) error
-	Retrieve(context.Context, string) (Location, error)
-	List(context.Context, ListLocationsFilter) ([]Location, error)
+type LocationStorage interface {
+	Put(context.Context, Location) error
+	PutBatch(context.Context, []Location) error
+	Get(context.Context, string, string) (Location, error)
+	List(context.Context, LocationFilter) ([]Location, error)
 }
 
 type LocationService struct {
-	LocationRepository LocationRepository
+	LocationStorage LocationStorage
 }
 
-func (svc *LocationService) Create(ctx context.Context, loc Location) (Location, error) {
+func (svc *LocationService) PutLocation(ctx context.Context, location Location) (Location, error) {
 	const op = errors.Op("controller.Location.Create")
-	id, err := svc.LocationRepository.Create(ctx, loc)
-	if err != nil {
-		return Location{}, errors.E(op, err)
+	if err := svc.LocationStorage.Put(ctx, location); err != nil {
+		return Location{}, err
 	}
-	loc, err = svc.LocationRepository.Retrieve(ctx, id)
+	location, err := svc.LocationStorage.Get(ctx, location.ID, location.MerchantID)
 	if err != nil {
 		return Location{}, err
 	}
-	return loc, nil
+	return location, nil
 }
 
-func (svc *LocationService) Update(ctx context.Context, id string, loc LocationPartial) (Location, error) {
-	const op = errors.Op("controller.Location.Update")
-	if err := svc.LocationRepository.UpdatePartial(ctx, id, loc); err != nil {
+func (svc *LocationService) PutLocations(ctx context.Context, cc []Location) ([]Location, error) {
+	const op = errors.Op("core/LocationService.PutLocations")
+	if err := svc.LocationStorage.PutBatch(ctx, cc); err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(cc))
+	for i, t := range cc {
+		ids[i] = t.ID
+	}
+	cc, err := svc.LocationStorage.List(ctx, LocationFilter{
+		Limit: int64(len(cc)),
+		IDs:   ids,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return cc, nil
+}
+
+func (svc *LocationService) GetLocation(ctx context.Context, id, merchantID string) (Location, error) {
+	const op = errors.Op("core/LocationService.GetLocation")
+	cust, err := svc.LocationStorage.Get(ctx, id, merchantID)
+	if err != nil {
 		return Location{}, errors.E(op, err)
 	}
-	uloc, err := svc.LocationRepository.Retrieve(ctx, id)
-	if err != nil {
-		return Location{}, err
-	}
-	return uloc, nil
+	return cust, nil
 }
 
-func (svc *LocationService) Retrieve(ctx context.Context, req RetrieveLocationRequest) (Location, error) {
-	const op = errors.Op("controller.Location.Retrieve")
-	l, err := svc.LocationRepository.Retrieve(ctx, req.ID)
-	if err != nil {
-		return Location{}, errors.E(op, err)
+func (svc *LocationService) ListLocation(ctx context.Context, f LocationFilter) ([]Location, error) {
+	const op = errors.Op("core/LocationService.ListLocation")
+	limit, offset := int64(defaultReturnedLocations), int64(0)
+	if f.Limit != 0 && f.Limit < maxReturnedLocations {
+		limit = f.Limit
+	}
+	if f.Offset != 0 {
+		offset = f.Offset
 	}
 
-	if l.MerchantID != req.MerchantID {
-		return Location{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external location")
-	}
-	return l, nil
-}
-
-func (svc *LocationService) ListAll(ctx context.Context, req ListAllLocationsRequest) ([]Location, error) {
-	const op = errors.Op("controller.Location.ListAll")
-	limit := int64(maxReturnedLocations)
-	offset := int64(0)
-	if req.Limit != nil {
-		limit = *req.Limit
-	}
-	if req.Offset != nil {
-		offset = *req.Offset
-	}
-
-	locs, err := svc.LocationRepository.List(ctx, ListLocationsFilter{
-		MerchantID: req.MerchantID,
+	cc, err := svc.LocationStorage.List(ctx, LocationFilter{
+		MerchantID: f.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
-	return locs, nil
+	return cc, nil
 }
 
-func (c *LocationService) Delete(ctx context.Context, req DeleteLocationRequest) (Location, error) {
-	const op = errors.Op("controller.Location.Delete")
-	loc, err := c.LocationRepository.Retrieve(ctx, req.ID)
+func (svc *LocationService) DeleteLocation(ctx context.Context, id, merchantID string) (Location, error) {
+	const op = errors.Op("core/LocationService.DeleteLocation")
+	location, err := svc.LocationStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Location{}, errors.E(op, err)
 	}
 
-	if loc.MerchantID != req.MerchantID {
-		return Location{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external location")
-	}
-
-	status := StatusShadowDeleted
-	update := LocationPartial{Status: &status}
-	if err := c.LocationRepository.UpdatePartial(ctx, req.ID, update); err != nil {
+	location.Status = StatusShadowDeleted
+	if err := svc.LocationStorage.Put(ctx, location); err != nil {
 		return Location{}, errors.E(op, err)
 	}
-	dloc, err := c.LocationRepository.Retrieve(ctx, req.ID)
+	resp, err := svc.LocationStorage.Get(ctx, id, merchantID)
 	if err != nil {
-		return Location{}, err
+		return Location{}, errors.E(op, err)
 	}
-	return dloc, nil
+	return resp, nil
 }
 
-type RetrieveLocationRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type DeleteLocationRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type ListAllLocationsRequest struct {
-	Limit      *int64
-	Offset     *int64
-	MerchantID string
-}
-
-type ListLocationsFilter struct {
+type LocationFilter struct {
 	Limit      int64
 	Offset     int64
 	MerchantID string

@@ -46,12 +46,16 @@ func (h *Handler) CreateDiscount(c echo.Context) error {
 
 func (h *Handler) UpdateDiscount(c echo.Context) error {
 	const op = errors.Op("http/Handler.UpdateDiscount")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	req := DiscountUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
 	ctx := c.Request().Context()
-	d, err := h.CatalogService.GetDiscount(ctx, req.ID)
+	d, err := h.CatalogService.GetDiscount(ctx, req.ID, ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -117,8 +121,12 @@ func (h *Handler) BatchCreateDiscount(c echo.Context) error {
 
 func (h *Handler) RetrieveDiscount(c echo.Context) error {
 	const op = errors.Op("http/Handler.RetrieveDiscount")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.GetDiscount(ctx, c.Param("id"))
+	it, err := h.CatalogService.GetDiscount(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -153,8 +161,12 @@ func (h *Handler) ListDiscounts(c echo.Context) error {
 
 func (h *Handler) DeleteDiscount(c echo.Context) error {
 	const op = errors.Op("http/Handler.DeleteDiscount")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	ctx := c.Request().Context()
-	d, err := h.CatalogService.DeleteDiscount(ctx, c.Param("id"))
+	d, err := h.CatalogService.DeleteDiscount(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
+	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
 )
 
@@ -32,7 +33,9 @@ func (h *Handler) CreateCustomer(c echo.Context) error {
 	cus.Email = req.Email
 	cus.Phone = req.Phone
 	cus.MerchantID = ac.MerchantID
-	cus, err := h.CustomerService.Create(c.Request().Context(), cus)
+	ctx := c.Request().Context()
+
+	cus, err := h.CustomerService.PutCustomer(ctx, cus)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -41,17 +44,18 @@ func (h *Handler) CreateCustomer(c echo.Context) error {
 
 func (h *Handler) UpdateCustomer(c echo.Context) error {
 	const op = errors.Op("handler.Customer.Update")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	req := CustomerUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cus := core.PartialCustomer{
-		Name:  req.Name,
-		Email: req.Email,
-		Phone: req.Phone,
-	}
+	ctx := c.Request().Context()
+	cust, err := h.CustomerService.GetCustomer(ctx, c.Param("id"), ac.MerchantID)
 	if req.Address != nil {
-		cus.Address = &core.Address{
+		cust.Address = &core.Address{
 			Line1:      req.Address.Line1,
 			Line2:      req.Address.Line2,
 			Department: req.Address.Department,
@@ -59,11 +63,20 @@ func (h *Handler) UpdateCustomer(c echo.Context) error {
 			Province:   req.Address.Province,
 		}
 	}
-	ucus, err := h.CustomerService.Update(c.Request().Context(), req.ID, cus)
+	if req.Name != nil {
+		cust.Name = *req.Name
+	}
+	if req.Email != nil {
+		cust.Email = *req.Email
+	}
+	if req.Phone != nil {
+		cust.Phone = *req.Phone
+	}
+	cust, err = h.CustomerService.PutCustomer(ctx, cust)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewCustomer(ucus))
+	return c.JSON(http.StatusOK, NewCustomer(cust))
 }
 
 func (h *Handler) RetrieveCustomer(c echo.Context) error {
@@ -72,14 +85,12 @@ func (h *Handler) RetrieveCustomer(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	m, err := h.CustomerService.Retrieve(c.Request().Context(), core.RetrieveCustomerRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	cust, err := h.CustomerService.GetCustomer(ctx, c.Param("id"), ac.MerchantID)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewCustomer(m))
+	return c.JSON(http.StatusOK, NewCustomer(cust))
 }
 
 func (h *Handler) ListCustomers(c echo.Context) error {
@@ -92,17 +103,18 @@ func (h *Handler) ListCustomers(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cuss, err := h.CustomerService.ListAll(c.Request().Context(), core.ListAllCustomersRequest{
-		Limit:      req.Limit,
-		Offset:     req.Offset,
+	ctx := c.Request().Context()
+	cc, err := h.CustomerService.ListCustomer(ctx, core.CustomerFilter{
+		Limit:      ptr.GetInt64(req.Limit),
+		Offset:     ptr.GetInt64(req.Offset),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]Customer, len(cuss))
-	for i, cus := range cuss {
-		res[i] = NewCustomer(cus)
+	res := make([]Customer, len(cc))
+	for i, c := range cc {
+		res[i] = NewCustomer(c)
 	}
 	return c.JSON(http.StatusOK, listCustomersResponse{res})
 }
@@ -113,10 +125,8 @@ func (h *Handler) DeleteCustomer(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	cus, err := h.CustomerService.Delete(c.Request().Context(), core.DeleteCustomerRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	cus, err := h.CustomerService.DeleteCustomer(ctx, c.Param("id"), ac.MerchantID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -130,6 +140,8 @@ type Customer struct {
 	Phone      string      `json:"phone"`
 	Address    *Address    `json:"address,omitempty"`
 	MerchantID string      `json:"merchant_id"`
+	CreatedAt  int64       `json:"created_at"`
+	UpdatedAt  int64       `json:"updated_at"`
 	Status     core.Status `json:"status"`
 }
 
@@ -148,6 +160,8 @@ func NewCustomer(cus core.Customer) Customer {
 		Email:      cus.Email,
 		Phone:      cus.Phone,
 		MerchantID: cus.MerchantID,
+		CreatedAt:  cus.CreatedAt,
+		UpdatedAt:  cus.UpdatedAt,
 		Status:     cus.Status,
 	}
 	if cus.Address != nil {

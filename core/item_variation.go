@@ -6,13 +6,10 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-type ItemVariationPartial struct {
-	Name        *string   `bson:"name,omitempty"`
-	SKU         *string   `bson:"sku,omitempty"`
-	Price       *Money    `bson:"price,omitempty"`
-	LocationIDs *[]string `bson:"location_ids,omitempty"`
-	Status      *Status   `bson:"status,omitempty"`
-}
+const (
+	maxReturnedItemVariations     = 50
+	defaultReturnedItemVariations = 10
+)
 
 type ItemVariation struct {
 	ID          string   `bson:"_id"`
@@ -22,132 +19,112 @@ type ItemVariation struct {
 	Price       Money    `bson:"price"`
 	LocationIDs []string `bson:"location_ids"`
 	MerchantID  string   `bson:"merchant_id,omitempty"`
+	CreatedAt   int64    `bson:"created_at"`
+	UpdatedAt   int64    `bson:"updated_at"`
 	Status      Status   `bson:"status,omitempty"`
 }
 
-// Creates an ItemVariation with default values
+// Creates an ItemVariationVariation with default values
 func NewItemVariation() ItemVariation {
 	return ItemVariation{
+		ID:          generateID("itvar"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
 	}
 }
 
 type ItemVariationStorage interface {
-	Create(context.Context, ItemVariation) (string, error)
-	Update(context.Context, ItemVariation) error
-	UpdatePartial(context.Context, string, ItemVariationPartial) error
-	Retrieve(context.Context, string) (ItemVariation, error)
+	Put(context.Context, ItemVariation) error
+	PutBatch(context.Context, []ItemVariation) error
+	Get(context.Context, string, string, []string) (ItemVariation, error)
 	List(context.Context, ItemVariationFilter) ([]ItemVariation, error)
 }
 
-func (c *CatalogService) CreateItemVariation(ctx context.Context, itvar ItemVariation) (ItemVariation, error) {
-	const op = errors.Op("controller.ItemVariation.Create")
-	id, err := c.ItemVariationRepository.Create(ctx, itvar)
+func (s *CatalogService) PutItemVariation(ctx context.Context, it ItemVariation) (ItemVariation, error) {
+	const op = errors.Op("core/CatalogService.PutItemVariation")
+	if err := s.ItemVariationStorage.Put(ctx, it); err != nil {
+		return ItemVariation{}, err
+	}
+	it, err := s.ItemVariationStorage.Get(ctx, it.ID, it.MerchantID, nil)
 	if err != nil {
 		return ItemVariation{}, err
 	}
-	uitvar, err := c.ItemVariationRepository.Retrieve(ctx, id)
-	if err != nil {
-		return ItemVariation{}, err
-	}
-	return uitvar, nil
+	return it, nil
 }
 
-func (c *CatalogService) UpdateItemVariation(ctx context.Context, id string, itvar ItemVariationPartial) (ItemVariation, error) {
-	const op = errors.Op("controller.ItemVariation.Update")
-	if err := c.ItemVariationRepository.UpdatePartial(ctx, id, itvar); err != nil {
+func (s *CatalogService) PutItemVariationVariations(ctx context.Context, ii []ItemVariation) ([]ItemVariation, error) {
+	const op = errors.Op("core/CatalogService.PutItemVariationVariations")
+	if err := s.ItemVariationStorage.PutBatch(ctx, ii); err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(ii))
+	for i, d := range ii {
+		ids[i] = d.ID
+	}
+	ii, err := s.ItemVariationStorage.List(ctx, ItemVariationFilter{
+		Limit: int64(len(ii)),
+		IDs:   ids,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ii, nil
+}
+
+func (s *CatalogService) GetItemVariation(ctx context.Context, id, merchantID string, locationIDs []string) (ItemVariation, error) {
+	const op = errors.Op("core/CatalogService.GetItemVariation")
+	it, err := s.ItemVariationStorage.Get(ctx, id, merchantID, locationIDs)
+	if err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
-	uitvar, err := c.ItemVariationRepository.Retrieve(ctx, id)
-	if err != nil {
-		return ItemVariation{}, err
-	}
-	return uitvar, nil
+	return it, nil
 }
 
-func (c *CatalogService) RetrieveItemVariation(ctx context.Context, req ItemVariationRetrieveRequest) (ItemVariation, error) {
-	const op = errors.Op("controller.ItemVariation.Retrieve")
-	itvar, err := c.ItemVariationRepository.Retrieve(ctx, req.ID)
-	if err != nil {
-		return ItemVariation{}, errors.E(op, err)
+func (s *CatalogService) ListItemVariation(ctx context.Context, f ItemVariationFilter) ([]ItemVariation, error) {
+	const op = errors.Op("core/CatalogService.ListItemVariation")
+	limit, offset := int64(defaultReturnedItemVariations), int64(0)
+	if f.Limit != 0 && f.Limit < maxReturnedItemVariations {
+		limit = f.Limit
+	}
+	if f.Offset != 0 {
+		offset = f.Offset
 	}
 
-	if itvar.MerchantID != req.MerchantID {
-		return ItemVariation{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external itemVariation")
-	}
-	return itvar, nil
-}
-
-func (c *CatalogService) ListItemVariation(ctx context.Context, req ItemVariationListRequest) ([]ItemVariation, error) {
-	const op = errors.Op("controller.ItemVariation.ListAll")
-	limit := int64(maxReturnedItemVariations)
-	offset := int64(0)
-	if req.Limit != nil {
-		limit = *req.Limit
-	}
-	if req.Offset != nil {
-		offset = *req.Offset
-	}
-
-	itvars, err := c.ItemVariationRepository.List(ctx, ItemVariationFilter{
-		ItemIDs:    req.ItemIDs,
-		MerchantID: req.MerchantID,
+	dd, err := s.ItemVariationStorage.List(ctx, ItemVariationFilter{
+		MerchantID: f.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
+		ItemIDs:    f.ItemIDs,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
-	return itvars, nil
+	return dd, nil
 }
 
-func (c *CatalogService) DeleteItemVariation(ctx context.Context, req ItemVariationDeleteRequest) (ItemVariation, error) {
-	const op = errors.Op("controller.ItemVariation.Delete")
-	itvar, err := c.ItemVariationRepository.Retrieve(ctx, req.ID)
+func (s *CatalogService) DeleteItemVariation(ctx context.Context, id, merchantID string, locationIDs []string) (ItemVariation, error) {
+	const op = errors.Op("core/CatalogService.DeleteItemVariation")
+	d, err := s.ItemVariationStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
 
-	if itvar.MerchantID != req.MerchantID {
-		return ItemVariation{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external itemVariation")
-	}
-
-	status := StatusShadowDeleted
-	update := ItemVariationPartial{Status: &status}
-	if err := c.ItemVariationRepository.UpdatePartial(ctx, req.ID, update); err != nil {
+	d.Status = StatusShadowDeleted
+	if err := s.ItemVariationStorage.Put(ctx, d); err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
-	ditvar, err := c.ItemVariationRepository.Retrieve(ctx, req.ID)
+	resp, err := s.ItemVariationStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
-	return ditvar, nil
-}
-
-type ItemVariationRetrieveRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type ItemVariationDeleteRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type ItemVariationListRequest struct {
-	Limit       *int64
-	Offset      *int64
-	ItemIDs     []string
-	LocationIDs []string
-	MerchantID  string
+	return resp, nil
 }
 
 type ItemVariationFilter struct {
 	Limit       int64
 	Offset      int64
-	ItemIDs     []string
 	LocationIDs []string
 	MerchantID  string
+	ItemIDs     []string
 	IDs         []string
 }

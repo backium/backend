@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/backium/backend/errors"
 	d "github.com/shopspring/decimal"
@@ -27,12 +26,10 @@ func (s *OrderingService) CreateOrder(ctx context.Context, sch OrderSchema) (Ord
 		return Order{}, errors.E(op, err)
 	}
 
-	fmt.Printf("%+v", sch)
-
 	if err := s.OrderStorage.Put(ctx, *order); err != nil {
 		return Order{}, errors.E(op, err)
 	}
-	norder, err := s.OrderStorage.Get(ctx, order.ID)
+	norder, err := s.OrderStorage.Get(ctx, order.ID, order.MerchantID, nil)
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}

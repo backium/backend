@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
@@ -15,94 +16,108 @@ const (
 	itemCollectionName = "items"
 )
 
-type itemRepository struct {
+type itemStorage struct {
 	collection *mongo.Collection
 	driver     *mongoDriver
+	client     *mongo.Client
 }
 
-func NewItemRepository(db DB) core.ItemRepository {
+func NewItemRepository(db DB) core.ItemStorage {
 	coll := db.Collection(itemCollectionName)
-	return &itemRepository{
+	return &itemStorage{
 		collection: coll,
 		driver:     &mongoDriver{Collection: coll},
+		client:     db.client,
 	}
 }
 
-func (r *itemRepository) Create(ctx context.Context, cus core.Item) (string, error) {
-	const op = errors.Op("mongo.itemRepository.Create")
-	if cus.ID == "" {
-		cus.ID = generateID(itemIDPrefix)
+func (s *itemStorage) Put(ctx context.Context, item core.Item) error {
+	const op = errors.Op("mongo/itemStorage.Put")
+	now := time.Now().Unix()
+	item.UpdatedAt = now
+	f := bson.M{
+		"_id":         item.ID,
+		"merchant_id": item.MerchantID,
 	}
-	cus.Status = core.StatusActive
-	id, err := r.driver.insertOne(ctx, cus)
-	if err != nil {
-		return "", errors.E(op, err)
-	}
-	return id, nil
-}
-
-func (r *itemRepository) Update(ctx context.Context, it core.Item) error {
-	const op = errors.Op("mongo.itemRepository.Update")
-	filter := bson.M{"_id": it.ID}
-	query := bson.M{"$set": it}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+	u := bson.M{"$set": item}
+	opts := options.Update().SetUpsert(true)
+	res, err := s.collection.UpdateOne(ctx, f, u, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "item not found")
+	// Update created_at field if upserted
+	if res.UpsertedCount == 1 {
+		item.CreatedAt = now
+		query := bson.M{"$set": item}
+		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		if err != nil {
+			return errors.E(op, errors.KindUnexpected, err)
+		}
 	}
 	return nil
 }
 
-func (r *itemRepository) UpdatePartial(ctx context.Context, id string, it core.PartialItem) error {
-	const op = errors.Op("mongo.itemRepository.Update")
-	filter := bson.M{"_id": id}
-	query := bson.M{"$set": it}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+func (s *itemStorage) PutBatch(ctx context.Context, batch []core.Item) error {
+	const op = errors.Op("mongo/itemStorage.PutBatch")
+	sess, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "item not found")
+
+	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		for _, t := range batch {
+			if err := s.Put(sessCtx, t); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	return nil
 }
 
-func (r *itemRepository) Retrieve(ctx context.Context, id string) (core.Item, error) {
-	const op = errors.Op("mongo.itemRepository.Retrieve")
-	cusr := core.Item{}
-	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
+func (s *itemStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Item, error) {
+	const op = errors.Op("mongo/itemStorage/Get")
+	d := core.Item{}
+	f := bson.M{
+		"_id":         id,
+		"merchant_id": merchantID,
+	}
+	if len(locationIDs) != 0 {
+		f["location_ids"] = bson.M{"$in": locationIDs}
+	}
+	if err := s.driver.findOneAndDecode(ctx, &d, f); err != nil {
 		return core.Item{}, errors.E(op, err)
 	}
-	return cusr, nil
+	return d, nil
 }
 
-func (r *itemRepository) List(ctx context.Context, fil core.ItemFilter) ([]core.Item, error) {
-	const op = errors.Op("mongo.itemRepository.List")
-	fo := options.Find().
-		SetLimit(fil.Limit).
-		SetSkip(fil.Offset)
+func (s *itemStorage) List(ctx context.Context, f core.ItemFilter) ([]core.Item, error) {
+	const op = errors.Op("mongo/itemStorage.List")
+	opts := options.Find().
+		SetLimit(f.Limit).
+		SetSkip(f.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if fil.MerchantID != "" {
-		mfil["merchant_id"] = fil.MerchantID
+	fil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
+	if f.MerchantID != "" {
+		fil["merchant_id"] = f.MerchantID
 	}
-	if fil.IDs != nil {
-		mfil["_id"] = bson.M{"$in": fil.IDs}
+	if f.IDs != nil {
+		fil["_id"] = bson.M{"$in": f.IDs}
 	}
-	if fil.LocationIDs != nil {
-		mfil["location_ids"] = bson.M{"$in": fil.LocationIDs}
+	if f.LocationIDs != nil {
+		fil["location_ids"] = bson.M{"$in": f.LocationIDs}
 	}
 
-	res, err := r.collection.Find(ctx, mfil, fo)
+	res, err := s.collection.Find(ctx, fil, opts)
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var cuss []core.Item
-	if err := res.All(ctx, &cuss); err != nil {
+	var dd []core.Item
+	if err := res.All(ctx, &dd); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	return cuss, nil
+	return dd, nil
 }

@@ -1,10 +1,12 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
+	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
 )
 
@@ -45,13 +47,12 @@ func (h *Handler) UpdateTax(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	t, err := h.CatalogService.GetTax(ctx, core.TaxRetrieveRequest{
-		ID:         req.ID,
-		MerchantID: ac.MerchantID,
-	})
+	t, err := h.CatalogService.GetTax(ctx, req.ID, ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
+
+	fmt.Println(t)
 
 	if req.Name != nil {
 		t.Name = *req.Name
@@ -110,10 +111,7 @@ func (h *Handler) RetrieveTax(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.GetTax(ctx, core.TaxRetrieveRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	it, err := h.CatalogService.GetTax(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -131,9 +129,9 @@ func (h *Handler) ListTaxes(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	its, err := h.CatalogService.ListTax(ctx, core.TaxListRequest{
-		Limit:      req.Limit,
-		Offset:     req.Offset,
+	its, err := h.CatalogService.ListTax(ctx, core.TaxFilter{
+		Limit:      ptr.GetInt64(req.Limit),
+		Offset:     ptr.GetInt64(req.Offset),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
@@ -153,10 +151,7 @@ func (h *Handler) DeleteTax(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.DeleteTax(ctx, core.TaxDeleteRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	it, err := h.CatalogService.DeleteTax(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}

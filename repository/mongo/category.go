@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
@@ -15,72 +16,86 @@ const (
 	categoryCollectionName = "categories"
 )
 
-type categoryRepository struct {
+type categoryStorage struct {
 	collection *mongo.Collection
 	driver     *mongoDriver
+	client     *mongo.Client
 }
 
-func NewCategoryRepository(db DB) core.CategoryRepository {
+func NewCategoryStorage(db DB) core.CategoryStorage {
 	coll := db.Collection(categoryCollectionName)
-	return &categoryRepository{
+	return &categoryStorage{
 		collection: coll,
 		driver:     &mongoDriver{Collection: coll},
+		client:     db.client,
 	}
 }
 
-func (r *categoryRepository) Create(ctx context.Context, cat core.Category) (string, error) {
-	const op = errors.Op("mongo.categoryRepository.Create")
-	if cat.ID == "" {
-		cat.ID = generateID(categoryIDPrefix)
+func (s *categoryStorage) Put(ctx context.Context, cat core.Category) error {
+	const op = errors.Op("mongo/categoryStorage.Put")
+	now := time.Now().Unix()
+	cat.UpdatedAt = now
+	f := bson.M{
+		"_id":         cat.ID,
+		"merchant_id": cat.MerchantID,
 	}
-	cat.Status = core.StatusActive
-	id, err := r.driver.insertOne(ctx, cat)
-	if err != nil {
-		return "", errors.E(op, err)
-	}
-	return id, nil
-}
-
-func (r *categoryRepository) Update(ctx context.Context, cat core.Category) error {
-	const op = errors.Op("mongo.categoryRepository.Update")
-	filter := bson.M{"_id": cat.ID}
-	query := bson.M{"$set": cat}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+	u := bson.M{"$set": cat}
+	opts := options.Update().SetUpsert(true)
+	res, err := s.collection.UpdateOne(ctx, f, u, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "category not found")
+	// Update created_at field if upserted
+	if res.UpsertedCount == 1 {
+		cat.CreatedAt = now
+		query := bson.M{"$set": cat}
+		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		if err != nil {
+			return errors.E(op, errors.KindUnexpected, err)
+		}
 	}
 	return nil
 }
 
-func (r *categoryRepository) UpdatePartial(ctx context.Context, id string, cat core.CategoryPartial) error {
-	const op = errors.Op("mongo.categoryRepository.Update")
-	filter := bson.M{"_id": id}
-	query := bson.M{"$set": cat}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+func (s *categoryStorage) PutBatch(ctx context.Context, batch []core.Category) error {
+	const op = errors.Op("mongo/categoryStorage.PutBatch")
+	sess, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "category not found")
+
+	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		for _, t := range batch {
+			if err := s.Put(sessCtx, t); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	return nil
 }
 
-func (r *categoryRepository) Retrieve(ctx context.Context, id string) (core.Category, error) {
-	const op = errors.Op("mongo.categoryRepository.Retrieve")
+func (s *categoryStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Category, error) {
+	const op = errors.Op("mongo/categoryStorage/Get")
 	cat := core.Category{}
-	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &cat, filter); err != nil {
+	f := bson.M{
+		"_id":         id,
+		"merchant_id": merchantID,
+	}
+	if len(locationIDs) != 0 {
+		f["location_ids"] = bson.M{"$in": locationIDs}
+	}
+	if err := s.driver.findOneAndDecode(ctx, &cat, f); err != nil {
 		return core.Category{}, errors.E(op, err)
 	}
 	return cat, nil
 }
 
-func (r *categoryRepository) List(ctx context.Context, fil core.CategoryFilter) ([]core.Category, error) {
-	const op = errors.Op("mongo.categoryRepository.List")
+func (s *categoryStorage) List(ctx context.Context, fil core.CategoryFilter) ([]core.Category, error) {
+	const op = errors.Op("mongo/categoryStorage.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
@@ -96,7 +111,7 @@ func (r *categoryRepository) List(ctx context.Context, fil core.CategoryFilter) 
 		mfil["location_ids"] = bson.M{"$in": fil.LocationIDs}
 	}
 
-	res, err := r.collection.Find(ctx, mfil, fo)
+	res, err := s.collection.Find(ctx, mfil, fo)
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

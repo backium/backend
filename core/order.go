@@ -74,7 +74,7 @@ type OrderDiscount struct {
 
 type OrderStorage interface {
 	Put(context.Context, Order) error
-	Get(context.Context, string) (Order, error)
+	Get(context.Context, string, string, []string) (Order, error)
 }
 
 // OrderSchema represents a potential order to be created.

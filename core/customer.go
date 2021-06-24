@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	maxReturnedCustomers = 50
+	maxReturnedCustomers     = 50
+	defaultReturnedCustomers = 10
 )
 
 type Customer struct {
@@ -16,136 +17,111 @@ type Customer struct {
 	Email      string   `bson:"email,omitempty"`
 	Phone      string   `bson:"phone,omitempty"`
 	Address    *Address `bson:"address,omitempty"`
-	MerchantID string   `bson:"merchant_id,omitempty"`
-	Status     Status   `bson:"status,omitempty"`
+	MerchantID string   `bson:"merchant_id"`
+	CreatedAt  int64    `bson:"created_at"`
+	UpdatedAt  int64    `bson:"updated_at"`
+	Status     Status   `bson:"status"`
 }
 
 // Creates a Customer with default values
 func NewCustomer() Customer {
 	return Customer{
+		ID:     generateID("cust"),
 		Status: StatusActive,
 	}
 }
 
-type PartialCustomer struct {
-	Name    *string  `bson:"name,omitempty"`
-	Email   *string  `bson:"email,omitempty"`
-	Phone   *string  `bson:"phone,omitempty"`
-	Address *Address `bson:"address,omitempty"`
-	Status  *Status  `bson:"status,omitempty"`
-}
-
-type CustomerRepository interface {
-	Create(context.Context, Customer) (string, error)
-	Update(context.Context, Customer) error
-	UpdatePartial(context.Context, string, PartialCustomer) error
-	Retrieve(context.Context, string) (Customer, error)
-	List(context.Context, ListCustomersFilter) ([]Customer, error)
+type CustomerStorage interface {
+	Put(context.Context, Customer) error
+	PutBatch(context.Context, []Customer) error
+	Get(context.Context, string, string) (Customer, error)
+	List(context.Context, CustomerFilter) ([]Customer, error)
 }
 
 type CustomerService struct {
-	CustomerRepository CustomerRepository
+	CustomerStorage CustomerStorage
 }
 
-func (svc *CustomerService) Create(ctx context.Context, cus Customer) (Customer, error) {
+func (svc *CustomerService) PutCustomer(ctx context.Context, customer Customer) (Customer, error) {
 	const op = errors.Op("controller.Customer.Create")
-	id, err := svc.CustomerRepository.Create(ctx, cus)
+	if err := svc.CustomerStorage.Put(ctx, customer); err != nil {
+		return Customer{}, err
+	}
+	customer, err := svc.CustomerStorage.Get(ctx, customer.ID, customer.MerchantID)
 	if err != nil {
 		return Customer{}, err
 	}
-	ccus, err := svc.CustomerRepository.Retrieve(ctx, id)
-	if err != nil {
-		return Customer{}, err
-	}
-	return ccus, nil
+	return customer, nil
 }
 
-func (svc *CustomerService) Update(ctx context.Context, id string, cus PartialCustomer) (Customer, error) {
-	const op = errors.Op("controller.Customer.Update")
-	if err := svc.CustomerRepository.UpdatePartial(ctx, id, cus); err != nil {
+func (svc *CustomerService) PutCustomers(ctx context.Context, cc []Customer) ([]Customer, error) {
+	const op = errors.Op("core/CustomerService.PutCustomers")
+	if err := svc.CustomerStorage.PutBatch(ctx, cc); err != nil {
+		return nil, err
+	}
+	ids := make([]string, len(cc))
+	for i, t := range cc {
+		ids[i] = t.ID
+	}
+	cc, err := svc.CustomerStorage.List(ctx, CustomerFilter{
+		Limit: int64(len(cc)),
+		IDs:   ids,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return cc, nil
+}
+
+func (svc *CustomerService) GetCustomer(ctx context.Context, id, merchantID string) (Customer, error) {
+	const op = errors.Op("core/CustomerService.GetCustomer")
+	cust, err := svc.CustomerStorage.Get(ctx, id, merchantID)
+	if err != nil {
 		return Customer{}, errors.E(op, err)
 	}
-	ucus, err := svc.CustomerRepository.Retrieve(ctx, id)
-	if err != nil {
-		return Customer{}, err
-	}
-	return ucus, nil
+	return cust, nil
 }
 
-func (svc *CustomerService) Retrieve(ctx context.Context, req RetrieveCustomerRequest) (Customer, error) {
-	const op = errors.Op("controller.Customer.Retrieve")
-	cus, err := svc.CustomerRepository.Retrieve(ctx, req.ID)
-	if err != nil {
-		return Customer{}, errors.E(op, err)
+func (svc *CustomerService) ListCustomer(ctx context.Context, f CustomerFilter) ([]Customer, error) {
+	const op = errors.Op("core/CustomerService.ListCustomer")
+	limit, offset := int64(defaultReturnedCustomers), int64(0)
+	if f.Limit != 0 && f.Limit < maxReturnedCustomers {
+		limit = f.Limit
 	}
-	if cus.MerchantID != req.MerchantID {
-		return Customer{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external customer")
-	}
-	return cus, nil
-}
-
-func (svc *CustomerService) ListAll(ctx context.Context, req ListAllCustomersRequest) ([]Customer, error) {
-	const op = errors.Op("controller.Customer.ListAll")
-	limit := int64(maxReturnedCustomers)
-	offset := int64(0)
-	if req.Limit != nil {
-		limit = *req.Limit
-	}
-	if req.Offset != nil {
-		offset = *req.Offset
+	if f.Offset != 0 {
+		offset = f.Offset
 	}
 
-	cuss, err := svc.CustomerRepository.List(ctx, ListCustomersFilter{
-		MerchantID: req.MerchantID,
+	cc, err := svc.CustomerStorage.List(ctx, CustomerFilter{
+		MerchantID: f.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
-	return cuss, nil
+	return cc, nil
 }
 
-func (svc *CustomerService) Delete(ctx context.Context, req DeleteCustomerRequest) (Customer, error) {
-	const op = errors.Op("controller.Customer.Delete")
-	it, err := svc.CustomerRepository.Retrieve(ctx, req.ID)
+func (svc *CustomerService) DeleteCustomer(ctx context.Context, id, merchantID string) (Customer, error) {
+	const op = errors.Op("core/CustomerService.DeleteCustomer")
+	customer, err := svc.CustomerStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Customer{}, errors.E(op, err)
 	}
 
-	if it.MerchantID != req.MerchantID {
-		return Customer{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external customer")
-	}
-
-	status := StatusShadowDeleted
-	update := PartialCustomer{Status: &status}
-	if err := svc.CustomerRepository.UpdatePartial(ctx, req.ID, update); err != nil {
+	customer.Status = StatusShadowDeleted
+	if err := svc.CustomerStorage.Put(ctx, customer); err != nil {
 		return Customer{}, errors.E(op, err)
 	}
-	dcus, err := svc.CustomerRepository.Retrieve(ctx, req.ID)
+	resp, err := svc.CustomerStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Customer{}, errors.E(op, err)
 	}
-	return dcus, nil
+	return resp, nil
 }
 
-type RetrieveCustomerRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type DeleteCustomerRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type ListAllCustomersRequest struct {
-	Limit      *int64
-	Offset     *int64
-	MerchantID string
-}
-
-type ListCustomersFilter struct {
+type CustomerFilter struct {
 	Limit      int64
 	Offset     int64
 	MerchantID string

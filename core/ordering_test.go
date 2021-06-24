@@ -545,7 +545,7 @@ func TestCreateOrder(t *testing.T) {
 				DiscountStorage:      discountStorage,
 			}
 
-			variationStorage.ListFunc = func(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
+			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
 				return tc.Items, nil
 			}
 			taxStorage.ListFn = func(ctx context.Context, fil TaxFilter) ([]Tax, error) {
@@ -559,7 +559,7 @@ func TestCreateOrder(t *testing.T) {
 				orderInMem = order
 				return nil
 			}
-			orderStorage.GetFn = func(ctx context.Context, id string) (Order, error) {
+			orderStorage.GetFn = func(ctx context.Context, id, merchantID string, locationIDs []string) (Order, error) {
 				return orderInMem, nil
 			}
 

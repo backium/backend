@@ -2,7 +2,7 @@ package mongo
 
 import (
 	"context"
-	"fmt"
+	"time"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
@@ -16,98 +16,111 @@ const (
 	itemVariationCollectionName = "itemvariations"
 )
 
-type itemVariationRepository struct {
+type itemVariationStorage struct {
 	collection *mongo.Collection
 	driver     *mongoDriver
+	client     *mongo.Client
 }
 
-func NewItemVariationRepository(db DB) core.ItemVariationStorage {
+func NewItemVariationStorage(db DB) core.ItemVariationStorage {
 	coll := db.Collection(itemVariationCollectionName)
-	return &itemVariationRepository{
+	return &itemVariationStorage{
 		collection: coll,
 		driver:     &mongoDriver{Collection: coll},
+		client:     db.client,
 	}
 }
 
-func (r *itemVariationRepository) Create(ctx context.Context, itvar core.ItemVariation) (string, error) {
-	const op = errors.Op("mongo.itemVariationRepository.Create")
-	if itvar.ID == "" {
-		itvar.ID = generateID(itemVariationIDPrefix)
+func (s *itemVariationStorage) Put(ctx context.Context, item core.ItemVariation) error {
+	const op = errors.Op("mongo/itemVariationStorage.Put")
+	now := time.Now().Unix()
+	item.UpdatedAt = now
+	f := bson.M{
+		"_id":         item.ID,
+		"merchant_id": item.MerchantID,
 	}
-	itvar.Status = core.StatusActive
-	id, err := r.driver.insertOne(ctx, itvar)
-	if err != nil {
-		return "", errors.E(op, err)
-	}
-	return id, nil
-}
-
-func (r *itemVariationRepository) Update(ctx context.Context, itvar core.ItemVariation) error {
-	const op = errors.Op("mongo.itemVariationRepository.Update")
-	filter := bson.M{"_id": itvar.ID}
-	query := bson.M{"$set": itvar}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+	u := bson.M{"$set": item}
+	opts := options.Update().SetUpsert(true)
+	res, err := s.collection.UpdateOne(ctx, f, u, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "itemVariation not found")
+	// Update created_at field if upserted
+	if res.UpsertedCount == 1 {
+		item.CreatedAt = now
+		query := bson.M{"$set": item}
+		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		if err != nil {
+			return errors.E(op, errors.KindUnexpected, err)
+		}
 	}
 	return nil
 }
 
-func (r *itemVariationRepository) UpdatePartial(ctx context.Context, id string, itvar core.ItemVariationPartial) error {
-	const op = errors.Op("mongo.itemVariationRepository.Update")
-	filter := bson.M{"_id": id}
-	query := bson.M{"$set": itvar}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+func (s *itemVariationStorage) PutBatch(ctx context.Context, batch []core.ItemVariation) error {
+	const op = errors.Op("mongo/itemVariationStorage.PutBatch")
+	sess, err := s.client.StartSession()
 	if err != nil {
-		fmt.Printf("%T", err)
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "itemVariation not found")
+
+	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		for _, t := range batch {
+			if err := s.Put(sessCtx, t); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	return nil
 }
 
-func (r *itemVariationRepository) Retrieve(ctx context.Context, id string) (core.ItemVariation, error) {
-	const op = errors.Op("mongo.itemVariationRepository.Retrieve")
-	cusr := core.ItemVariation{}
-	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
+func (s *itemVariationStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.ItemVariation, error) {
+	const op = errors.Op("mongo/itemVariationStorage/Get")
+	v := core.ItemVariation{}
+	f := bson.M{
+		"_id":         id,
+		"merchant_id": merchantID,
+	}
+	if len(locationIDs) != 0 {
+		f["location_ids"] = bson.M{"$in": locationIDs}
+	}
+	if err := s.driver.findOneAndDecode(ctx, &v, f); err != nil {
 		return core.ItemVariation{}, errors.E(op, err)
 	}
-	return cusr, nil
+	return v, nil
 }
 
-func (r *itemVariationRepository) List(ctx context.Context, fil core.ItemVariationFilter) ([]core.ItemVariation, error) {
-	const op = errors.Op("mongo.itemVariationRepository.List")
-	fo := options.Find().
-		SetLimit(fil.Limit).
-		SetSkip(fil.Offset)
+func (s *itemVariationStorage) List(ctx context.Context, f core.ItemVariationFilter) ([]core.ItemVariation, error) {
+	const op = errors.Op("mongo/itemVariationStorage.List")
+	opts := options.Find().
+		SetLimit(f.Limit).
+		SetSkip(f.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if fil.MerchantID != "" {
-		mfil["merchant_id"] = fil.MerchantID
+	fil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
+	if f.MerchantID != "" {
+		fil["merchant_id"] = f.MerchantID
 	}
-	if fil.IDs != nil {
-		mfil["_id"] = bson.M{"$in": fil.IDs}
+	if f.IDs != nil {
+		fil["_id"] = bson.M{"$in": f.IDs}
 	}
-	if fil.LocationIDs != nil {
-		mfil["location_ids"] = bson.M{"$in": fil.LocationIDs}
+	if f.LocationIDs != nil {
+		fil["location_ids"] = bson.M{"$in": f.LocationIDs}
 	}
-	if fil.ItemIDs != nil {
-		mfil["item_id"] = bson.M{"$in": fil.ItemIDs}
+	if f.ItemIDs != nil {
+		fil["item_id"] = bson.M{"$in": f.ItemIDs}
 	}
 
-	res, err := r.collection.Find(ctx, mfil, fo)
+	res, err := s.collection.Find(ctx, fil, opts)
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var itvars []core.ItemVariation
-	if err := res.All(ctx, &itvars); err != nil {
+	var vv []core.ItemVariation
+	if err := res.All(ctx, &vv); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	return itvars, nil
+	return vv, nil
 }

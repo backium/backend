@@ -5,6 +5,7 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
+	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
 )
 
@@ -24,7 +25,8 @@ func (h *Handler) CreateLocation(c echo.Context) error {
 	loc.BusinessName = req.BusinessName
 	loc.MerchantID = ac.MerchantID
 
-	loc, err := h.LocationService.Create(c.Request().Context(), loc)
+	ctx := c.Request().Context()
+	loc, err := h.LocationService.PutLocation(ctx, loc)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -33,20 +35,25 @@ func (h *Handler) CreateLocation(c echo.Context) error {
 
 func (h *Handler) UpdateLocation(c echo.Context) error {
 	const op = errors.Op("handler.Location.Update")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	req := LocationUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	loc := core.LocationPartial{
-		Name:         req.Name,
-		BusinessName: req.BusinessName,
-	}
 
-	uloc, err := h.LocationService.Update(c.Request().Context(), req.ID, loc)
+	ctx := c.Request().Context()
+	loc, err := h.LocationService.GetLocation(ctx, req.ID, ac.MerchantID)
+	if err != nil {
+		return err
+	}
+	loc, err = h.LocationService.PutLocation(ctx, loc)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewLocation(uloc))
+	return c.JSON(http.StatusOK, NewLocation(loc))
 }
 
 func (h *Handler) RetrieveLocation(c echo.Context) error {
@@ -56,10 +63,8 @@ func (h *Handler) RetrieveLocation(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	id := c.Param("id")
-	loc, err := h.LocationService.Retrieve(c.Request().Context(), core.RetrieveLocationRequest{
-		ID:         id,
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	loc, err := h.LocationService.GetLocation(ctx, id, ac.MerchantID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -76,9 +81,9 @@ func (h *Handler) ListLocations(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	locs, err := h.LocationService.ListAll(c.Request().Context(), core.ListAllLocationsRequest{
-		Limit:      req.Limit,
-		Offset:     req.Offset,
+	locs, err := h.LocationService.ListLocation(c.Request().Context(), core.LocationFilter{
+		Limit:      ptr.GetInt64(req.Limit),
+		Offset:     ptr.GetInt64(req.Offset),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
@@ -98,10 +103,8 @@ func (h *Handler) DeleteLocation(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	id := c.Param("id")
-	loc, err := h.LocationService.Delete(c.Request().Context(), core.DeleteLocationRequest{
-		ID:         id,
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	loc, err := h.LocationService.DeleteLocation(ctx, id, ac.MerchantID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -113,6 +116,8 @@ type Location struct {
 	Name         string      `json:"name"`
 	BusinessName string      `json:"business_name,omitempty"`
 	MerchantID   string      `json:"merchant_id"`
+	CreatedAt    int64       `json:"created_at"`
+	UpdatedAt    int64       `json:"updated_at"`
 	Status       core.Status `json:"status"`
 }
 
@@ -122,6 +127,8 @@ func NewLocation(loc core.Location) Location {
 		Name:         loc.Name,
 		BusinessName: loc.BusinessName,
 		MerchantID:   loc.MerchantID,
+		CreatedAt:    loc.CreatedAt,
+		UpdatedAt:    loc.UpdatedAt,
 		Status:       loc.Status,
 	}
 }
