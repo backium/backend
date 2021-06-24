@@ -166,7 +166,7 @@ func (h *Handler) DeleteTax(c echo.Context) error {
 type Tax struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
-	Percentage  int64       `json:"percentage"`
+	Percentage  float64     `json:"percentage"`
 	LocationIDs []string    `json:"location_ids"`
 	MerchantID  string      `json:"merchant_id"`
 	CreatedAt   int64       `json:"created_at"`
@@ -189,14 +189,14 @@ func NewTax(t core.Tax) Tax {
 
 type TaxCreateRequest struct {
 	Name        string    `json:"name" validate:"required"`
-	Percentage  *int64    `json:"percentage" validate:"required,min=0,max=100"`
+	Percentage  *float64  `json:"percentage" validate:"required,min=0,max=100"`
 	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type TaxUpdateRequest struct {
 	ID          string    `param:"id" validate:"required"`
 	Name        *string   `json:"name" validate:"omitempty,min=1"`
-	Percentage  *int64    `json:"percentage" validate:"omitempty,min=0,max=100"`
+	Percentage  *float64  `json:"percentage" validate:"omitempty,min=0,max=100"`
 	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 

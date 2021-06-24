@@ -64,6 +64,14 @@ var testcases = []OrderingTestCase{
 						Amount:   500,
 						Currency: "PEN",
 					},
+					GrossSales: Money{
+						Amount:   1000,
+						Currency: "PEN",
+					},
+					TotalTax: Money{
+						Amount:   0,
+						Currency: "PEN",
+					},
 					Total: Money{
 						Amount:   1000,
 						Currency: "PEN",
@@ -76,6 +84,14 @@ var testcases = []OrderingTestCase{
 					Quantity:    2,
 					BasePrice: Money{
 						Amount:   1000,
+						Currency: "PEN",
+					},
+					GrossSales: Money{
+						Amount:   2000,
+						Currency: "PEN",
+					},
+					TotalTax: Money{
+						Amount:   0,
 						Currency: "PEN",
 					},
 					Total: Money{
@@ -144,6 +160,14 @@ var testcases = []OrderingTestCase{
 						Amount:   500,
 						Currency: "PEN",
 					},
+					GrossSales: Money{
+						Amount:   1000,
+						Currency: "PEN",
+					},
+					TotalTax: Money{
+						Amount:   200,
+						Currency: "PEN",
+					},
 					Total: Money{
 						Amount:   1200,
 						Currency: "PEN",
@@ -188,7 +212,7 @@ var testcases = []OrderingTestCase{
 				ID:   "variation1_id",
 				Name: "variation1",
 				Price: Money{
-					Amount:   500,
+					Amount:   350,
 					Currency: "PEN",
 				},
 			},
@@ -196,7 +220,15 @@ var testcases = []OrderingTestCase{
 				ID:   "variation2_id",
 				Name: "variation2",
 				Price: Money{
-					Amount:   1500,
+					Amount:   350,
+					Currency: "PEN",
+				},
+			},
+			{
+				ID:   "variation3_id",
+				Name: "variation3",
+				Price: Money{
+					Amount:   350,
 					Currency: "PEN",
 				},
 			},
@@ -205,7 +237,7 @@ var testcases = []OrderingTestCase{
 			{
 				ID:         "tax1_id",
 				Name:       "tax1",
-				Percentage: 20,
+				Percentage: 9.25,
 			},
 		},
 		Req: OrderSchema{
@@ -215,12 +247,17 @@ var testcases = []OrderingTestCase{
 				{
 					UID:         "variation1_uid",
 					VariationID: "variation1_id",
-					Quantity:    2,
+					Quantity:    1,
 				},
 				{
 					UID:         "variation2_uid",
 					VariationID: "variation2_id",
-					Quantity:    3,
+					Quantity:    1,
+				},
+				{
+					UID:         "variation3_uid",
+					VariationID: "variation3_id",
+					Quantity:    1,
 				},
 			},
 			Taxes: []OrderSchemaTax{
@@ -239,20 +276,28 @@ var testcases = []OrderingTestCase{
 					UID:         "variation1_uid",
 					VariationID: "variation1_id",
 					Name:        "variation1",
-					Quantity:    2,
+					Quantity:    1,
 					BasePrice: Money{
-						Amount:   500,
+						Amount:   350,
+						Currency: "PEN",
+					},
+					GrossSales: Money{
+						Amount:   350,
+						Currency: "PEN",
+					},
+					TotalTax: Money{
+						Amount:   32,
 						Currency: "PEN",
 					},
 					Total: Money{
-						Amount:   1200,
+						Amount:   382,
 						Currency: "PEN",
 					},
 					AppliedTaxes: []OrderItemAppliedTax{
 						{
 							TaxUID: "tax1_uid",
 							Applied: Money{
-								Amount:   200,
+								Amount:   32,
 								Currency: "PEN",
 							},
 						},
@@ -262,20 +307,59 @@ var testcases = []OrderingTestCase{
 					UID:         "variation2_uid",
 					VariationID: "variation2_id",
 					Name:        "variation2",
-					Quantity:    3,
+					Quantity:    1,
 					BasePrice: Money{
-						Amount:   1500,
+						Amount:   350,
+						Currency: "PEN",
+					},
+					GrossSales: Money{
+						Amount:   350,
+						Currency: "PEN",
+					},
+					TotalTax: Money{
+						Amount:   32,
 						Currency: "PEN",
 					},
 					Total: Money{
-						Amount:   5400,
+						Amount:   382,
 						Currency: "PEN",
 					},
 					AppliedTaxes: []OrderItemAppliedTax{
 						{
 							TaxUID: "tax1_uid",
 							Applied: Money{
-								Amount:   900,
+								Amount:   32,
+								Currency: "PEN",
+							},
+						},
+					},
+				},
+				{
+					UID:         "variation3_uid",
+					VariationID: "variation3_id",
+					Name:        "variation3",
+					Quantity:    1,
+					BasePrice: Money{
+						Amount:   350,
+						Currency: "PEN",
+					},
+					GrossSales: Money{
+						Amount:   350,
+						Currency: "PEN",
+					},
+					TotalTax: Money{
+						Amount:   33,
+						Currency: "PEN",
+					},
+					Total: Money{
+						Amount:   383,
+						Currency: "PEN",
+					},
+					AppliedTaxes: []OrderItemAppliedTax{
+						{
+							TaxUID: "tax1_uid",
+							Applied: Money{
+								Amount:   33,
 								Currency: "PEN",
 							},
 						},
@@ -289,17 +373,17 @@ var testcases = []OrderingTestCase{
 					Scope: TaxScopeOrder,
 					Name:  "tax1",
 					Applied: Money{
-						Amount:   1100,
+						Amount:   97,
 						Currency: "PEN",
 					},
 				},
 			},
 			TotalTax: Money{
-				Amount:   1100,
+				Amount:   97,
 				Currency: "PEN",
 			},
 			Total: Money{
-				Amount:   6600,
+				Amount:   1147,
 				Currency: "PEN",
 			},
 		},

@@ -16,7 +16,7 @@ const (
 type Tax struct {
 	ID          string   `bson:"_id"`
 	Name        string   `bson:"name,omitempty"`
-	Percentage  int64    `bson:"percentage"`
+	Percentage  float64  `bson:"percentage"`
 	LocationIDs []string `bson:"location_ids"`
 	MerchantID  string   `bson:"merchant_id,omitempty"`
 	CreatedAt   int64    `bson:"created_at"`

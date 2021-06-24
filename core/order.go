@@ -13,8 +13,8 @@ type Order struct {
 	ID         string      `bson:"_id"`
 	Items      []OrderItem `bson:"items"`
 	Taxes      []OrderTax  `bson:"taxes"`
-	Total      Money       `bson:"total"`
 	TotalTax   Money       `bson:"total_tax"`
+	Total      Money       `bson:"total"`
 	LocationID string      `bson:"location_id"`
 	MerchantID string      `bson:"merchant_id"`
 	CreatedAt  int64       `bson:"created_at"`
@@ -36,6 +36,8 @@ type OrderItem struct {
 	VariationID  string                `bson:"variation_id"`
 	Name         string                `bson:"name"`
 	Quantity     int64                 `bson:"quantity"`
+	GrossSales   Money                 `bson:"gross_sales"`
+	TotalTax     Money                 `bson:"total_tax"`
 	Total        Money                 `bson:"total"`
 	BasePrice    Money                 `bson:"base_price"`
 	AppliedTaxes []OrderItemAppliedTax `bson:"applied_taxes"`
@@ -65,6 +67,7 @@ type OrderSchema struct {
 	Taxes      []OrderSchemaTax
 	LocationID string
 	MerchantID string
+	currency   string
 }
 
 func (sch *OrderSchema) itemVariationIDs() []string {
