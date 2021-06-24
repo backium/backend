@@ -5,11 +5,12 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
+	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
 )
 
 func (h *Handler) CreateItem(c echo.Context) error {
-	const op = errors.Op("handler.Item.Create")
+	const op = errors.Op("http/Handler.CreateItem")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
@@ -27,7 +28,7 @@ func (h *Handler) CreateItem(c echo.Context) error {
 	it.Description = req.Description
 	it.MerchantID = ac.MerchantID
 
-	it, err := h.CatalogService.CreateItem(c.Request().Context(), it)
+	it, err := h.CatalogService.PutItem(c.Request().Context(), it)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -35,18 +36,34 @@ func (h *Handler) CreateItem(c echo.Context) error {
 }
 
 func (h *Handler) UpdateItem(c echo.Context) error {
-	const op = errors.Op("handler.Item.Update")
+	const op = errors.Op("http/Handler.UpdateItem")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	req := ItemUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	it := core.PartialItem{
-		Name:        req.Name,
-		Description: req.Description,
-		CategoryID:  req.CategoryID,
-		LocationIDs: req.LocationIDs,
+	ctx := c.Request().Context()
+	it, err := h.CatalogService.GetItem(ctx, req.ID, ac.MerchantID, nil)
+	if err != nil {
+		return errors.E(op, err)
 	}
-	uit, err := h.CatalogService.UpdateItem(c.Request().Context(), req.ID, it)
+	if req.Name != nil {
+		it.Name = *req.Name
+	}
+	if req.Description != nil {
+		it.Description = *req.Description
+	}
+	if req.LocationIDs != nil {
+		it.LocationIDs = *req.LocationIDs
+	}
+	if req.CategoryID != nil {
+		it.CategoryID = *req.CategoryID
+	}
+
+	uit, err := h.CatalogService.PutItem(ctx, it)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -54,20 +71,17 @@ func (h *Handler) UpdateItem(c echo.Context) error {
 }
 
 func (h *Handler) RetrieveItem(c echo.Context) error {
-	const op = errors.Op("handler.Item.Retrieve")
+	const op = errors.Op("http/Handler.RetrieveItem")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.RetrieveItem(ctx, core.ItemRetrieveRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	it, err := h.CatalogService.GetItem(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	itvars, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationListRequest{
+	itvars, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
 		ItemIDs: []string{it.ID},
 	})
 	resp := NewItem(it)
@@ -79,7 +93,7 @@ func (h *Handler) RetrieveItem(c echo.Context) error {
 }
 
 func (h *Handler) ListItems(c echo.Context) error {
-	const op = errors.Op("handler.Item.ListAll")
+	const op = errors.Op("http/Handler.ListItems")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
@@ -89,9 +103,9 @@ func (h *Handler) ListItems(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	its, err := h.CatalogService.ListItem(ctx, core.ItemListRequest{
-		Limit:      req.Limit,
-		Offset:     req.Offset,
+	its, err := h.CatalogService.ListItem(ctx, core.ItemFilter{
+		Limit:      ptr.GetInt64(req.Limit),
+		Offset:     ptr.GetInt64(req.Offset),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
@@ -102,7 +116,7 @@ func (h *Handler) ListItems(c echo.Context) error {
 	for i, it := range its {
 		ids[i] = it.ID
 	}
-	itvars, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationListRequest{
+	itvars, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
 		ItemIDs: ids,
 	})
 	resp := make([]Item, len(its))
@@ -115,15 +129,13 @@ func (h *Handler) ListItems(c echo.Context) error {
 }
 
 func (h *Handler) DeleteItem(c echo.Context) error {
-	const op = errors.Op("handler.Item.Delete")
+	const op = errors.Op("http/Handler.DeleteItem")
 	ac, ok := c.(*AuthContext)
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	it, err := h.CatalogService.DeleteItem(c.Request().Context(), core.ItemDeleteRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	it, err := h.CatalogService.DeleteItem(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}

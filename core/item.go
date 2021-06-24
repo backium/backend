@@ -6,13 +6,10 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-type PartialItem struct {
-	Name        *string   `bson:"name,omitempty"`
-	Description *string   `bson:"description,omitempty"`
-	CategoryID  *string   `bson:"category_id,omitempty"`
-	LocationIDs *[]string `bson:"location_ids,omitempty"`
-	Status      *Status   `bson:"status,omitempty"`
-}
+const (
+	maxReturnedItems     = 50
+	defaultReturnedItems = 10
+)
 
 type Item struct {
 	ID          string   `bson:"_id"`
@@ -21,12 +18,15 @@ type Item struct {
 	CategoryID  string   `bson:"category_id,omitempty"`
 	LocationIDs []string `bson:"location_ids"`
 	MerchantID  string   `bson:"merchant_id,omitempty"`
+	CreatedAt   int64    `bson:"created_at"`
+	UpdatedAt   int64    `bson:"updated_at"`
 	Status      Status   `bson:"status,omitempty"`
 }
 
 // Creates an Item with default values
 func NewItem() Item {
 	return Item{
+		ID:          generateID("item"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
 	}
@@ -42,111 +42,90 @@ func (it *Item) ItemVariations(vars []ItemVariation) []ItemVariation {
 	return itemVars
 }
 
-type ItemRepository interface {
-	Create(context.Context, Item) (string, error)
-	Update(context.Context, Item) error
-	UpdatePartial(context.Context, string, PartialItem) error
-	Retrieve(context.Context, string) (Item, error)
+type ItemStorage interface {
+	Put(context.Context, Item) error
+	PutBatch(context.Context, []Item) error
+	Get(context.Context, string, string, []string) (Item, error)
 	List(context.Context, ItemFilter) ([]Item, error)
 }
 
-func (c *CatalogService) CreateItem(ctx context.Context, it Item) (Item, error) {
-	const op = errors.Op("controller.Item.Create")
-	id, err := c.ItemRepository.Create(ctx, it)
-	if err != nil {
+func (s *CatalogService) PutItem(ctx context.Context, it Item) (Item, error) {
+	const op = errors.Op("core/CatalogService.PutItem")
+	if err := s.ItemStorage.Put(ctx, it); err != nil {
 		return Item{}, err
 	}
-	it, err = c.ItemRepository.Retrieve(ctx, id)
+	it, err := s.ItemStorage.Get(ctx, it.ID, it.MerchantID, nil)
 	if err != nil {
 		return Item{}, err
 	}
 	return it, nil
 }
 
-func (c *CatalogService) UpdateItem(ctx context.Context, id string, it PartialItem) (Item, error) {
-	const op = errors.Op("controller.Item.Update")
-	if err := c.ItemRepository.UpdatePartial(ctx, id, it); err != nil {
-		return Item{}, errors.E(op, err)
+func (s *CatalogService) PutItems(ctx context.Context, ii []Item) ([]Item, error) {
+	const op = errors.Op("core/CatalogService.PutItems")
+	if err := s.ItemStorage.PutBatch(ctx, ii); err != nil {
+		return nil, err
 	}
-	uit, err := c.ItemRepository.Retrieve(ctx, id)
+	ids := make([]string, len(ii))
+	for i, d := range ii {
+		ids[i] = d.ID
+	}
+	ii, err := s.ItemStorage.List(ctx, ItemFilter{
+		Limit: int64(len(ii)),
+		IDs:   ids,
+	})
 	if err != nil {
-		return Item{}, err
+		return nil, err
 	}
-	return uit, nil
+	return ii, nil
 }
 
-func (c *CatalogService) RetrieveItem(ctx context.Context, req ItemRetrieveRequest) (Item, error) {
-	const op = errors.Op("controller.Item.Retrieve")
-	it, err := c.ItemRepository.Retrieve(ctx, req.ID)
+func (s *CatalogService) GetItem(ctx context.Context, id, merchantID string, locationIDs []string) (Item, error) {
+	const op = errors.Op("core/CatalogService.GetItem")
+	it, err := s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Item{}, errors.E(op, err)
-	}
-	if it.MerchantID != req.MerchantID {
-		return Item{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external item")
 	}
 	return it, nil
 }
 
-func (c *CatalogService) ListItem(ctx context.Context, req ItemListRequest) ([]Item, error) {
-	const op = errors.Op("controller.Item.ListAll")
-	limit := int64(maxReturnedItems)
-	offset := int64(0)
-	if req.Limit != nil {
-		limit = *req.Limit
+func (s *CatalogService) ListItem(ctx context.Context, f ItemFilter) ([]Item, error) {
+	const op = errors.Op("core/CatalogService.ListItem")
+	limit, offset := int64(defaultReturnedItems), int64(0)
+	if f.Limit != 0 && f.Limit < maxReturnedItems {
+		limit = f.Limit
 	}
-	if req.Offset != nil {
-		offset = *req.Offset
+	if f.Offset != 0 {
+		offset = f.Offset
 	}
 
-	its, err := c.ItemRepository.List(ctx, ItemFilter{
-		MerchantID: req.MerchantID,
+	dd, err := s.ItemStorage.List(ctx, ItemFilter{
+		MerchantID: f.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
-	return its, nil
+	return dd, nil
 }
 
-func (c *CatalogService) DeleteItem(ctx context.Context, req ItemDeleteRequest) (Item, error) {
-	const op = errors.Op("controller.Item.Delete")
-	it, err := c.ItemRepository.Retrieve(ctx, req.ID)
+func (s *CatalogService) DeleteItem(ctx context.Context, id, merchantID string, locationIDs []string) (Item, error) {
+	const op = errors.Op("core/CatalogService.DeleteItem")
+	d, err := s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Item{}, errors.E(op, err)
 	}
 
-	if it.MerchantID != req.MerchantID {
-		return Item{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external item")
-	}
-
-	status := StatusShadowDeleted
-	update := PartialItem{Status: &status}
-	if err := c.ItemRepository.UpdatePartial(ctx, req.ID, update); err != nil {
+	d.Status = StatusShadowDeleted
+	if err := s.ItemStorage.Put(ctx, d); err != nil {
 		return Item{}, errors.E(op, err)
 	}
-	dit, err := c.ItemRepository.Retrieve(ctx, req.ID)
+	resp, err := s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Item{}, errors.E(op, err)
 	}
-	return dit, nil
-}
-
-type ItemRetrieveRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type ItemDeleteRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type ItemListRequest struct {
-	Limit       *int64
-	Offset      *int64
-	LocationIDs []string
-	MerchantID  string
+	return resp, nil
 }
 
 type ItemFilter struct {

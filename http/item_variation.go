@@ -39,7 +39,8 @@ func (h *Handler) CreateItemVariation(c echo.Context) error {
 	}
 	itvar.MerchantID = ac.MerchantID
 
-	itvar, err := h.CatalogService.CreateItemVariation(c.Request().Context(), itvar)
+	ctx := c.Request().Context()
+	itvar, err := h.CatalogService.PutItemVariation(ctx, itvar)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -48,23 +49,33 @@ func (h *Handler) CreateItemVariation(c echo.Context) error {
 
 func (h *Handler) UpdateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Update")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	req := ItemVariationUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
 
-	itvar := core.ItemVariationPartial{
-		Name:        req.Name,
-		SKU:         req.SKU,
-		LocationIDs: req.LocationIDs,
-	}
+	ctx := c.Request().Context()
+	itvar, err := h.CatalogService.GetItemVariation(ctx, c.Param("id"), ac.MerchantID, nil)
 	if req.Price != nil {
-		itvar.Price = &core.Money{
+		itvar.Price = core.Money{
 			Amount:   ptr.GetInt64(req.Price.Amount),
 			Currency: req.Price.Currency,
 		}
 	}
-	uitvar, err := h.CatalogService.UpdateItemVariation(c.Request().Context(), req.ID, itvar)
+	if req.Name != nil {
+		itvar.Name = *req.Name
+	}
+	if req.SKU != nil {
+		itvar.SKU = *req.SKU
+	}
+	if req.LocationIDs != nil {
+		itvar.LocationIDs = *req.LocationIDs
+	}
+	uitvar, err := h.CatalogService.PutItemVariation(ctx, itvar)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -77,10 +88,8 @@ func (h *Handler) RetrieveItemVariation(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	m, err := h.CatalogService.RetrieveItemVariation(c.Request().Context(), core.ItemVariationRetrieveRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	m, err := h.CatalogService.GetItemVariation(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -97,9 +106,10 @@ func (h *Handler) ListItemVariations(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cuss, err := h.CatalogService.ListItemVariation(c.Request().Context(), core.ItemVariationListRequest{
-		Limit:      req.Limit,
-		Offset:     req.Offset,
+	ctx := c.Request().Context()
+	cuss, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
+		Limit:      ptr.GetInt64(req.Limit),
+		Offset:     ptr.GetInt64(req.Offset),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
@@ -118,10 +128,8 @@ func (h *Handler) DeleteItemVariation(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	cus, err := h.CatalogService.DeleteItemVariation(c.Request().Context(), core.ItemVariationDeleteRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	cus, err := h.CatalogService.DeleteItemVariation(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -136,6 +144,8 @@ type ItemVariation struct {
 	Price       Money       `json:"price"`
 	LocationIDs []string    `json:"location_ids"`
 	MerchantID  string      `json:"merchant_id"`
+	CreatedAt   int64       `json:"created_at"`
+	UpdatedAt   int64       `json:"updated_at"`
 	Status      core.Status `json:"status"`
 }
 
@@ -151,6 +161,8 @@ func NewItemVariation(itvar core.ItemVariation) ItemVariation {
 		},
 		LocationIDs: itvar.LocationIDs,
 		MerchantID:  itvar.MerchantID,
+		CreatedAt:   itvar.CreatedAt,
+		UpdatedAt:   itvar.CreatedAt,
 		Status:      itvar.Status,
 	}
 }

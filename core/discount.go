@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/backium/backend/errors"
 )
@@ -42,7 +43,7 @@ func NewDiscount() Discount {
 type DiscountStorage interface {
 	Put(context.Context, Discount) error
 	PutBatch(context.Context, []Discount) error
-	Get(context.Context, string) (Discount, error)
+	Get(context.Context, string, string, []string) (Discount, error)
 	List(context.Context, DiscountFilter) ([]Discount, error)
 }
 
@@ -51,7 +52,8 @@ func (s *CatalogService) PutDiscount(ctx context.Context, d Discount) (Discount,
 	if err := s.DiscountStorage.Put(ctx, d); err != nil {
 		return Discount{}, err
 	}
-	d, err := s.DiscountStorage.Get(ctx, d.ID)
+	fmt.Println("d", d)
+	d, err := s.DiscountStorage.Get(ctx, d.ID, d.MerchantID, nil)
 	if err != nil {
 		return Discount{}, err
 	}
@@ -77,9 +79,9 @@ func (s *CatalogService) PutDiscounts(ctx context.Context, dd []Discount) ([]Dis
 	return dd, nil
 }
 
-func (s *CatalogService) GetDiscount(ctx context.Context, id string) (Discount, error) {
+func (s *CatalogService) GetDiscount(ctx context.Context, id, merchantID string, locationIDs []string) (Discount, error) {
 	const op = errors.Op("core/CatalogService.GetDiscount")
-	d, err := s.DiscountStorage.Get(ctx, id)
+	d, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
 	}
@@ -107,9 +109,9 @@ func (s *CatalogService) ListDiscount(ctx context.Context, f DiscountFilter) ([]
 	return dd, nil
 }
 
-func (s *CatalogService) DeleteDiscount(ctx context.Context, id string) (Discount, error) {
+func (s *CatalogService) DeleteDiscount(ctx context.Context, id, merchantID string, locationIDs []string) (Discount, error) {
 	const op = errors.Op("core/CatalogService.DeleteDiscount")
-	d, err := s.DiscountStorage.Get(ctx, id)
+	d, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
 	}
@@ -118,7 +120,7 @@ func (s *CatalogService) DeleteDiscount(ctx context.Context, id string) (Discoun
 	if err := s.DiscountStorage.Put(ctx, d); err != nil {
 		return Discount{}, errors.E(op, err)
 	}
-	resp, err := s.DiscountStorage.Get(ctx, id)
+	resp, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
 	}

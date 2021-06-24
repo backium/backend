@@ -12,15 +12,16 @@ type UserKind string
 const (
 	UserKindOwner    UserKind = "owner"
 	UserKindEmployee UserKind = "employee"
+	UserKindCustomer UserKind = "customer"
 	UserKindSuper    UserKind = "super"
 )
 
 type User struct {
 	ID           string   `bson:"_id"`
-	Email        string   `bson:"email,omitempty"`
+	Email        string   `bson:"email"`
 	PasswordHash string   `bson:"password_hash,omitempty"`
-	Kind         UserKind `bson:"kind,omitempty"`
-	MerchantID   string   `bson:"merchant_id,omitempty"`
+	Kind         UserKind `bson:"kind"`
+	MerchantID   string   `bson:"merchant_id"`
 }
 
 func (u *User) PasswordEquals(password string) bool {
@@ -41,7 +42,7 @@ type UserRepository interface {
 type UserService struct {
 	UserRepository     UserRepository
 	MerchantRepository MerchantRepository
-	LocationRepository LocationRepository
+	LocationStorage    LocationStorage
 }
 
 func (svc *UserService) Create(ctx context.Context, req UserCreateRequest) (User, error) {
@@ -63,11 +64,11 @@ func (svc *UserService) Create(ctx context.Context, req UserCreateRequest) (User
 	if err != nil {
 		return user, errors.E(op, errors.KindUnexpected, err)
 	}
-	_, err = svc.LocationRepository.Create(ctx, Location{
-		Name:         "My Business",
-		BusinessName: "My Business",
-		MerchantID:   m.ID,
-	})
+	loc := NewLocation()
+	loc.Name = "My Business"
+	loc.BusinessName = "My Business"
+	loc.MerchantID = m.ID
+	err = svc.LocationStorage.Put(ctx, loc)
 	if err != nil {
 		return user, errors.E(op, errors.KindUnexpected, err)
 	}

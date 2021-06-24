@@ -6,6 +6,11 @@ import (
 	"github.com/backium/backend/errors"
 )
 
+const (
+	maxReturnedTaxes     = 50
+	defaultReturnedTaxes = 10
+)
+
 type TaxScope string
 
 const (
@@ -35,7 +40,7 @@ func NewTax() Tax {
 type TaxStorage interface {
 	Put(context.Context, Tax) error
 	PutBatch(context.Context, []Tax) error
-	Get(context.Context, string) (Tax, error)
+	Get(context.Context, string, string, []string) (Tax, error)
 	List(context.Context, TaxFilter) ([]Tax, error)
 }
 
@@ -44,7 +49,7 @@ func (svc *CatalogService) PutTax(ctx context.Context, t Tax) (Tax, error) {
 	if err := svc.TaxStorage.Put(ctx, t); err != nil {
 		return Tax{}, err
 	}
-	t, err := svc.TaxStorage.Get(ctx, t.ID)
+	t, err := svc.TaxStorage.Get(ctx, t.ID, t.MerchantID, nil)
 	if err != nil {
 		return Tax{}, err
 	}
@@ -70,31 +75,27 @@ func (svc *CatalogService) PutTaxes(ctx context.Context, tt []Tax) ([]Tax, error
 	return tt, nil
 }
 
-func (svc *CatalogService) GetTax(ctx context.Context, req TaxRetrieveRequest) (Tax, error) {
+func (svc *CatalogService) GetTax(ctx context.Context, id, merchantID string, locationIDs []string) (Tax, error) {
 	const op = errors.Op("controller.Tax.Retrieve")
-	it, err := svc.TaxStorage.Get(ctx, req.ID)
+	it, err := svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
-	}
-	if it.MerchantID != req.MerchantID {
-		return Tax{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external tax")
 	}
 	return it, nil
 }
 
-func (svc *CatalogService) ListTax(ctx context.Context, req TaxListRequest) ([]Tax, error) {
+func (svc *CatalogService) ListTax(ctx context.Context, f TaxFilter) ([]Tax, error) {
 	const op = errors.Op("controller.Tax.ListAll")
-	limit := int64(maxReturnedTaxes)
-	offset := int64(0)
-	if req.Limit != nil {
-		limit = *req.Limit
+	limit, offset := int64(defaultReturnedTaxes), int64(0)
+	if f.Limit != 0 && f.Limit < maxReturnedTaxes {
+		limit = f.Limit
 	}
-	if req.Offset != nil {
-		offset = *req.Offset
+	if f.Offset != 0 {
+		offset = f.Offset
 	}
 
 	its, err := svc.TaxStorage.List(ctx, TaxFilter{
-		MerchantID: req.MerchantID,
+		MerchantID: f.MerchantID,
 		Limit:      limit,
 		Offset:     offset,
 	})
@@ -104,43 +105,22 @@ func (svc *CatalogService) ListTax(ctx context.Context, req TaxListRequest) ([]T
 	return its, nil
 }
 
-func (svc *CatalogService) DeleteTax(ctx context.Context, req TaxDeleteRequest) (Tax, error) {
+func (svc *CatalogService) DeleteTax(ctx context.Context, id, merchantID string, locationIDs []string) (Tax, error) {
 	const op = errors.Op("controller.Tax.Delete")
-	tax, err := svc.TaxStorage.Get(ctx, req.ID)
+	tax, err := svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
-	}
-
-	if tax.MerchantID != req.MerchantID {
-		return Tax{}, errors.E(op, errors.KindNotFound, "trying to retrieve an external tax")
 	}
 
 	tax.Status = StatusShadowDeleted
 	if err := svc.TaxStorage.Put(ctx, tax); err != nil {
 		return Tax{}, errors.E(op, err)
 	}
-	resp, err := svc.TaxStorage.Get(ctx, req.ID)
+	resp, err := svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
 	return resp, nil
-}
-
-type TaxRetrieveRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type TaxDeleteRequest struct {
-	ID         string
-	MerchantID string
-}
-
-type TaxListRequest struct {
-	Limit       *int64
-	Offset      *int64
-	LocationIDs []string
-	MerchantID  string
 }
 
 type TaxFilter struct {

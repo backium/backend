@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
@@ -11,74 +12,86 @@ import (
 )
 
 const (
-	locationIDPrefix       = "loc"
 	locationCollectionName = "locations"
 )
 
-type locationRepository struct {
+type locationStorage struct {
 	collection *mongo.Collection
+	client     *mongo.Client
 	driver     *mongoDriver
 }
 
-func NewLocationRepository(db DB) core.LocationRepository {
+func NewLocationStorage(db DB) core.LocationStorage {
 	coll := db.Collection(locationCollectionName)
-	return &locationRepository{
+	return &locationStorage{
 		collection: coll,
+		client:     db.client,
 		driver:     &mongoDriver{Collection: coll},
 	}
 }
 
-func (r *locationRepository) Create(ctx context.Context, loc core.Location) (string, error) {
-	const op = errors.Op("mongo.locationRepository.Create")
-	loc.ID = generateID(locationIDPrefix)
-	loc.Status = core.StatusActive
-	id, err := r.driver.insertOne(ctx, loc)
-	if err != nil {
-		return "", errors.E(op, err)
+func (s *locationStorage) Put(ctx context.Context, loc core.Location) error {
+	const op = errors.Op("mongo/locationStorage.Put")
+	now := time.Now().Unix()
+	loc.UpdatedAt = now
+	f := bson.M{
+		"_id":         loc.ID,
+		"merchant_id": loc.MerchantID,
 	}
-	return id, err
-}
-
-func (r *locationRepository) Update(ctx context.Context, loc core.Location) error {
-	const op = errors.Op("mongo.locationRepository.Update")
-	fil := bson.M{"_id": loc.ID}
-	query := bson.M{"$set": loc}
-	res, err := r.collection.UpdateOne(ctx, fil, query)
+	u := bson.M{"$set": loc}
+	opts := options.Update().SetUpsert(true)
+	res, err := s.collection.UpdateOne(ctx, f, u, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "location not found")
+	// Update created_at field if upserted
+	if res.UpsertedCount == 1 {
+		loc.CreatedAt = now
+		query := bson.M{"$set": loc}
+		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		if err != nil {
+			return errors.E(op, errors.KindUnexpected, err)
+		}
 	}
 	return nil
 }
 
-func (r *locationRepository) UpdatePartial(ctx context.Context, id string, loc core.LocationPartial) error {
-	const op = errors.Op("mongo.locationRepository.Update")
-	fil := bson.M{"_id": id}
-	query := bson.M{"$set": loc}
-	res, err := r.collection.UpdateOne(ctx, fil, query)
+func (s *locationStorage) PutBatch(ctx context.Context, batch []core.Location) error {
+	const op = errors.Op("mongo/locationStorage.PutBatch")
+	sess, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "location not found")
+
+	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		for _, loc := range batch {
+			if err := s.Put(sessCtx, loc); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	return nil
 }
 
-func (r *locationRepository) Retrieve(ctx context.Context, id string) (core.Location, error) {
-	const op = errors.Op("mongo.locationRepository.Retrieve")
-	locr := core.Location{}
-	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &locr, filter); err != nil {
+func (s *locationStorage) Get(ctx context.Context, id, merchantID string) (core.Location, error) {
+	const op = errors.Op("mongo/locationStorage/Get")
+	loc := core.Location{}
+	f := bson.M{
+		"_id":         id,
+		"merchant_id": merchantID,
+	}
+	if err := s.driver.findOneAndDecode(ctx, &loc, f); err != nil {
 		return core.Location{}, errors.E(op, err)
 	}
-	return locr, nil
+	return loc, nil
 }
 
-func (r *locationRepository) List(ctx context.Context, fil core.ListLocationsFilter) ([]core.Location, error) {
-	const op = errors.Op("mongo.locationRepository.List")
+func (s *locationStorage) List(ctx context.Context, fil core.LocationFilter) ([]core.Location, error) {
+	const op = errors.Op("mongo/locationStorage.List")
 	fo := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
@@ -87,12 +100,15 @@ func (r *locationRepository) List(ctx context.Context, fil core.ListLocationsFil
 	if fil.MerchantID != "" {
 		mfil["merchant_id"] = fil.MerchantID
 	}
+	if fil.IDs != nil {
+		mfil["_id"] = bson.M{"$in": fil.IDs}
+	}
 
-	res, err := r.collection.Find(ctx, mfil, fo)
+	res, err := s.collection.Find(ctx, mfil, fo)
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	locs := []core.Location{}
+	var locs []core.Location
 	if err := res.All(ctx, &locs); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}

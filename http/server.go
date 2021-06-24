@@ -8,20 +8,20 @@ import (
 )
 
 type Server struct {
-	Echo                    *echo.Echo
-	DB                      mongo.DB
-	Handler                 Handler
-	UserRepository          core.UserRepository
-	MerchantRepository      core.MerchantRepository
-	LocationRepository      core.LocationRepository
-	CustomerRepository      core.CustomerRepository
-	CategoryRepository      core.CategoryRepository
-	ItemRepository          core.ItemRepository
-	ItemVariationRepository core.ItemVariationStorage
-	TaxStorage              core.TaxStorage
-	DiscountStorage         core.DiscountStorage
-	OrderStorage            core.OrderStorage
-	SessionRepository       SessionRepository
+	Echo                 *echo.Echo
+	DB                   mongo.DB
+	Handler              Handler
+	UserRepository       core.UserRepository
+	MerchantRepository   core.MerchantRepository
+	LocationStorage      core.LocationStorage
+	CustomerStorage      core.CustomerStorage
+	CategoryStorage      core.CategoryStorage
+	ItemStorage          core.ItemStorage
+	ItemVariationStorage core.ItemVariationStorage
+	TaxStorage           core.TaxStorage
+	DiscountStorage      core.DiscountStorage
+	OrderStorage         core.OrderStorage
+	SessionRepository    SessionRepository
 }
 
 func (s *Server) Setup() error {
@@ -41,24 +41,24 @@ func (s *Server) setupHandlers() {
 	// setup dependencies
 
 	// setup services
-	locationService := core.LocationService{LocationRepository: s.LocationRepository}
-	customerService := core.CustomerService{CustomerRepository: s.CustomerRepository}
+	locationService := core.LocationService{LocationStorage: s.LocationStorage}
+	customerService := core.CustomerService{CustomerStorage: s.CustomerStorage}
 	merchantService := core.MerchantService{MerchantRepository: s.MerchantRepository}
 	userService := core.UserService{
 		UserRepository:     s.UserRepository,
 		MerchantRepository: s.MerchantRepository,
-		LocationRepository: s.LocationRepository,
+		LocationStorage:    s.LocationStorage,
 	}
 	catalogService := core.CatalogService{
-		CategoryRepository:      s.CategoryRepository,
-		ItemRepository:          s.ItemRepository,
-		ItemVariationRepository: s.ItemVariationRepository,
-		TaxStorage:              s.TaxStorage,
-		DiscountStorage:         s.DiscountStorage,
+		CategoryStorage:      s.CategoryStorage,
+		ItemStorage:          s.ItemStorage,
+		ItemVariationStorage: s.ItemVariationStorage,
+		TaxStorage:           s.TaxStorage,
+		DiscountStorage:      s.DiscountStorage,
 	}
 	orderingService := core.OrderingService{
 		OrderStorage:         s.OrderStorage,
-		ItemVariationStorage: s.ItemVariationRepository,
+		ItemVariationStorage: s.ItemVariationStorage,
 		TaxStorage:           s.TaxStorage,
 		DiscountStorage:      s.DiscountStorage,
 	}

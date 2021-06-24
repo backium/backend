@@ -21,30 +21,30 @@ func main() {
 	}
 	userRepository := mongo.NewUserRepository(db)
 	merchantRepository := mongo.NewMerchantRepository(db)
-	locationRepository := mongo.NewLocationRepository(db)
-	customerRepository := mongo.NewCustomerRepository(db)
-	categoryRepository := mongo.NewCategoryRepository(db)
-	itemRepository := mongo.NewItemRepository(db)
-	itemVariationRepository := mongo.NewItemVariationRepository(db)
+	locationStorage := mongo.NewLocationStorage(db)
+	customerStorage := mongo.NewCustomerStorage(db)
+	categoryStorage := mongo.NewCategoryStorage(db)
+	itemVariationStorage := mongo.NewItemVariationStorage(db)
+	itemStorage := mongo.NewItemRepository(db)
 	taxStorage := mongo.NewTaxStorage(db)
 	discountStorage := mongo.NewDiscountStorage(db)
 	orderStorage := mongo.NewOrderStorage(db)
 
 	redis := redis.NewSessionRepository(config.RedisURI, config.RedisPassword)
 	s := http.Server{
-		Echo:                    echo.New(),
-		DB:                      db,
-		UserRepository:          userRepository,
-		MerchantRepository:      merchantRepository,
-		LocationRepository:      locationRepository,
-		CustomerRepository:      customerRepository,
-		CategoryRepository:      categoryRepository,
-		ItemRepository:          itemRepository,
-		ItemVariationRepository: itemVariationRepository,
-		TaxStorage:              taxStorage,
-		DiscountStorage:         discountStorage,
-		OrderStorage:            orderStorage,
-		SessionRepository:       redis,
+		Echo:                 echo.New(),
+		DB:                   db,
+		UserRepository:       userRepository,
+		MerchantRepository:   merchantRepository,
+		LocationStorage:      locationStorage,
+		CustomerStorage:      customerStorage,
+		CategoryStorage:      categoryStorage,
+		ItemStorage:          itemStorage,
+		ItemVariationStorage: itemVariationStorage,
+		TaxStorage:           taxStorage,
+		DiscountStorage:      discountStorage,
+		OrderStorage:         orderStorage,
+		SessionRepository:    redis,
 	}
 	s.Setup()
 	s.ListenAndServe(config.Port)

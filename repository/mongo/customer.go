@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
@@ -11,77 +12,87 @@ import (
 )
 
 const (
-	customerIDPrefix       = "cus"
 	customerCollectionName = "customers"
 )
 
-type customerRepository struct {
+type customerStorage struct {
 	collection *mongo.Collection
+	client     *mongo.Client
 	driver     *mongoDriver
 }
 
-func NewCustomerRepository(db DB) core.CustomerRepository {
+func NewCustomerStorage(db DB) core.CustomerStorage {
 	coll := db.Collection(customerCollectionName)
-	return &customerRepository{
+	return &customerStorage{
 		collection: coll,
+		client:     db.client,
 		driver:     &mongoDriver{Collection: coll},
 	}
 }
 
-func (r *customerRepository) Create(ctx context.Context, cus core.Customer) (string, error) {
-	const op = errors.Op("mongo.customerRepository.Create")
-	if cus.ID == "" {
-		cus.ID = generateID(customerIDPrefix)
+func (s *customerStorage) Put(ctx context.Context, t core.Customer) error {
+	const op = errors.Op("mongo/customerStorage.Put")
+	now := time.Now().Unix()
+	t.UpdatedAt = now
+	f := bson.M{
+		"_id":         t.ID,
+		"merchant_id": t.MerchantID,
 	}
-	cus.Status = core.StatusActive
-	id, err := r.driver.insertOne(ctx, cus)
-	if err != nil {
-		return "", errors.E(op, err)
-	}
-	return id, nil
-}
-
-func (r *customerRepository) Update(ctx context.Context, cus core.Customer) error {
-	const op = errors.Op("mongo.customerRepository.Update")
-	filter := bson.M{"_id": cus.ID}
-	query := bson.M{"$set": cus}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+	u := bson.M{"$set": t}
+	opts := options.Update().SetUpsert(true)
+	res, err := s.collection.UpdateOne(ctx, f, u, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "customer not found")
+	// Update created_at field if upserted
+	if res.UpsertedCount == 1 {
+		t.CreatedAt = now
+		query := bson.M{"$set": t}
+		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		if err != nil {
+			return errors.E(op, errors.KindUnexpected, err)
+		}
 	}
 	return nil
 }
 
-func (r *customerRepository) UpdatePartial(ctx context.Context, id string, cus core.PartialCustomer) error {
-	const op = errors.Op("mongo.customerRepository.Update")
-	filter := bson.M{"_id": id}
-	query := bson.M{"$set": cus}
-	res, err := r.collection.UpdateOne(ctx, filter, query)
+func (s *customerStorage) PutBatch(ctx context.Context, batch []core.Customer) error {
+	const op = errors.Op("mongo/customerStorage.PutBatch")
+	sess, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
-	if res.MatchedCount == 0 {
-		return errors.E(op, errors.KindNotFound, "customer not found")
+
+	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		for _, t := range batch {
+			if err := s.Put(sessCtx, t); err != nil {
+				return nil, err
+			}
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return errors.E(op, errors.KindUnexpected, err)
 	}
 	return nil
 }
 
-func (r *customerRepository) Retrieve(ctx context.Context, id string) (core.Customer, error) {
-	const op = errors.Op("mongo.customerRepository.Retrieve")
-	cusr := core.Customer{}
-	filter := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &cusr, filter); err != nil {
+func (s *customerStorage) Get(ctx context.Context, id, merchantID string) (core.Customer, error) {
+	const op = errors.Op("mongo/customerStorage/Get")
+	cust := core.Customer{}
+	f := bson.M{
+		"_id":         id,
+		"merchant_id": merchantID,
+	}
+	if err := s.driver.findOneAndDecode(ctx, &cust, f); err != nil {
 		return core.Customer{}, errors.E(op, err)
 	}
-	return cusr, nil
+	return cust, nil
 }
 
-func (r *customerRepository) List(ctx context.Context, fil core.ListCustomersFilter) ([]core.Customer, error) {
-	const op = errors.Op("mongo.customerRepository.List")
-	fo := options.Find().
+func (s *customerStorage) List(ctx context.Context, fil core.CustomerFilter) ([]core.Customer, error) {
+	const op = errors.Op("mongo/customerStorage.List")
+	opts := options.Find().
 		SetLimit(fil.Limit).
 		SetSkip(fil.Offset)
 
@@ -93,13 +104,13 @@ func (r *customerRepository) List(ctx context.Context, fil core.ListCustomersFil
 		mfil["_id"] = bson.M{"$in": fil.IDs}
 	}
 
-	res, err := r.collection.Find(ctx, mfil, fo)
+	res, err := s.collection.Find(ctx, mfil, opts)
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var cuss []core.Customer
-	if err := res.All(ctx, &cuss); err != nil {
+	var custs []core.Customer
+	if err := res.All(ctx, &custs); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	return cuss, nil
+	return custs, nil
 }

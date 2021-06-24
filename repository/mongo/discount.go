@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/backium/backend/core"
@@ -34,7 +35,10 @@ func (s *discountStorage) Put(ctx context.Context, d core.Discount) error {
 	const op = errors.Op("mongo/discountStorage.Put")
 	now := time.Now().Unix()
 	d.UpdatedAt = now
-	f := bson.M{"_id": d.ID}
+	f := bson.M{
+		"_id":         d.ID,
+		"merchant_id": d.MerchantID,
+	}
 	u := bson.M{"$set": d}
 	opts := options.Update().SetUpsert(true)
 	res, err := s.collection.UpdateOne(ctx, f, u, opts)
@@ -74,10 +78,17 @@ func (s *discountStorage) PutBatch(ctx context.Context, batch []core.Discount) e
 	return nil
 }
 
-func (s *discountStorage) Get(ctx context.Context, id string) (core.Discount, error) {
+func (s *discountStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Discount, error) {
 	const op = errors.Op("mongo/discountStorage/Get")
 	d := core.Discount{}
-	f := bson.M{"_id": id}
+	f := bson.M{
+		"_id":         id,
+		"merchant_id": merchantID,
+	}
+	if len(locationIDs) != 0 {
+		f["location_ids"] = bson.M{"$in": locationIDs}
+	}
+	fmt.Println("f", f)
 	if err := s.driver.findOneAndDecode(ctx, &d, f); err != nil {
 		return core.Discount{}, errors.E(op, err)
 	}

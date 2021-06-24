@@ -19,33 +19,33 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	proto := core.OrderSchema{
+	schema := core.OrderSchema{
 		LocationID: req.LocationID,
 		MerchantID: ac.MerchantID,
 	}
 	for _, it := range req.Items {
-		proto.Items = append(proto.Items, core.OrderSchemaItem{
+		schema.Items = append(schema.Items, core.OrderSchemaItem{
 			UID:         it.UID,
 			VariationID: it.VariationID,
 			Quantity:    it.Quantity,
 		})
 	}
 	for _, t := range req.Taxes {
-		proto.Taxes = append(proto.Taxes, core.OrderSchemaTax{
+		schema.Taxes = append(schema.Taxes, core.OrderSchemaTax{
 			UID:   t.UID,
 			ID:    t.ID,
 			Scope: t.Scope,
 		})
 	}
 	for _, t := range req.Discounts {
-		proto.Discounts = append(proto.Discounts, core.OrderSchemaDiscount{
+		schema.Discounts = append(schema.Discounts, core.OrderSchemaDiscount{
 			UID: t.UID,
 			ID:  t.ID,
 		})
 	}
 
 	ctx := c.Request().Context()
-	order, err := h.OrderingService.CreateOrder(ctx, proto)
+	order, err := h.OrderingService.CreateOrder(ctx, schema)
 	if err != nil {
 		return errors.E(op, err)
 	}

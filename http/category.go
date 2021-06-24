@@ -5,6 +5,7 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
+	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
 )
 
@@ -25,7 +26,8 @@ func (h *Handler) CreateCategory(c echo.Context) error {
 	cat.Name = req.Name
 	cat.MerchantID = ac.MerchantID
 
-	cat, err := h.CatalogService.CreateCategory(c.Request().Context(), cat)
+	ctx := c.Request().Context()
+	cat, err := h.CatalogService.PutCategory(ctx, cat)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -34,15 +36,26 @@ func (h *Handler) CreateCategory(c echo.Context) error {
 
 func (h *Handler) UpdateCategory(c echo.Context) error {
 	const op = errors.Op("handler.Category.Update")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 	req := CategoryUpdateRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cat := core.CategoryPartial{
-		Name:        req.Name,
-		LocationIDs: req.LocationIDs,
+	ctx := c.Request().Context()
+	cat, err := h.CatalogService.GetCategory(ctx, req.ID, ac.MerchantID, nil)
+	if err != nil {
+		return errors.E(op, err)
 	}
-	ucat, err := h.CatalogService.UpdateCategory(c.Request().Context(), req.ID, cat)
+	if req.Name != nil {
+		cat.Name = *req.Name
+	}
+	if req.LocationIDs != nil {
+		cat.LocationIDs = *req.LocationIDs
+	}
+	ucat, err := h.CatalogService.PutCategory(ctx, cat)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -55,10 +68,8 @@ func (h *Handler) RetrieveCategory(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	m, err := h.CatalogService.RetrieveCategory(c.Request().Context(), core.CategoryRetrieveRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	m, err := h.CatalogService.GetCategory(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -75,9 +86,9 @@ func (h *Handler) ListCategories(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cuss, err := h.CatalogService.ListCategory(c.Request().Context(), core.CategoryListRequest{
-		Limit:      req.Limit,
-		Offset:     req.Offset,
+	cuss, err := h.CatalogService.ListCategory(c.Request().Context(), core.CategoryFilter{
+		Limit:      ptr.GetInt64(req.Limit),
+		Offset:     ptr.GetInt64(req.Offset),
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
@@ -96,10 +107,8 @@ func (h *Handler) DeleteCategory(c echo.Context) error {
 	if !ok {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	cus, err := h.CatalogService.DeleteCategory(c.Request().Context(), core.CategoryDeleteRequest{
-		ID:         c.Param("id"),
-		MerchantID: ac.MerchantID,
-	})
+	ctx := c.Request().Context()
+	cus, err := h.CatalogService.DeleteCategory(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -111,6 +120,8 @@ type Category struct {
 	Name        string      `json:"name"`
 	LocationIDs []string    `json:"location_ids"`
 	MerchantID  string      `json:"merchant_id"`
+	CreatedAt   int64       `json:"created_at"`
+	UpdatedAt   int64       `json:"updated_at"`
 	Status      core.Status `json:"status"`
 }
 
@@ -120,6 +131,8 @@ func NewCategory(cat core.Category) Category {
 		Name:        cat.Name,
 		LocationIDs: cat.LocationIDs,
 		MerchantID:  cat.MerchantID,
+		CreatedAt:   cat.CreatedAt,
+		UpdatedAt:   cat.UpdatedAt,
 		Status:      cat.Status,
 	}
 }
