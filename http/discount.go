@@ -27,7 +27,7 @@ func (h *Handler) CreateDiscount(c echo.Context) error {
 		d.LocationIDs = *req.LocationIDs
 	}
 	if req.Type == core.DiscountTypePercentage {
-		d.Percentage = ptr.GetInt64(req.Percentage)
+		d.Percentage = ptr.GetFloat64(req.Percentage)
 	}
 	if req.Type == core.DiscountTypeFixed && req.Fixed != nil {
 		d.Fixed = core.Money{
@@ -166,7 +166,7 @@ type Discount struct {
 	Name        string            `json:"name"`
 	Type        core.DiscountType `json:"type"`
 	Fixed       *Money            `json:"fixed,omitempty"`
-	Percentage  *int64            `json:"percentage,omitempty"`
+	Percentage  *float64          `json:"percentage,omitempty"`
 	LocationIDs []string          `json:"location_ids"`
 	MerchantID  string            `json:"merchant_id"`
 	CreatedAt   int64             `json:"created_at"`
@@ -191,7 +191,7 @@ func NewDiscount(d core.Discount) Discount {
 			Currency: d.Fixed.Currency,
 		}
 	} else {
-		dr.Percentage = ptr.Int64(d.Percentage)
+		dr.Percentage = ptr.Float64(d.Percentage)
 	}
 	return dr
 }
@@ -200,7 +200,7 @@ type DiscountCreateRequest struct {
 	Name        string            `json:"name" validate:"required"`
 	Type        core.DiscountType `json:"type" validate:"required"`
 	Fixed       *Money            `json:"fixed" validate:"omitempty"`
-	Percentage  *int64            `json:"percentage" validate:"omitempty,min=0,max=100"`
+	Percentage  *float64          `json:"percentage" validate:"omitempty,min=0,max=100"`
 	LocationIDs *[]string         `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
@@ -209,7 +209,7 @@ type DiscountUpdateRequest struct {
 	Name        *string            `json:"name" validate:"omitempty,min=1"`
 	Type        *core.DiscountType `json:"type"`
 	Fixed       *Money             `json:"fixed" validate:"omitempty"`
-	Percentage  *int64             `json:"percentage" validate:"omitempty,min=0,max=100"`
+	Percentage  *float64           `json:"percentage" validate:"omitempty,min=0,max=100"`
 	LocationIDs *[]string          `json:"location_ids" validate:"omitempty,dive,required"`
 }
 

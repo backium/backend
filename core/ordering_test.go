@@ -7,11 +7,12 @@ import (
 )
 
 type OrderingTestCase struct {
-	Name  string
-	Items []ItemVariation
-	Taxes []Tax
-	Req   OrderSchema
-	Order Order
+	Name      string
+	Items     []ItemVariation
+	Taxes     []Tax
+	Discounts []Discount
+	Schema    OrderSchema
+	Order     Order
 }
 
 var testcases = []OrderingTestCase{
@@ -35,7 +36,7 @@ var testcases = []OrderingTestCase{
 				},
 			},
 		},
-		Req: OrderSchema{
+		Schema: OrderSchema{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
 			Items: []OrderSchemaItem{
@@ -68,6 +69,10 @@ var testcases = []OrderingTestCase{
 						Amount:   1000,
 						Currency: "PEN",
 					},
+					TotalDiscount: Money{
+						Amount:   0,
+						Currency: "PEN",
+					},
 					TotalTax: Money{
 						Amount:   0,
 						Currency: "PEN",
@@ -90,6 +95,10 @@ var testcases = []OrderingTestCase{
 						Amount:   2000,
 						Currency: "PEN",
 					},
+					TotalDiscount: Money{
+						Amount:   0,
+						Currency: "PEN",
+					},
 					TotalTax: Money{
 						Amount:   0,
 						Currency: "PEN",
@@ -100,12 +109,118 @@ var testcases = []OrderingTestCase{
 					},
 				},
 			},
+			TotalDiscount: Money{
+				Amount:   0,
+				Currency: "PEN",
+			},
 			TotalTax: Money{
 				Amount:   0,
 				Currency: "PEN",
 			},
 			Total: Money{
 				Amount:   3000,
+				Currency: "PEN",
+			},
+		},
+	},
+	{
+		Name: "OneItemWithDiscounts",
+		Items: []ItemVariation{
+			{
+				ID:   "variation1_id",
+				Name: "variation1",
+				Price: Money{
+					Amount:   500,
+					Currency: "PEN",
+				},
+			},
+		},
+		Discounts: []Discount{
+			{
+				ID:         "discount1_id",
+				Name:       "discount1",
+				Type:       DiscountTypePercentage,
+				Percentage: 20,
+			},
+		},
+		Schema: OrderSchema{
+			LocationID: "location_id",
+			MerchantID: "merchant_id",
+			Items: []OrderSchemaItem{
+				{
+					UID:         "variation1_uid",
+					VariationID: "variation1_id",
+					Quantity:    2,
+				},
+			},
+			Discounts: []OrderSchemaDiscount{
+				{
+					UID: "discount1_uid",
+					ID:  "discount1_id",
+				},
+			},
+		},
+		Order: Order{
+			LocationID: "location_id",
+			MerchantID: "merchant_id",
+			Items: []OrderItem{
+				{
+					UID:         "variation1_uid",
+					VariationID: "variation1_id",
+					Name:        "variation1",
+					Quantity:    2,
+					AppliedDiscounts: []OrderItemAppliedDiscount{
+						{
+							DiscountUID: "discount1_uid",
+							Applied: Money{
+								Amount:   200,
+								Currency: "PEN",
+							},
+						},
+					},
+					BasePrice: Money{
+						Amount:   500,
+						Currency: "PEN",
+					},
+					GrossSales: Money{
+						Amount:   1000,
+						Currency: "PEN",
+					},
+					TotalDiscount: Money{
+						Amount:   200,
+						Currency: "PEN",
+					},
+					TotalTax: Money{
+						Amount:   0,
+						Currency: "PEN",
+					},
+					Total: Money{
+						Amount:   800,
+						Currency: "PEN",
+					},
+				},
+			},
+			Discounts: []OrderDiscount{
+				{
+					UID:  "discount1_uid",
+					ID:   "discount1_id",
+					Name: "discount1",
+					Applied: Money{
+						Amount:   200,
+						Currency: "PEN",
+					},
+				},
+			},
+			TotalDiscount: Money{
+				Amount:   200,
+				Currency: "PEN",
+			},
+			TotalTax: Money{
+				Amount:   0,
+				Currency: "PEN",
+			},
+			Total: Money{
+				Amount:   800,
 				Currency: "PEN",
 			},
 		},
@@ -129,7 +244,7 @@ var testcases = []OrderingTestCase{
 				Percentage: 20,
 			},
 		},
-		Req: OrderSchema{
+		Schema: OrderSchema{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
 			Items: []OrderSchemaItem{
@@ -164,6 +279,10 @@ var testcases = []OrderingTestCase{
 						Amount:   1000,
 						Currency: "PEN",
 					},
+					TotalDiscount: Money{
+						Amount:   0,
+						Currency: "PEN",
+					},
 					TotalTax: Money{
 						Amount:   200,
 						Currency: "PEN",
@@ -194,6 +313,10 @@ var testcases = []OrderingTestCase{
 						Currency: "PEN",
 					},
 				},
+			},
+			TotalDiscount: Money{
+				Amount:   0,
+				Currency: "PEN",
 			},
 			TotalTax: Money{
 				Amount:   200,
@@ -240,7 +363,7 @@ var testcases = []OrderingTestCase{
 				Percentage: 9.25,
 			},
 		},
-		Req: OrderSchema{
+		Schema: OrderSchema{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
 			Items: []OrderSchemaItem{
@@ -285,6 +408,10 @@ var testcases = []OrderingTestCase{
 						Amount:   350,
 						Currency: "PEN",
 					},
+					TotalDiscount: Money{
+						Amount:   0,
+						Currency: "PEN",
+					},
 					TotalTax: Money{
 						Amount:   32,
 						Currency: "PEN",
@@ -314,6 +441,10 @@ var testcases = []OrderingTestCase{
 					},
 					GrossSales: Money{
 						Amount:   350,
+						Currency: "PEN",
+					},
+					TotalDiscount: Money{
+						Amount:   0,
 						Currency: "PEN",
 					},
 					TotalTax: Money{
@@ -347,6 +478,10 @@ var testcases = []OrderingTestCase{
 						Amount:   350,
 						Currency: "PEN",
 					},
+					TotalDiscount: Money{
+						Amount:   0,
+						Currency: "PEN",
+					},
 					TotalTax: Money{
 						Amount:   33,
 						Currency: "PEN",
@@ -378,6 +513,10 @@ var testcases = []OrderingTestCase{
 					},
 				},
 			},
+			TotalDiscount: Money{
+				Amount:   0,
+				Currency: "PEN",
+			},
 			TotalTax: Money{
 				Amount:   97,
 				Currency: "PEN",
@@ -397,11 +536,13 @@ func TestCreateOrder(t *testing.T) {
 			orderStorage := NewMockOrderStorage()
 			variationStorage := NewMockItemVariationStorage()
 			taxStorage := NewMockTaxStorage()
+			discountStorage := NewMockDiscountStorage()
 
 			svc := OrderingService{
 				OrderStorage:         orderStorage,
 				ItemVariationStorage: variationStorage,
 				TaxStorage:           taxStorage,
+				DiscountStorage:      discountStorage,
 			}
 
 			variationStorage.ListFunc = func(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
@@ -409,6 +550,9 @@ func TestCreateOrder(t *testing.T) {
 			}
 			taxStorage.ListFn = func(ctx context.Context, fil TaxFilter) ([]Tax, error) {
 				return tc.Taxes, nil
+			}
+			discountStorage.ListFn = func(ctx context.Context, fil DiscountFilter) ([]Discount, error) {
+				return tc.Discounts, nil
 			}
 			orderInMem := Order{}
 			orderStorage.PutFn = func(ctx context.Context, order Order) error {
@@ -419,7 +563,7 @@ func TestCreateOrder(t *testing.T) {
 				return orderInMem, nil
 			}
 
-			order, err := svc.CreateOrder(ctx, tc.Req)
+			order, err := svc.CreateOrder(ctx, tc.Schema)
 			if err != nil {
 				t.Error("creating order: ", err)
 			}
@@ -444,6 +588,15 @@ func TestCreateOrder(t *testing.T) {
 			for i, ot := range order.Taxes {
 				if !reflect.DeepEqual(ot, tc.Order.Taxes[i]) {
 					t.Errorf("incorrect order tax[%v]:\ngot: %+v\nwant: %+v\n", i, ot, tc.Order.Taxes[i])
+				}
+			}
+
+			if len(order.Discounts) != len(tc.Order.Discounts) {
+				t.Errorf("incorrect number of order discounts:\ngot: %v\nwant: %v\n", len(order.Discounts), len(tc.Order.Discounts))
+			}
+			for i, d := range order.Discounts {
+				if !reflect.DeepEqual(d, tc.Order.Discounts[i]) {
+					t.Errorf("incorrect order discount[%v]:\ngot: %+v\nwant: %+v\n", i, d, tc.Order.Discounts[i])
 				}
 			}
 		})

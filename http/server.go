@@ -60,6 +60,7 @@ func (s *Server) setupHandlers() {
 		OrderStorage:         s.OrderStorage,
 		ItemVariationStorage: s.ItemVariationRepository,
 		TaxStorage:           s.TaxStorage,
+		DiscountStorage:      s.DiscountStorage,
 	}
 
 	// setup handlers

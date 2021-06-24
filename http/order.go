@@ -30,11 +30,17 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 			Quantity:    it.Quantity,
 		})
 	}
-	for _, ot := range req.Taxes {
+	for _, t := range req.Taxes {
 		proto.Taxes = append(proto.Taxes, core.OrderSchemaTax{
-			UID:   ot.UID,
-			ID:    ot.ID,
-			Scope: ot.Scope,
+			UID:   t.UID,
+			ID:    t.ID,
+			Scope: t.Scope,
+		})
+	}
+	for _, t := range req.Discounts {
+		proto.Discounts = append(proto.Discounts, core.OrderSchemaDiscount{
+			UID: t.UID,
+			ID:  t.ID,
 		})
 	}
 
@@ -47,15 +53,17 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 }
 
 type Order struct {
-	ID         string      `json:"id"`
-	Items      []OrderItem `json:"items"`
-	Total      Money       `json:"total"`
-	TotalTax   Money       `json:"total_tax"`
-	Taxes      []OrderTax  `json:"taxes"`
-	LocationID string      `json:"location_id"`
-	MerchantID string      `json:"merchant_id"`
-	CreatedAt  int64       `json:"created_at"`
-	UpdatedAt  int64       `json:"updated_at"`
+	ID            string          `json:"id"`
+	Items         []OrderItem     `json:"items"`
+	Total         Money           `json:"total"`
+	TotalDiscount Money           `json:"total_discount"`
+	TotalTax      Money           `json:"total_tax"`
+	Taxes         []OrderTax      `json:"taxes"`
+	Discounts     []OrderDiscount `json:"discounts"`
+	LocationID    string          `json:"location_id"`
+	MerchantID    string          `json:"merchant_id"`
+	CreatedAt     int64           `json:"created_at"`
+	UpdatedAt     int64           `json:"updated_at"`
 }
 
 func NewOrder(o core.Order) Order {
@@ -64,13 +72,22 @@ func NewOrder(o core.Order) Order {
 		items[i] = NewOrderItem(oi)
 	}
 	taxes := make([]OrderTax, len(o.Taxes))
-	for i, ot := range o.Taxes {
-		taxes[i] = NewOrderTax(ot)
+	for i, t := range o.Taxes {
+		taxes[i] = NewOrderTax(t)
+	}
+	discounts := make([]OrderDiscount, len(o.Discounts))
+	for i, d := range o.Discounts {
+		discounts[i] = NewOrderDiscount(d)
 	}
 	return Order{
-		ID:    o.ID,
-		Items: items,
-		Taxes: taxes,
+		ID:        o.ID,
+		Items:     items,
+		Taxes:     taxes,
+		Discounts: discounts,
+		TotalDiscount: Money{
+			Amount:   ptr.Int64(o.TotalDiscount.Amount),
+			Currency: o.TotalTax.Currency,
+		},
 		TotalTax: Money{
 			Amount:   ptr.Int64(o.TotalTax.Amount),
 			Currency: o.TotalTax.Currency,
@@ -87,12 +104,15 @@ func NewOrder(o core.Order) Order {
 }
 
 type OrderItem struct {
-	UID          string                `json:"uid"`
-	VariationID  string                `json:"variation_id"`
-	Name         string                `json:"name"`
-	Quantity     int64                 `json:"quantity"`
-	AppliedTaxes []OrderItemAppliedTax `json:"applied_taxes"`
-	Total        Money                 `json:"total"`
+	UID              string                     `json:"uid"`
+	VariationID      string                     `json:"variation_id"`
+	Name             string                     `json:"name"`
+	Quantity         int64                      `json:"quantity"`
+	AppliedTaxes     []OrderItemAppliedTax      `json:"applied_taxes"`
+	AppliedDiscounts []OrderItemAppliedDiscount `json:"applied_discounts"`
+	TotalDiscount    Money                      `json:"total_discount"`
+	TotalTax         Money                      `json:"total_tax"`
+	Total            Money                      `json:"total"`
 }
 
 func NewOrderItem(it core.OrderItem) OrderItem {
@@ -106,22 +126,46 @@ func NewOrderItem(it core.OrderItem) OrderItem {
 			},
 		}
 	}
+	discounts := make([]OrderItemAppliedDiscount, len(it.AppliedDiscounts))
+	for i, d := range it.AppliedDiscounts {
+		discounts[i] = OrderItemAppliedDiscount{
+			DiscountUID: d.DiscountUID,
+			Applied: Money{
+				Amount:   ptr.Int64(d.Applied.Amount),
+				Currency: d.Applied.Currency,
+			},
+		}
+	}
 	return OrderItem{
 		UID:         it.UID,
 		VariationID: it.VariationID,
 		Name:        it.Name,
 		Quantity:    it.Quantity,
+		TotalDiscount: Money{
+			Amount:   ptr.Int64(it.TotalDiscount.Amount),
+			Currency: it.TotalDiscount.Currency,
+		},
+		TotalTax: Money{
+			Amount:   ptr.Int64(it.TotalTax.Amount),
+			Currency: it.TotalTax.Currency,
+		},
 		Total: Money{
 			Amount:   ptr.Int64(it.Total.Amount),
 			Currency: it.Total.Currency,
 		},
-		AppliedTaxes: taxes,
+		AppliedTaxes:     taxes,
+		AppliedDiscounts: discounts,
 	}
 }
 
 type OrderItemAppliedTax struct {
 	TaxUID  string `json:"tax_uid"`
 	Applied Money  `json:"applied"`
+}
+
+type OrderItemAppliedDiscount struct {
+	DiscountUID string `json:"discount_uid"`
+	Applied     Money  `json:"applied"`
 }
 
 type OrderTax struct {
@@ -145,6 +189,25 @@ func NewOrderTax(ot core.OrderTax) OrderTax {
 	}
 }
 
+type OrderDiscount struct {
+	UID     string `json:"uid"`
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Applied Money  `json:"applied"`
+}
+
+func NewOrderDiscount(ot core.OrderDiscount) OrderDiscount {
+	return OrderDiscount{
+		UID:  ot.UID,
+		ID:   ot.ID,
+		Name: ot.Name,
+		Applied: Money{
+			Amount:   ptr.Int64(ot.Applied.Amount),
+			Currency: ot.Applied.Currency,
+		},
+	}
+}
+
 type OrderItemRequest struct {
 	UID         string `json:"uid" validate:"required"`
 	VariationID string `json:"variation_id" validate:"required"`
@@ -157,8 +220,14 @@ type OrderTaxRequest struct {
 	Scope core.TaxScope `json:"scope" validate:"required"`
 }
 
+type OrderDiscountRequest struct {
+	UID string `json:"uid" validate:"required"`
+	ID  string `json:"id" validate:"required"`
+}
+
 type OrderCreateRequest struct {
-	Items      []OrderItemRequest `json:"items" validate:"required,dive"`
-	LocationID string             `json:"location_id" validate:"required"`
-	Taxes      []OrderTaxRequest  `json:"taxes" validate:"omitempty,dive"`
+	Items      []OrderItemRequest     `json:"items" validate:"required,dive"`
+	LocationID string                 `json:"location_id" validate:"required"`
+	Taxes      []OrderTaxRequest      `json:"taxes" validate:"omitempty,dive"`
+	Discounts  []OrderDiscountRequest `json:"discounts" validate:"omitempty,dive"`
 }

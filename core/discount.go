@@ -23,7 +23,7 @@ type Discount struct {
 	Name        string       `bson:"name"`
 	Type        DiscountType `bson:"type"`
 	Fixed       Money        `bson:"fixed"`
-	Percentage  int64        `bson:"percentage"`
+	Percentage  float64      `bson:"percentage"`
 	LocationIDs []string     `bson:"location_ids"`
 	MerchantID  string       `bson:"merchant_id"`
 	CreatedAt   int64        `bson:"created_at"`

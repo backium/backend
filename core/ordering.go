@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/backium/backend/errors"
 	d "github.com/shopspring/decimal"
@@ -15,6 +16,7 @@ type OrderingService struct {
 	OrderStorage         OrderStorage
 	ItemVariationStorage ItemVariationStorage
 	TaxStorage           TaxStorage
+	DiscountStorage      DiscountStorage
 }
 
 func (s *OrderingService) CreateOrder(ctx context.Context, sch OrderSchema) (Order, error) {
@@ -24,6 +26,8 @@ func (s *OrderingService) CreateOrder(ctx context.Context, sch OrderSchema) (Ord
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}
+
+	fmt.Printf("%+v", sch)
 
 	if err := s.OrderStorage.Put(ctx, *order); err != nil {
 		return Order{}, errors.E(op, err)
@@ -37,11 +41,12 @@ func (s *OrderingService) CreateOrder(ctx context.Context, sch OrderSchema) (Ord
 
 // OrderLookup provides easy access to order elements (items, taxes, discounts) using schema uids
 type OrderLookup struct {
-	item map[string]ItemVariation
-	tax  map[string]Tax
+	item     map[string]ItemVariation
+	tax      map[string]Tax
+	discount map[string]Discount
 }
 
-func NewOrderLookup(sch OrderSchema, items []ItemVariation, taxes []Tax) (*OrderLookup, error) {
+func NewOrderLookup(sch OrderSchema, items []ItemVariation, taxes []Tax, discounts []Discount) (*OrderLookup, error) {
 	// Save items by UID for easy access
 	itemLookup := map[string]ItemVariation{}
 	for _, oit := range sch.Items {
@@ -55,7 +60,6 @@ func NewOrderLookup(sch OrderSchema, items []ItemVariation, taxes []Tax) (*Order
 		}
 	}
 
-	// Save taxes by UID for easy access
 	taxLookup := map[string]Tax{}
 	for _, ot := range sch.Taxes {
 		for _, t := range taxes {
@@ -68,9 +72,22 @@ func NewOrderLookup(sch OrderSchema, items []ItemVariation, taxes []Tax) (*Order
 		}
 	}
 
+	discountLookup := map[string]Discount{}
+	for _, ot := range sch.Discounts {
+		for _, d := range discounts {
+			if d.ID == ot.ID {
+				discountLookup[ot.UID] = d
+			}
+		}
+		if _, ok := discountLookup[ot.UID]; !ok {
+			return nil, errors.E("Unknow discounts in order")
+		}
+	}
+
 	return &OrderLookup{
-		item: itemLookup,
-		tax:  taxLookup,
+		item:     itemLookup,
+		tax:      taxLookup,
+		discount: discountLookup,
 	}, nil
 }
 
@@ -80,6 +97,10 @@ func (l *OrderLookup) Tax(uid string) Tax {
 
 func (l *OrderLookup) Item(uid string) ItemVariation {
 	return l.item[uid]
+}
+
+func (l *OrderLookup) Discount(uid string) Discount {
+	return l.discount[uid]
 }
 
 // OrderBuilder helps to build an order from a schema
@@ -113,6 +134,10 @@ func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 				Amount:   item.Price.Amount * schItem.Quantity,
 				Currency: b.schema.currency,
 			},
+			TotalDiscount: Money{
+				Amount:   0,
+				Currency: b.schema.currency,
+			},
 			TotalTax: Money{
 				Amount:   0,
 				Currency: b.schema.currency,
@@ -125,9 +150,85 @@ func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 		order.Items = append(order.Items, orderItem)
 		itemsTotalAmount += orderItem.Total.Amount
 	}
+	order.TotalDiscount = Money{
+		Amount:   0,
+		Currency: b.schema.currency,
+	}
+	order.TotalTax = Money{
+		Amount:   0,
+		Currency: b.schema.currency,
+	}
 	order.Total = Money{
 		Amount:   itemsTotalAmount,
 		Currency: b.schema.currency,
+	}
+}
+
+func (b *OrderBuilder) applyOrderLevelDiscounts(order *Order) {
+	var schemaDiscounts []OrderSchemaDiscount
+	for _, d := range b.schema.Discounts {
+		if b.lookup.Discount(d.UID).Type == DiscountTypePercentage {
+			schemaDiscounts = append(schemaDiscounts, d)
+		}
+	}
+	// Compute and save order level taxes amount
+	discountTotalAmount := map[string]int64{}
+	remainDiscountTotalAmount := map[string]int64{}
+	for _, schemaDiscount := range schemaDiscounts {
+		discount := b.lookup.Discount(schemaDiscount.UID)
+		ptg := d.NewFromFloat(discount.Percentage).Div(hundred)
+		total := d.NewFromInt(order.Total.Amount)
+		amount := ptg.Mul(total).RoundBank(0).IntPart()
+		discountTotalAmount[schemaDiscount.UID] = amount
+		remainDiscountTotalAmount[schemaDiscount.UID] = amount
+
+		orderDiscount := OrderDiscount{
+			UID:  schemaDiscount.UID,
+			ID:   discount.ID,
+			Name: discount.Name,
+			Applied: Money{
+				Amount:   amount,
+				Currency: b.schema.currency,
+			},
+		}
+		order.Discounts = append(order.Discounts, orderDiscount)
+	}
+
+	// Apply order level discounts
+	for i, orderItem := range order.Items {
+		var appliedDiscounts []OrderItemAppliedDiscount
+		var itemDiscountTotalAmount int64
+		itemAmount := orderItem.Total.Amount
+		for _, schemaDiscount := range schemaDiscounts {
+			var itemDiscountAmount int64
+			if i < len(order.Items)-1 {
+				// Calculate item discount amount proportionally:
+				//		discountItem = discountTotal * itemTotal / itemsTotal
+				total := d.NewFromInt(discountTotalAmount[schemaDiscount.UID])
+				factor := d.NewFromInt(itemAmount).Div(d.NewFromInt(order.Total.Amount))
+				itemDiscountAmount = total.Mul(factor).RoundBank(0).IntPart()
+			} else {
+				itemDiscountAmount = remainDiscountTotalAmount[schemaDiscount.UID]
+			}
+
+			applied := OrderItemAppliedDiscount{
+				DiscountUID: schemaDiscount.UID,
+				Applied: Money{
+					Amount:   itemDiscountAmount,
+					Currency: b.schema.currency,
+				},
+			}
+			itemDiscountTotalAmount += itemDiscountAmount
+			remainDiscountTotalAmount[schemaDiscount.UID] -= itemDiscountAmount
+			appliedDiscounts = append(appliedDiscounts, applied)
+		}
+		order.Items[i].Total.Amount -= itemDiscountTotalAmount
+		order.Items[i].AppliedDiscounts = append(orderItem.AppliedDiscounts, appliedDiscounts...)
+		order.Items[i].TotalDiscount.Amount += itemDiscountTotalAmount
+	}
+	for _, v := range discountTotalAmount {
+		order.Total.Amount -= v
+		order.TotalDiscount.Amount += v
 	}
 }
 
@@ -135,58 +236,62 @@ func (b *OrderBuilder) applyOrderLevelTaxes(order *Order) {
 	// Compute and save order level taxes amount
 	taxTotalAmount := map[string]int64{}
 	remainderTaxTotalAmount := map[string]int64{}
-	for _, ot := range b.schema.Taxes {
-		t := b.lookup.Tax(ot.UID)
-		ptg := d.NewFromFloat(t.Percentage).Div(hundred)
+	for _, schemaTax := range b.schema.Taxes {
+		tax := b.lookup.Tax(schemaTax.UID)
+		ptg := d.NewFromFloat(tax.Percentage).Div(hundred)
 		total := d.NewFromInt(order.Total.Amount)
 		amount := ptg.Mul(total).RoundBank(0).IntPart()
-		taxTotalAmount[ot.UID] = amount
-		remainderTaxTotalAmount[ot.UID] = amount
+		taxTotalAmount[schemaTax.UID] = amount
+		remainderTaxTotalAmount[schemaTax.UID] = amount
 
-		ordTax := OrderTax{
-			UID:   ot.UID,
-			ID:    t.ID,
-			Name:  t.Name,
-			Scope: ot.Scope,
+		orderTax := OrderTax{
+			UID:   schemaTax.UID,
+			ID:    tax.ID,
+			Name:  tax.Name,
+			Scope: schemaTax.Scope,
 			Applied: Money{
 				Amount:   amount,
 				Currency: b.schema.currency,
 			},
 		}
-		order.Taxes = append(order.Taxes, ordTax)
+		order.Taxes = append(order.Taxes, orderTax)
 	}
 
 	// Apply order level taxes
-	for i, ordItem := range order.Items {
+	for i, orderItem := range order.Items {
 		var appliedTaxes []OrderItemAppliedTax
 		var itemTaxTotalAmount int64
-		itemAmount := ordItem.Total.Amount
-		for _, t := range b.schema.Taxes {
-			// Calculate item tax amount proportionally:
-			//		taxItem = taxTotal * itemTotal / itemsTotal
+		itemAmount := orderItem.Total.Amount
+		for _, schemaTax := range b.schema.Taxes {
 			var itemTaxAmount int64
 			if i < len(order.Items)-1 {
-				total := d.NewFromInt(taxTotalAmount[t.UID])
+				// Calculate item tax amount proportionally:
+				//		taxItem = taxTotal * itemTotal / itemsTotal
+				total := d.NewFromInt(taxTotalAmount[schemaTax.UID])
 				factor := d.NewFromInt(itemAmount).Div(d.NewFromInt(order.Total.Amount))
 				itemTaxAmount = total.Mul(factor).RoundBank(0).IntPart()
 			} else {
-				itemTaxAmount = remainderTaxTotalAmount[t.UID]
+				itemTaxAmount = remainderTaxTotalAmount[schemaTax.UID]
 			}
 
 			applied := OrderItemAppliedTax{
-				TaxUID: t.UID,
+				TaxUID: schemaTax.UID,
 				Applied: Money{
 					Amount:   itemTaxAmount,
 					Currency: b.schema.currency,
 				},
 			}
 			itemTaxTotalAmount += itemTaxAmount
-			remainderTaxTotalAmount[t.UID] -= itemTaxAmount
+			remainderTaxTotalAmount[schemaTax.UID] -= itemTaxAmount
 			appliedTaxes = append(appliedTaxes, applied)
 		}
 		order.Items[i].Total.Amount += itemTaxTotalAmount
-		order.Items[i].AppliedTaxes = append(ordItem.AppliedTaxes, appliedTaxes...)
+		order.Items[i].AppliedTaxes = append(orderItem.AppliedTaxes, appliedTaxes...)
 		order.Items[i].TotalTax.Amount += itemTaxTotalAmount
+	}
+	for _, v := range taxTotalAmount {
+		order.Total.Amount += v
+		order.TotalTax.Amount += v
 	}
 }
 
@@ -199,7 +304,6 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 	}
 	order := NewOrder(sch.LocationID, sch.MerchantID)
 	order.Schema = sch
-	currency := "PEN"
 
 	items, err := s.ItemVariationStorage.List(ctx, ItemVariationFilter{
 		IDs: sch.itemVariationIDs(),
@@ -210,8 +314,14 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 	taxes, err := s.TaxStorage.List(ctx, TaxFilter{
 		IDs: sch.taxIDs(),
 	})
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+	discounts, err := s.DiscountStorage.List(ctx, DiscountFilter{
+		IDs: sch.discountIDs(),
+	})
 
-	lookup, err := NewOrderLookup(sch, items, taxes)
+	lookup, err := NewOrderLookup(sch, items, taxes, discounts)
 	if err != nil {
 		return nil, errors.E(op, errors.KindValidation, err)
 	}
@@ -221,28 +331,10 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 	// Populate order items and set starting totals
 	builder.applyItemsAndInit(&order)
 
+	builder.applyOrderLevelDiscounts(&order)
+
 	// Apply order level taxes and set tax related fields
 	builder.applyOrderLevelTaxes(&order)
-
-	// Calculate order totals
-	var (
-		orderTotalAmount    int64
-		orderTotalTaxAmount int64
-	)
-	for _, it := range order.Items {
-		orderTotalAmount += it.Total.Amount
-	}
-	for _, t := range order.Taxes {
-		orderTotalTaxAmount += t.Applied.Amount
-	}
-	order.TotalTax = Money{
-		Amount:   orderTotalTaxAmount,
-		Currency: currency,
-	}
-	order.Total = Money{
-		Amount:   orderTotalAmount,
-		Currency: currency,
-	}
 
 	return &order, nil
 }

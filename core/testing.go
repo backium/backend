@@ -79,3 +79,30 @@ func (m *mockTaxStorage) Get(ctx context.Context, id string) (Tax, error) {
 func (m *mockTaxStorage) List(ctx context.Context, fil TaxFilter) ([]Tax, error) {
 	return m.ListFn(ctx, fil)
 }
+
+type mockDiscountStorage struct {
+	PutFn      func(context.Context, Discount) error
+	PutBatchFn func(context.Context, []Discount) error
+	GetFn      func(context.Context, string) (Discount, error)
+	ListFn     func(context.Context, DiscountFilter) ([]Discount, error)
+}
+
+func NewMockDiscountStorage() *mockDiscountStorage {
+	return &mockDiscountStorage{}
+}
+
+func (m *mockDiscountStorage) Put(ctx context.Context, d Discount) error {
+	return m.PutFn(ctx, d)
+}
+
+func (m *mockDiscountStorage) PutBatch(ctx context.Context, batch []Discount) error {
+	return m.PutBatchFn(ctx, batch)
+}
+
+func (m *mockDiscountStorage) Get(ctx context.Context, id string) (Discount, error) {
+	return m.Get(ctx, id)
+}
+
+func (m *mockDiscountStorage) List(ctx context.Context, fil DiscountFilter) ([]Discount, error) {
+	return m.ListFn(ctx, fil)
+}
