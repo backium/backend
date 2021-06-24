@@ -53,6 +53,45 @@ func (h *Handler) Login(c echo.Context) error {
 	return c.JSON(http.StatusOK, NewUser(u))
 }
 
+func (h *Handler) UniversalSignin(c echo.Context) error {
+	const op = errors.Op("http/Handler.UniversalSignin")
+	req := UserLoginRequest{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return errors.E(op, err)
+	}
+	ctx := c.Request().Context()
+	u, err := h.UserService.Login(ctx, core.UserLoginRequest{
+		Email:    req.Email,
+		Password: req.Password,
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+	s := newSession(u)
+	if err := h.SessionRepository.Set(ctx, s); err != nil {
+		return errors.E(op, err)
+	}
+	c.Response().Header().Set("session-id", s.ID)
+	return c.NoContent(http.StatusOK)
+}
+
+func (h *Handler) UniversalGetSession(c echo.Context) error {
+	const op = errors.Op("http/Handler.UniversalSignin")
+	sid := c.QueryParam("sid")
+	ctx := c.Request().Context()
+	s, err := h.SessionRepository.Get(ctx, sid)
+	if err != nil {
+		return errors.E(op, errors.KindInvalidCredentials, err)
+	}
+	stoken, err := s.encode([]byte("backium"))
+	c.SetCookie(&http.Cookie{
+		Name:  "web_session",
+		Value: stoken,
+		Path:  "/api/v1",
+	})
+	return c.NoContent(http.StatusOK)
+}
+
 func (h *Handler) Signout(c echo.Context) error {
 	ac := c.(*AuthContext)
 	h.SessionRepository.Delete(c.Request().Context(), ac.ID)

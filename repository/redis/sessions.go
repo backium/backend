@@ -42,7 +42,6 @@ func (r *redisRepository) Get(ctx context.Context, id string) (http.Session, err
 	if err := json.Unmarshal([]byte(bs), &s); err != nil {
 		return s, err
 	}
-
 	return s, err
 }
 

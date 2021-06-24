@@ -20,6 +20,8 @@ func (s *Server) setupRoutes() {
 
 	pubGroup.POST("/signup", s.Handler.Signup)
 	pubGroup.POST("/login", s.Handler.Login)
+	pubGroup.POST("/auth/signin", s.Handler.UniversalSignin)
+	pubGroup.GET("/auth/session", s.Handler.UniversalGetSession)
 	userGroup.POST("/signout", s.Handler.Signout)
 
 	userGroup.GET("/locations/:id", s.Handler.RetrieveLocation)
