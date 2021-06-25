@@ -23,6 +23,7 @@ func (h *Handler) CreateLocation(c echo.Context) error {
 	loc := core.NewLocation()
 	loc.Name = req.Name
 	loc.BusinessName = req.BusinessName
+	loc.Image = req.Image
 	loc.MerchantID = ac.MerchantID
 
 	ctx := c.Request().Context()
@@ -48,6 +49,15 @@ func (h *Handler) UpdateLocation(c echo.Context) error {
 	loc, err := h.LocationService.GetLocation(ctx, req.ID, ac.MerchantID)
 	if err != nil {
 		return err
+	}
+	if req.Name != nil {
+		loc.Name = *req.Name
+	}
+	if req.BusinessName != nil {
+		loc.BusinessName = *req.BusinessName
+	}
+	if req.Image != nil {
+		loc.Image = *req.Image
 	}
 	loc, err = h.LocationService.PutLocation(ctx, loc)
 	if err != nil {
@@ -115,6 +125,7 @@ type Location struct {
 	ID           string      `json:"id"`
 	Name         string      `json:"name"`
 	BusinessName string      `json:"business_name,omitempty"`
+	Image        string      `json:"image,omitempty"`
 	MerchantID   string      `json:"merchant_id"`
 	CreatedAt    int64       `json:"created_at"`
 	UpdatedAt    int64       `json:"updated_at"`
@@ -126,6 +137,7 @@ func NewLocation(loc core.Location) Location {
 		ID:           loc.ID,
 		Name:         loc.Name,
 		BusinessName: loc.BusinessName,
+		Image:        loc.Image,
 		MerchantID:   loc.MerchantID,
 		CreatedAt:    loc.CreatedAt,
 		UpdatedAt:    loc.UpdatedAt,
@@ -136,12 +148,14 @@ func NewLocation(loc core.Location) Location {
 type LocationCreateRequest struct {
 	Name         string `json:"name" validate:"required"`
 	BusinessName string `json:"business_name"`
+	Image        string `json:"image"`
 }
 
 type LocationUpdateRequest struct {
 	ID           string  `json:"id" param:"id" validate:"required"`
 	Name         *string `json:"name" validate:"omitempty,min=1"`
 	BusinessName *string `json:"business_name" validate:"omitempty"`
+	Image        *string `json:"image"`
 }
 
 type LocationListRequest struct {

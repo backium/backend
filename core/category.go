@@ -13,12 +13,13 @@ const (
 
 type Category struct {
 	ID          string   `bson:"_id"`
-	Name        string   `bson:"name,omitempty"`
+	Name        string   `bson:"name"`
+	Image       string   `bson:"image"`
 	LocationIDs []string `bson:"location_ids"`
-	MerchantID  string   `bson:"merchant_id,omitempty"`
+	MerchantID  string   `bson:"merchant_id"`
 	CreatedAt   int64    `bson:"created_at"`
 	UpdatedAt   int64    `bson:"updated_at"`
-	Status      Status   `bson:"status,omitempty"`
+	Status      Status   `bson:"status"`
 }
 
 func NewCategory() Category {

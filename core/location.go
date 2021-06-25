@@ -13,12 +13,13 @@ const (
 
 type Location struct {
 	ID           string `bson:"_id"`
-	Name         string `bson:"name,omitempty"`
-	BusinessName string `bson:"business_name,omitempty"`
-	MerchantID   string `bson:"merchant_id,omitempty"`
+	Name         string `bson:"name"`
+	BusinessName string `bson:"business_name"`
+	Image        string `bson:"image"`
+	MerchantID   string `bson:"merchant_id"`
 	CreatedAt    int64  `bson:"created_at"`
 	UpdatedAt    int64  `bson:"updated_at"`
-	Status       Status `bson:"status,omitempty"`
+	Status       Status `bson:"status"`
 }
 
 // Creates a Location with default values

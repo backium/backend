@@ -33,6 +33,7 @@ func (h *Handler) CreateItemVariation(c echo.Context) error {
 	itvar.Name = req.Name
 	itvar.SKU = req.SKU
 	itvar.ItemID = req.ItemID
+	itvar.Image = req.Image
 	itvar.Price = core.Money{
 		Amount:   ptr.GetInt64(req.Price.Amount),
 		Currency: req.Price.Currency,
@@ -71,6 +72,9 @@ func (h *Handler) UpdateItemVariation(c echo.Context) error {
 	}
 	if req.SKU != nil {
 		itvar.SKU = *req.SKU
+	}
+	if req.Image != nil {
+		itvar.Image = *req.Image
 	}
 	if req.LocationIDs != nil {
 		itvar.LocationIDs = *req.LocationIDs
@@ -142,6 +146,7 @@ type ItemVariation struct {
 	SKU         string      `json:"sku,omitempty"`
 	ItemID      string      `json:"item_id"`
 	Price       Money       `json:"price"`
+	Image       string      `json:"image,omitempty"`
 	LocationIDs []string    `json:"location_ids"`
 	MerchantID  string      `json:"merchant_id"`
 	CreatedAt   int64       `json:"created_at"`
@@ -159,10 +164,11 @@ func NewItemVariation(itvar core.ItemVariation) ItemVariation {
 			Amount:   &itvar.Price.Amount,
 			Currency: itvar.Price.Currency,
 		},
+		Image:       itvar.Image,
 		LocationIDs: itvar.LocationIDs,
 		MerchantID:  itvar.MerchantID,
 		CreatedAt:   itvar.CreatedAt,
-		UpdatedAt:   itvar.CreatedAt,
+		UpdatedAt:   itvar.UpdatedAt,
 		Status:      itvar.Status,
 	}
 }
@@ -180,6 +186,7 @@ type ItemVariationCreateRequest struct {
 	SKU         string    `json:"sku"`
 	ItemID      string    `json:"item_id" validate:"required"`
 	Price       *Money    `json:"price" validate:"required"`
+	Image       string    `json:"image"`
 	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
@@ -188,6 +195,7 @@ type ItemVariationUpdateRequest struct {
 	Name        *string   `json:"name" validate:"omitempty,min=1"`
 	SKU         *string   `json:"sku"`
 	Price       *Money    `json:"price"`
+	Image       *string   `json:"image"`
 	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
