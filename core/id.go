@@ -7,7 +7,7 @@ const (
 	idSize   = 14
 )
 
-func generateID(prefix string) string {
+func NewID(prefix string) string {
 	id, err := gonanoid.Generate(alphabet, idSize)
 	if err != nil {
 		panic(err)
@@ -15,7 +15,7 @@ func generateID(prefix string) string {
 	return prefix + "_" + id
 }
 
-func IDWithSize(prefix string, size int) string {
+func NewIDWithSize(prefix string, size int) string {
 	id, err := gonanoid.Generate(alphabet, size)
 	if err != nil {
 		panic(err)

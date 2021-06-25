@@ -25,7 +25,7 @@ type Location struct {
 // Creates a Location with default values
 func NewLocation() Location {
 	return Location{
-		ID:     generateID("loc"),
+		ID:     NewID("loc"),
 		Status: StatusActive,
 	}
 }

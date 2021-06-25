@@ -24,7 +24,7 @@ type Category struct {
 
 func NewCategory() Category {
 	return Category{
-		ID:          generateID("cat"),
+		ID:          NewID("cat"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
 	}

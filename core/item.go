@@ -26,7 +26,7 @@ type Item struct {
 // Creates an Item with default values
 func NewItem() Item {
 	return Item{
-		ID:          generateID("item"),
+		ID:          NewID("item"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
 	}

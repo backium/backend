@@ -110,6 +110,8 @@ type OrderItem struct {
 	Quantity         int64                      `json:"quantity"`
 	AppliedTaxes     []OrderItemAppliedTax      `json:"applied_taxes"`
 	AppliedDiscounts []OrderItemAppliedDiscount `json:"applied_discounts"`
+	BasePrice        Money                      `json:"base_price"`
+	GrossSales       Money                      `json:"gross_sales"`
 	TotalDiscount    Money                      `json:"total_discount"`
 	TotalTax         Money                      `json:"total_tax"`
 	Total            Money                      `json:"total"`
@@ -141,6 +143,14 @@ func NewOrderItem(it core.OrderItem) OrderItem {
 		VariationID: it.VariationID,
 		Name:        it.Name,
 		Quantity:    it.Quantity,
+		BasePrice: Money{
+			Amount:   ptr.Int64(it.BasePrice.Amount),
+			Currency: it.BasePrice.Currency,
+		},
+		GrossSales: Money{
+			Amount:   ptr.Int64(it.GrossSales.Amount),
+			Currency: it.GrossSales.Currency,
+		},
 		TotalDiscount: Money{
 			Amount:   ptr.Int64(it.TotalDiscount.Amount),
 			Currency: it.TotalDiscount.Currency,
@@ -169,19 +179,21 @@ type OrderItemAppliedDiscount struct {
 }
 
 type OrderTax struct {
-	UID     string        `json:"uid"`
-	ID      string        `json:"id"`
-	Scope   core.TaxScope `json:"scope"`
-	Name    string        `json:"name"`
-	Applied Money         `json:"applied"`
+	UID        string        `json:"uid"`
+	ID         string        `json:"id"`
+	Scope      core.TaxScope `json:"scope"`
+	Name       string        `json:"name"`
+	Percentage float64       `json:"percentage"`
+	Applied    Money         `json:"applied"`
 }
 
 func NewOrderTax(ot core.OrderTax) OrderTax {
 	return OrderTax{
-		UID:   ot.UID,
-		ID:    ot.ID,
-		Scope: ot.Scope,
-		Name:  ot.Name,
+		UID:        ot.UID,
+		ID:         ot.ID,
+		Scope:      ot.Scope,
+		Name:       ot.Name,
+		Percentage: ot.Percentage,
 		Applied: Money{
 			Amount:   ptr.Int64(ot.Applied.Amount),
 			Currency: ot.Applied.Currency,
@@ -190,22 +202,35 @@ func NewOrderTax(ot core.OrderTax) OrderTax {
 }
 
 type OrderDiscount struct {
-	UID     string `json:"uid"`
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Applied Money  `json:"applied"`
+	UID        string            `json:"uid"`
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	Type       core.DiscountType `json:"type"`
+	Fixed      *Money            `json:"fixed,omitempty"`
+	Percentage *float64          `json:"percentage,omitempty"`
+	Applied    Money             `json:"applied"`
 }
 
 func NewOrderDiscount(ot core.OrderDiscount) OrderDiscount {
-	return OrderDiscount{
+	d := OrderDiscount{
 		UID:  ot.UID,
 		ID:   ot.ID,
 		Name: ot.Name,
+		Type: ot.Type,
 		Applied: Money{
 			Amount:   ptr.Int64(ot.Applied.Amount),
 			Currency: ot.Applied.Currency,
 		},
 	}
+	if ot.Type == core.DiscountTypeFixed {
+		d.Fixed = &Money{
+			Amount:   ptr.Int64(ot.Fixed.Amount),
+			Currency: ot.Fixed.Currency,
+		}
+	} else {
+		d.Percentage = ptr.Float64(ot.Percentage)
+	}
+	return d
 }
 
 type OrderItemRequest struct {

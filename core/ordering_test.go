@@ -2,8 +2,11 @@ package core
 
 import (
 	"context"
-	"reflect"
+	"encoding/json"
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type OrderingTestCase struct {
@@ -13,6 +16,63 @@ type OrderingTestCase struct {
 	Discounts []Discount
 	Schema    OrderSchema
 	Order     Order
+}
+
+func TestCreateOrder(t *testing.T) {
+	var testcases []OrderingTestCase
+	f, err := os.ReadFile("../testdata/orders.json")
+	if err != nil {
+		t.Errorf("reading orders test file: %v", err)
+	}
+	if err := json.Unmarshal(f, &testcases); err != nil {
+		t.Errorf("unmarshaling ordering testcase file: %v", err)
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.Name, func(t *testing.T) {
+			ctx := context.Background()
+			orderStorage := NewMockOrderStorage()
+			variationStorage := NewMockItemVariationStorage()
+			taxStorage := NewMockTaxStorage()
+			discountStorage := NewMockDiscountStorage()
+
+			svc := OrderingService{
+				OrderStorage:         orderStorage,
+				ItemVariationStorage: variationStorage,
+				TaxStorage:           taxStorage,
+				DiscountStorage:      discountStorage,
+			}
+
+			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
+				return tc.Items, nil
+			}
+			taxStorage.ListFn = func(ctx context.Context, fil TaxFilter) ([]Tax, error) {
+				return tc.Taxes, nil
+			}
+			discountStorage.ListFn = func(ctx context.Context, fil DiscountFilter) ([]Discount, error) {
+				return tc.Discounts, nil
+			}
+			orderInMem := Order{}
+			orderStorage.PutFn = func(ctx context.Context, order Order) error {
+				orderInMem = order
+				return nil
+			}
+			orderStorage.GetFn = func(ctx context.Context, id, merchantID string, locationIDs []string) (Order, error) {
+				return orderInMem, nil
+			}
+
+			order, err := svc.CreateOrder(ctx, tc.Schema)
+			if err != nil {
+				t.Error("creating order: ", err)
+			}
+
+			assert.Equal(t, tc.Order.Total, order.Total, "incorrect order total")
+			assert.Equal(t, tc.Order.TotalTax, order.TotalTax, "incorrect order total tax")
+			assert.Equal(t, tc.Order.Items, order.Items, "incorrect order items")
+			assert.Equal(t, tc.Order.Taxes, order.Taxes, "incorrect order taxes")
+			assert.Equal(t, tc.Order.Discounts, order.Discounts, "incorrect order discounts")
+		})
+	}
 }
 
 var testcases = []OrderingTestCase{
@@ -527,78 +587,4 @@ var testcases = []OrderingTestCase{
 			},
 		},
 	},
-}
-
-func TestCreateOrder(t *testing.T) {
-	for _, tc := range testcases {
-		t.Run(tc.Name, func(t *testing.T) {
-			ctx := context.Background()
-			orderStorage := NewMockOrderStorage()
-			variationStorage := NewMockItemVariationStorage()
-			taxStorage := NewMockTaxStorage()
-			discountStorage := NewMockDiscountStorage()
-
-			svc := OrderingService{
-				OrderStorage:         orderStorage,
-				ItemVariationStorage: variationStorage,
-				TaxStorage:           taxStorage,
-				DiscountStorage:      discountStorage,
-			}
-
-			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
-				return tc.Items, nil
-			}
-			taxStorage.ListFn = func(ctx context.Context, fil TaxFilter) ([]Tax, error) {
-				return tc.Taxes, nil
-			}
-			discountStorage.ListFn = func(ctx context.Context, fil DiscountFilter) ([]Discount, error) {
-				return tc.Discounts, nil
-			}
-			orderInMem := Order{}
-			orderStorage.PutFn = func(ctx context.Context, order Order) error {
-				orderInMem = order
-				return nil
-			}
-			orderStorage.GetFn = func(ctx context.Context, id, merchantID string, locationIDs []string) (Order, error) {
-				return orderInMem, nil
-			}
-
-			order, err := svc.CreateOrder(ctx, tc.Schema)
-			if err != nil {
-				t.Error("creating order: ", err)
-			}
-
-			if !reflect.DeepEqual(order.Total, tc.Order.Total) {
-				t.Errorf("incorrent order total:\ngot: %v\nwant: %v\n", order.Total, tc.Order.Total)
-			}
-
-			if !reflect.DeepEqual(order.TotalTax, tc.Order.TotalTax) {
-				t.Errorf("incorrent order total tax:\ngot: %v\nwant: %v\n", order.TotalTax, tc.Order.TotalTax)
-			}
-
-			for i, it := range order.Items {
-				if !reflect.DeepEqual(it, tc.Order.Items[i]) {
-					t.Errorf("incorrect order item[%v]:\ngot: %+v\nwant: %+v\n", i, it, tc.Order.Items[i])
-				}
-			}
-
-			if len(order.Taxes) != len(tc.Order.Taxes) {
-				t.Errorf("incorrect number of order taxes:\ngot: %v\nwant: %v\n", len(order.Taxes), len(tc.Order.Taxes))
-			}
-			for i, ot := range order.Taxes {
-				if !reflect.DeepEqual(ot, tc.Order.Taxes[i]) {
-					t.Errorf("incorrect order tax[%v]:\ngot: %+v\nwant: %+v\n", i, ot, tc.Order.Taxes[i])
-				}
-			}
-
-			if len(order.Discounts) != len(tc.Order.Discounts) {
-				t.Errorf("incorrect number of order discounts:\ngot: %v\nwant: %v\n", len(order.Discounts), len(tc.Order.Discounts))
-			}
-			for i, d := range order.Discounts {
-				if !reflect.DeepEqual(d, tc.Order.Discounts[i]) {
-					t.Errorf("incorrect order discount[%v]:\ngot: %+v\nwant: %+v\n", i, d, tc.Order.Discounts[i])
-				}
-			}
-		})
-	}
 }

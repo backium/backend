@@ -27,7 +27,7 @@ type Customer struct {
 // Creates a Customer with default values
 func NewCustomer() Customer {
 	return Customer{
-		ID:     generateID("cust"),
+		ID:     NewID("cust"),
 		Status: StatusActive,
 	}
 }

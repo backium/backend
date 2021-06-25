@@ -26,7 +26,7 @@ type Order struct {
 
 func NewOrder(locationID, merchantID string) Order {
 	return Order{
-		ID:         generateID("order"),
+		ID:         NewID("order"),
 		Items:      []OrderItem{},
 		LocationID: locationID,
 		MerchantID: merchantID,
@@ -58,18 +58,22 @@ type OrderItemAppliedDiscount struct {
 }
 
 type OrderTax struct {
-	UID     string   `bson:"uid"`
-	ID      string   `bson:"id"`
-	Name    string   `bson:"name"`
-	Scope   TaxScope `bson:"scope"`
-	Applied Money    `bson:"applied"`
+	UID        string   `bson:"uid"`
+	ID         string   `bson:"id"`
+	Name       string   `bson:"name"`
+	Scope      TaxScope `bson:"scope"`
+	Percentage float64  `bson:"percentage"`
+	Applied    Money    `bson:"applied"`
 }
 
 type OrderDiscount struct {
-	UID     string `bson:"uid"`
-	ID      string `bson:"id"`
-	Name    string `bson:"name"`
-	Applied Money  `bson:"applied"`
+	UID        string       `bson:"uid"`
+	ID         string       `bson:"id"`
+	Type       DiscountType `bson:"type"`
+	Name       string       `bson:"name"`
+	Percentage float64      `bson:"percentage"`
+	Fixed      Money        `bson:"fixed"`
+	Applied    Money        `bson:"applied"`
 }
 
 type OrderStorage interface {
@@ -96,15 +100,16 @@ func (sch *OrderSchema) itemVariationIDs() []string {
 }
 
 func (sch *OrderSchema) taxIDs() []string {
-	ids := make([]string, len(sch.Items))
-	for i, it := range sch.Taxes {
-		ids[i] = it.ID
+	ids := make([]string, len(sch.Taxes))
+	for i, t := range sch.Taxes {
+		ids[i] = t.ID
 	}
 	return ids
 }
 
+// rotazo
 func (sch *OrderSchema) discountIDs() []string {
-	ids := make([]string, len(sch.Items))
+	ids := make([]string, len(sch.Discounts))
 	for i, d := range sch.Discounts {
 		ids[i] = d.ID
 	}

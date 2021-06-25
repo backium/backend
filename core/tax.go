@@ -31,7 +31,7 @@ type Tax struct {
 
 func NewTax() Tax {
 	return Tax{
-		ID:          generateID("tax"),
+		ID:          NewID("tax"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
 	}

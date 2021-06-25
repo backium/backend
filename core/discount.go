@@ -2,9 +2,9 @@ package core
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/backium/backend/errors"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -34,9 +34,20 @@ type Discount struct {
 
 func NewDiscount() Discount {
 	return Discount{
-		ID:          generateID("disc"),
+		ID:          NewID("disc"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
+	}
+}
+
+// calculate computes the discount over a given amount, it uses bank's rounding
+func (d *Discount) calculate(amount int64) int64 {
+	if d.Type == DiscountTypeFixed {
+		return d.Fixed.Amount
+	} else {
+		ptg := decimal.NewFromFloat(d.Percentage).Div(hundred)
+		total := decimal.NewFromInt(amount)
+		return ptg.Mul(total).RoundBank(0).IntPart()
 	}
 }
 
@@ -52,7 +63,6 @@ func (s *CatalogService) PutDiscount(ctx context.Context, d Discount) (Discount,
 	if err := s.DiscountStorage.Put(ctx, d); err != nil {
 		return Discount{}, err
 	}
-	fmt.Println("d", d)
 	d, err := s.DiscountStorage.Get(ctx, d.ID, d.MerchantID, nil)
 	if err != nil {
 		return Discount{}, err

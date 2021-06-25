@@ -18,7 +18,7 @@ type Merchant struct {
 
 func NewMerchant() Merchant {
 	return Merchant{
-		ID:   generateID("merch"),
+		ID:   NewID("merch"),
 		Keys: []Key{},
 	}
 }
@@ -31,7 +31,7 @@ type Key struct {
 func NewKey(name string) Key {
 	return Key{
 		Name:  name,
-		Token: IDWithSize("sk", 25),
+		Token: NewIDWithSize("sk", 25),
 	}
 }
 

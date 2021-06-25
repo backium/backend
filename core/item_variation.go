@@ -28,7 +28,7 @@ type ItemVariation struct {
 // Creates an ItemVariationVariation with default values
 func NewItemVariation() ItemVariation {
 	return ItemVariation{
-		ID:          generateID("itvar"),
+		ID:          NewID("itvar"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
 	}
