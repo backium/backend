@@ -2,6 +2,7 @@ package http
 
 import (
 	"context"
+	"strings"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
@@ -12,7 +13,50 @@ import (
 
 type AuthContext struct {
 	echo.Context
-	Session
+	Session    Session
+	MerchantID string
+}
+
+func (h *Handler) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		const op = errors.Op("handler.Auth.Authenticate")
+		header := c.Request().Header
+		bearer := header.Get("Authorization")
+		apiKey := strings.TrimPrefix(bearer, "Bearer ")
+
+		if strings.HasPrefix(apiKey, "sk_") {
+			merch, err := h.MerchantService.GetMerchantByKey(context.TODO(), apiKey)
+			if err != nil {
+				return errors.E(op, errors.KindInvalidSession, err)
+			}
+
+			return next(&AuthContext{
+				Context:    c,
+				Session:    Session{},
+				MerchantID: merch.ID,
+			})
+		}
+
+		cookie, err := c.Cookie("web_session")
+		if err != nil {
+			return errors.E(op, errors.KindInvalidSession, err)
+		}
+		ds, err := DecodeSession(cookie.Value)
+		if err != nil {
+			return errors.E(op, errors.KindInvalidSession, err)
+		}
+		rs, err := h.SessionRepository.Get(c.Request().Context(), ds.ID)
+		if err != nil {
+			return errors.E(op, errors.KindInvalidSession, err)
+		}
+		c.Logger().Infof("session found: %+v", rs)
+
+		return next(&AuthContext{
+			Context:    c,
+			Session:    rs,
+			MerchantID: rs.MerchantID,
+		})
+	}
 }
 
 type SessionRepository interface {

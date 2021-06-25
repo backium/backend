@@ -14,3 +14,11 @@ func generateID(prefix string) string {
 	}
 	return prefix + "_" + id
 }
+
+func IDWithSize(prefix string, size int) string {
+	id, err := gonanoid.Generate(alphabet, size)
+	if err != nil {
+		panic(err)
+	}
+	return prefix + "_" + id
+}

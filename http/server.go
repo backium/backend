@@ -12,7 +12,7 @@ type Server struct {
 	DB                   mongo.DB
 	Handler              Handler
 	UserRepository       core.UserRepository
-	MerchantRepository   core.MerchantRepository
+	MerchantStorage      core.MerchantStorage
 	LocationStorage      core.LocationStorage
 	CustomerStorage      core.CustomerStorage
 	CategoryStorage      core.CategoryStorage
@@ -43,11 +43,11 @@ func (s *Server) setupHandlers() {
 	// setup services
 	locationService := core.LocationService{LocationStorage: s.LocationStorage}
 	customerService := core.CustomerService{CustomerStorage: s.CustomerStorage}
-	merchantService := core.MerchantService{MerchantRepository: s.MerchantRepository}
+	merchantService := core.MerchantService{MerchantStorage: s.MerchantStorage}
 	userService := core.UserService{
-		UserRepository:     s.UserRepository,
-		MerchantRepository: s.MerchantRepository,
-		LocationStorage:    s.LocationStorage,
+		UserRepository:  s.UserRepository,
+		MerchantStorage: s.MerchantStorage,
+		LocationStorage: s.LocationStorage,
 	}
 	catalogService := core.CatalogService{
 		CategoryStorage:      s.CategoryStorage,
