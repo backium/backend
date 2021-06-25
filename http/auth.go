@@ -12,7 +12,33 @@ import (
 
 type AuthContext struct {
 	echo.Context
-	Session
+	Session    Session
+	MerchantID string
+}
+
+func (h *Handler) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		const op = errors.Op("handler.Auth.Authenticate")
+		cookie, err := c.Cookie("web_session")
+		if err != nil {
+			return errors.E(op, errors.KindInvalidSession, err)
+		}
+		ds, err := DecodeSession(cookie.Value)
+		if err != nil {
+			return errors.E(op, errors.KindInvalidSession, err)
+		}
+		rs, err := h.SessionRepository.Get(c.Request().Context(), ds.ID)
+		if err != nil {
+			return errors.E(op, errors.KindInvalidSession, err)
+		}
+		c.Logger().Infof("session found: %+v", rs)
+
+		return next(&AuthContext{
+			Context:    c,
+			Session:    rs,
+			MerchantID: rs.MerchantID,
+		})
+	}
 }
 
 type SessionRepository interface {

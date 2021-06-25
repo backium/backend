@@ -94,7 +94,7 @@ func (h *Handler) UniversalGetSession(c echo.Context) error {
 
 func (h *Handler) Signout(c echo.Context) error {
 	ac := c.(*AuthContext)
-	h.SessionRepository.Delete(c.Request().Context(), ac.ID)
+	h.SessionRepository.Delete(c.Request().Context(), ac.Session.ID)
 	return c.JSONBlob(http.StatusOK, []byte("{}"))
 }
 
@@ -113,30 +113,6 @@ func (h *Handler) setSession(c echo.Context, u core.User) error {
 		Value: stoken,
 	})
 	return nil
-}
-
-func (h *Handler) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		const op = errors.Op("handler.Auth.Authenticate")
-		cookie, err := c.Cookie("web_session")
-		if err != nil {
-			return errors.E(op, errors.KindInvalidSession, err)
-		}
-		ds, err := DecodeSession(cookie.Value)
-		if err != nil {
-			return errors.E(op, errors.KindInvalidSession, err)
-		}
-		rs, err := h.SessionRepository.Get(c.Request().Context(), ds.ID)
-		if err != nil {
-			return errors.E(op, errors.KindInvalidSession, err)
-		}
-		c.Logger().Infof("session found: %+v", rs)
-
-		return next(&AuthContext{
-			Context: c,
-			Session: rs,
-		})
-	}
 }
 
 type User struct {

@@ -1,36 +1,75 @@
 package core
 
+import (
+	"context"
+
+	"github.com/backium/backend/errors"
+)
+
 type Merchant struct {
 	ID           string `bson:"_id"`
-	FirstName    string `bson:"first_name,omitempty"`
-	LastName     string `bson:"last_name,omitempty"`
-	BusinessName string `bson:"business_name,omitempty"`
+	FirstName    string `bson:"first_name"`
+	LastName     string `bson:"last_name"`
+	BusinessName string `bson:"business_name"`
+	CreatedAt    int64  `bson:"created_at"`
+	UpdatedAt    int64  `bson:"updated_at"`
+	Keys         []Key  `bson:"keys"`
 }
 
-type MerchantRepository interface {
-	Create(Merchant) (Merchant, error)
-	Update(Merchant) (Merchant, error)
-	Retrieve(string) (Merchant, error)
-	ListAll() ([]Merchant, error)
-	Delete(string) (Merchant, error)
+func NewMerchant() Merchant {
+	return Merchant{
+		ID:   generateID("merch"),
+		Keys: []Key{},
+	}
+}
+
+type Key struct {
+	Name  string `bson:"name"`
+	Token string `bson:"token"`
+}
+
+func NewKey(name string) Key {
+	return Key{
+		Name:  name,
+		Token: IDWithSize("sk", 25),
+	}
+}
+
+type MerchantStorage interface {
+	Put(context.Context, Merchant) error
+	PutKey(context.Context, string, Key) error
+	Get(context.Context, string) (Merchant, error)
 }
 
 type MerchantService struct {
-	MerchantRepository MerchantRepository
+	MerchantStorage MerchantStorage
 }
 
-func (c *MerchantService) Create(m Merchant) (Merchant, error) {
-	return c.MerchantRepository.Create(m)
+func (svc *MerchantService) PutMerchant(ctx context.Context, merchant Merchant) (Merchant, error) {
+	const op = errors.Op("controller.Merchant.Create")
+	if err := svc.MerchantStorage.Put(ctx, merchant); err != nil {
+		return Merchant{}, err
+	}
+	merchant, err := svc.MerchantStorage.Get(ctx, merchant.ID)
+	if err != nil {
+		return Merchant{}, err
+	}
+	return merchant, nil
 }
 
-func (c *MerchantService) Update(m Merchant) (Merchant, error) {
-	return c.MerchantRepository.Update(m)
+func (svc *MerchantService) GetMerchant(ctx context.Context, id string) (Merchant, error) {
+	const op = errors.Op("core/MerchantService.GetMerchant")
+	merchant, err := svc.MerchantStorage.Get(ctx, id)
+	if err != nil {
+		return Merchant{}, errors.E(op, err)
+	}
+	return merchant, nil
 }
 
-func (c *MerchantService) Retrieve(id string) (Merchant, error) {
-	return c.MerchantRepository.Retrieve(id)
-}
-
-func (c *MerchantService) ListAll() ([]Merchant, error) {
-	return c.MerchantRepository.ListAll()
+func (svc *MerchantService) CreateKey(ctx context.Context, keyName, merchantID string) (Key, error) {
+	k := NewKey(keyName)
+	if err := svc.MerchantStorage.PutKey(ctx, merchantID, k); err != nil {
+		return Key{}, err
+	}
+	return k, nil
 }

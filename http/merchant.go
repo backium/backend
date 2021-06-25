@@ -1,10 +1,10 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/backium/backend/core"
+	"github.com/backium/backend/errors"
 	"github.com/labstack/echo/v4"
 )
 
@@ -13,57 +13,51 @@ func (h *Handler) CreateMerchant(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	m, err := h.MerchantService.Create(req.merchant())
+	merch := core.NewMerchant()
+	merch.FirstName = req.FirstName
+	merch.LastName = req.LastName
+	merch.BusinessName = req.BusinessName
+	ctx := c.Request().Context()
+	merch, err := h.MerchantService.PutMerchant(ctx, merch)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, NewMerchant(m))
+	return c.JSON(http.StatusOK, NewMerchant(merch))
 }
 
-func (h *Handler) UpdateMerchant(c echo.Context) error {
-	req := MerchantUpdateRequest{}
+func (h *Handler) CreateAPIKey(c echo.Context) error {
+	const op = errors.Op("http/Handler.CreateAPIKey")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+	req := APIKeyCreateRequest{}
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	ac := c.(*AuthContext)
-	if ac.Kind != core.UserKindSuper {
-		req.ID = ac.MerchantID
-	}
-	m, err := h.MerchantService.Update(req.merchant())
+	ctx := c.Request().Context()
+	key, err := h.MerchantService.CreateKey(ctx, req.Name, ac.MerchantID)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
-	return c.JSON(http.StatusOK, NewMerchant(m))
+	return c.JSON(http.StatusOK, APIKey{
+		Name:  key.Name,
+		Token: key.Token,
+	})
 }
 
 func (h *Handler) RetrieveMerchant(c echo.Context) error {
-	id := c.Param("id")
-	ac := c.(*AuthContext)
-	if ac.Kind != core.UserKindSuper {
-		id = ac.MerchantID
+	const op = errors.Op("http/Handler.RetrieveMerchant")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	m, err := h.MerchantService.Retrieve(id)
+	ctx := c.Request().Context()
+	merch, err := h.MerchantService.GetMerchant(ctx, ac.MerchantID)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, NewMerchant(m))
-}
-
-func (h *Handler) ListMerchants(c echo.Context) error {
-	ms, err := h.MerchantService.ListAll()
-	if err != nil {
-		return err
-	}
-	res := make([]Merchant, len(ms))
-	for i, m := range ms {
-		res[i] = NewMerchant(m)
-	}
-	return c.JSON(http.StatusOK, MerchantListResponse{res})
-}
-
-func (h *Handler) DeleteMerchant(c echo.Context) error {
-	return nil
+	return c.JSON(http.StatusOK, NewMerchant(merch))
 }
 
 type Merchant struct {
@@ -82,18 +76,19 @@ func NewMerchant(m core.Merchant) Merchant {
 	}
 }
 
+type APIKey struct {
+	Name  string `json:"name"`
+	Token string `json:"token"`
+}
+
 type MerchantCreateRequest struct {
 	FirstName    string `json:"first_name"`
 	LastName     string `json:"last_name"`
 	BusinessName string `json:"business_name"`
 }
 
-func (req MerchantCreateRequest) merchant() core.Merchant {
-	return core.Merchant{
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		BusinessName: req.BusinessName,
-	}
+type APIKeyCreateRequest struct {
+	Name string `json:"name"`
 }
 
 type MerchantUpdateRequest struct {
@@ -101,17 +96,4 @@ type MerchantUpdateRequest struct {
 	FirstName    string `json:"first_name"`
 	LastName     string `json:"last_name"`
 	BusinessName string `json:"business_name"`
-}
-
-func (req MerchantUpdateRequest) merchant() core.Merchant {
-	return core.Merchant{
-		ID:           req.ID,
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		BusinessName: req.BusinessName,
-	}
-}
-
-type MerchantListResponse struct {
-	Merchants []Merchant `json:"merchants"`
 }

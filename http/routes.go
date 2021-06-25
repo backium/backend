@@ -14,9 +14,8 @@ func (s *Server) setupRoutes() {
 	pubGroup := s.Echo.Group("/api/v1")
 
 	userGroup.GET("/merchants/:id", s.Handler.RetrieveMerchant)
-	userGroup.GET("/merchants", s.Handler.ListMerchants)
 	userGroup.POST("/merchants", s.Handler.CreateMerchant)
-	userGroup.PUT("/merchants/:id", s.Handler.UpdateMerchant)
+	userGroup.POST("/keys", s.Handler.CreateAPIKey)
 
 	pubGroup.POST("/signup", s.Handler.Signup)
 	pubGroup.POST("/login", s.Handler.Login)

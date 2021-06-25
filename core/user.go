@@ -40,9 +40,9 @@ type UserRepository interface {
 }
 
 type UserService struct {
-	UserRepository     UserRepository
-	MerchantRepository MerchantRepository
-	LocationStorage    LocationStorage
+	UserRepository  UserRepository
+	MerchantStorage MerchantStorage
+	LocationStorage LocationStorage
 }
 
 func (svc *UserService) Create(ctx context.Context, req UserCreateRequest) (User, error) {
@@ -58,16 +58,16 @@ func (svc *UserService) Create(ctx context.Context, req UserCreateRequest) (User
 
 	// Create an owner user with merchant, locations, etc
 	user := User{}
-	m, err := svc.MerchantRepository.Create(Merchant{
-		BusinessName: "My Business",
-	})
-	if err != nil {
+	merch := NewMerchant()
+	merch.BusinessName = "My Business"
+	if err := svc.MerchantStorage.Put(ctx, merch); err != nil {
 		return user, errors.E(op, errors.KindUnexpected, err)
+
 	}
 	loc := NewLocation()
 	loc.Name = "My Business"
 	loc.BusinessName = "My Business"
-	loc.MerchantID = m.ID
+	loc.MerchantID = merch.ID
 	err = svc.LocationStorage.Put(ctx, loc)
 	if err != nil {
 		return user, errors.E(op, errors.KindUnexpected, err)
@@ -76,7 +76,7 @@ func (svc *UserService) Create(ctx context.Context, req UserCreateRequest) (User
 		Email:        req.Email,
 		PasswordHash: hash,
 		Kind:         UserKindOwner,
-		MerchantID:   m.ID,
+		MerchantID:   merch.ID,
 	})
 	if err != nil {
 		return User{}, errors.E(op, errors.KindUnexpected, err)

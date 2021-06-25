@@ -2,10 +2,13 @@ package mongo
 
 import (
 	"context"
+	"time"
 
 	"github.com/backium/backend/core"
+	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -13,57 +16,73 @@ const (
 	merchantCollectionName = "merchants"
 )
 
-type merchantRepository struct {
+type merchantStorage struct {
 	collection *mongo.Collection
+	client     *mongo.Client
+	driver     *mongoDriver
 }
 
-func NewMerchantRepository(db DB) core.MerchantRepository {
-	return &merchantRepository{collection: db.Collection(merchantCollectionName)}
+func NewMerchantStorage(db DB) core.MerchantStorage {
+	coll := db.Collection(merchantCollectionName)
+	return &merchantStorage{
+		collection: coll,
+		client:     db.client,
+		driver:     &mongoDriver{Collection: coll},
+	}
 }
 
-func (r *merchantRepository) Create(m core.Merchant) (core.Merchant, error) {
-	m.ID = generateID(merchantIDPrefix)
-	res, err := r.collection.InsertOne(context.TODO(), m)
+func (s *merchantStorage) Put(ctx context.Context, merch core.Merchant) error {
+	const op = errors.Op("mongo/merchantStorage.Put")
+	now := time.Now().Unix()
+	merch.UpdatedAt = now
+	f := bson.M{"_id": merch.ID}
+	u := bson.M{"$set": merch}
+	opts := options.Update().SetUpsert(true)
+	res, err := s.collection.UpdateOne(ctx, f, u, opts)
 	if err != nil {
-		return core.Merchant{}, err
+		return errors.E(op, errors.KindUnexpected, err)
 	}
-	id := res.InsertedID.(string)
-	return r.Retrieve(id)
+	// Update created_at field if upserted
+	if res.UpsertedCount == 1 {
+		merch.CreatedAt = now
+		query := bson.M{"$set": merch}
+		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		if err != nil {
+			return errors.E(op, errors.KindUnexpected, err)
+		}
+	}
+	return nil
 }
 
-func (r *merchantRepository) Update(m core.Merchant) (core.Merchant, error) {
-	query := bson.M{"$set": m}
-	_, err := r.collection.UpdateByID(context.TODO(), m.ID, query)
+func (s *merchantStorage) PutKey(ctx context.Context, merchantID string, key core.Key) error {
+	const op = errors.Op("mongo/merchantStorage/PutKey")
+	merch, err := s.Get(ctx, merchantID)
 	if err != nil {
-		return core.Merchant{}, err
+		return errors.E(op, err)
 	}
-	return r.Retrieve(m.ID)
+	newKey := true
+	for i, k := range merch.Keys {
+		if k.Token == key.Token {
+			merch.Keys[i].Name = key.Name
+			newKey = false
+			break
+		}
+	}
+	if newKey {
+		merch.Keys = append(merch.Keys, key)
+	}
+	if err := s.Put(ctx, merch); err != nil {
+		return errors.E(op, err)
+	}
+	return nil
 }
 
-func (r *merchantRepository) Retrieve(id string) (core.Merchant, error) {
-	m := core.Merchant{}
-	res := r.collection.FindOne(context.TODO(), bson.M{"_id": id})
-	if err := res.Err(); err != nil {
-		return core.Merchant{}, err
+func (s *merchantStorage) Get(ctx context.Context, id string) (core.Merchant, error) {
+	const op = errors.Op("mongo/merchantStorage/Get")
+	cust := core.Merchant{}
+	f := bson.M{"_id": id}
+	if err := s.driver.findOneAndDecode(ctx, &cust, f); err != nil {
+		return core.Merchant{}, errors.E(op, err)
 	}
-	if err := res.Decode(&m); err != nil {
-		return core.Merchant{}, err
-	}
-	return m, nil
-}
-
-func (r *merchantRepository) ListAll() ([]core.Merchant, error) {
-	res, err := r.collection.Find(context.TODO(), bson.M{})
-	if err != nil {
-		return nil, err
-	}
-	var ms []core.Merchant
-	if err := res.All(context.TODO(), &ms); err != nil {
-		return nil, err
-	}
-	return ms, nil
-}
-
-func (r *merchantRepository) Delete(id string) (core.Merchant, error) {
-	return core.Merchant{}, nil
+	return cust, nil
 }
