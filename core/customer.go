@@ -13,10 +13,11 @@ const (
 
 type Customer struct {
 	ID         string   `bson:"_id"`
-	Name       string   `bson:"name,omitempty"`
-	Email      string   `bson:"email,omitempty"`
-	Phone      string   `bson:"phone,omitempty"`
-	Address    *Address `bson:"address,omitempty"`
+	Name       string   `bson:"name"`
+	Email      string   `bson:"email"`
+	Phone      string   `bson:"phone"`
+	Address    *Address `bson:"address"`
+	Image      string   `bson:"image"`
 	MerchantID string   `bson:"merchant_id"`
 	CreatedAt  int64    `bson:"created_at"`
 	UpdatedAt  int64    `bson:"updated_at"`

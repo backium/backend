@@ -32,6 +32,7 @@ func (h *Handler) CreateCustomer(c echo.Context) error {
 	cus.Name = req.Name
 	cus.Email = req.Email
 	cus.Phone = req.Phone
+	cus.Image = req.Image
 	cus.MerchantID = ac.MerchantID
 	ctx := c.Request().Context()
 
@@ -71,6 +72,9 @@ func (h *Handler) UpdateCustomer(c echo.Context) error {
 	}
 	if req.Phone != nil {
 		cust.Phone = *req.Phone
+	}
+	if req.Image != nil {
+		cust.Image = *req.Image
 	}
 	cust, err = h.CustomerService.PutCustomer(ctx, cust)
 	if err != nil {
@@ -139,6 +143,7 @@ type Customer struct {
 	Email      string      `json:"email"`
 	Phone      string      `json:"phone"`
 	Address    *Address    `json:"address,omitempty"`
+	Image      string      `json:"image,omitempty"`
 	MerchantID string      `json:"merchant_id"`
 	CreatedAt  int64       `json:"created_at"`
 	UpdatedAt  int64       `json:"updated_at"`
@@ -160,6 +165,7 @@ func NewCustomer(cus core.Customer) Customer {
 		Email:      cus.Email,
 		Phone:      cus.Phone,
 		MerchantID: cus.MerchantID,
+		Image:      cus.Image,
 		CreatedAt:  cus.CreatedAt,
 		UpdatedAt:  cus.UpdatedAt,
 		Status:     cus.Status,
@@ -180,6 +186,7 @@ type CustomerCreateRequest struct {
 	Name    string   `json:"name" validate:"required"`
 	Email   string   `json:"email" validate:"required,email"`
 	Phone   string   `json:"phone"`
+	Image   string   `json:"image"`
 	Address *Address `json:"address"`
 }
 
@@ -188,6 +195,7 @@ type CustomerUpdateRequest struct {
 	Name    *string  `json:"name" validate:"omitempty,min=1"`
 	Email   *string  `json:"email" validate:"omitempty,email"`
 	Phone   *string  `json:"phone"`
+	Image   *string  `json:"image"`
 	Address *Address `json:"address"`
 }
 

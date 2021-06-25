@@ -24,6 +24,7 @@ func (h *Handler) CreateCategory(c echo.Context) error {
 		cat.LocationIDs = *req.LocationIDs
 	}
 	cat.Name = req.Name
+	cat.Image = req.Image
 	cat.MerchantID = ac.MerchantID
 
 	ctx := c.Request().Context()
@@ -52,6 +53,9 @@ func (h *Handler) UpdateCategory(c echo.Context) error {
 	if req.Name != nil {
 		cat.Name = *req.Name
 	}
+	if req.Image != nil {
+		cat.Image = *req.Image
+	}
 	if req.LocationIDs != nil {
 		cat.LocationIDs = *req.LocationIDs
 	}
@@ -69,11 +73,11 @@ func (h *Handler) RetrieveCategory(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	m, err := h.CatalogService.GetCategory(ctx, c.Param("id"), ac.MerchantID, nil)
+	cat, err := h.CatalogService.GetCategory(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewCategory(m))
+	return c.JSON(http.StatusOK, NewCategory(cat))
 }
 
 func (h *Handler) ListCategories(c echo.Context) error {
@@ -118,6 +122,7 @@ func (h *Handler) DeleteCategory(c echo.Context) error {
 type Category struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
+	Image       string      `json:"image"`
 	LocationIDs []string    `json:"location_ids"`
 	MerchantID  string      `json:"merchant_id"`
 	CreatedAt   int64       `json:"created_at"`
@@ -129,6 +134,7 @@ func NewCategory(cat core.Category) Category {
 	return Category{
 		ID:          cat.ID,
 		Name:        cat.Name,
+		Image:       cat.Image,
 		LocationIDs: cat.LocationIDs,
 		MerchantID:  cat.MerchantID,
 		CreatedAt:   cat.CreatedAt,
@@ -139,12 +145,14 @@ func NewCategory(cat core.Category) Category {
 
 type CategoryCreateRequest struct {
 	Name        string    `json:"name" validate:"required"`
+	Image       string    `json:"image"`
 	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
 type CategoryUpdateRequest struct {
 	ID          string    `param:"id" validate:"required"`
 	Name        *string   `json:"name" validate:"omitempty,min=1"`
+	Image       *string   `json:"image"`
 	LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 }
 
