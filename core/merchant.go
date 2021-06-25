@@ -39,6 +39,7 @@ type MerchantStorage interface {
 	Put(context.Context, Merchant) error
 	PutKey(context.Context, string, Key) error
 	Get(context.Context, string) (Merchant, error)
+	GetByKey(context.Context, string) (Merchant, error)
 }
 
 type MerchantService struct {
@@ -67,9 +68,19 @@ func (svc *MerchantService) GetMerchant(ctx context.Context, id string) (Merchan
 }
 
 func (svc *MerchantService) CreateKey(ctx context.Context, keyName, merchantID string) (Key, error) {
+	const op = errors.Op("core/MerchantService.CreateKey")
 	k := NewKey(keyName)
 	if err := svc.MerchantStorage.PutKey(ctx, merchantID, k); err != nil {
-		return Key{}, err
+		return Key{}, errors.E(op, err)
 	}
 	return k, nil
+}
+
+func (svc *MerchantService) GetMerchantByKey(ctx context.Context, key string) (Merchant, error) {
+	const op = errors.Op("core/MerchantService.GetMerchantByKey")
+	merch, err := svc.MerchantStorage.GetByKey(ctx, key)
+	if err != nil {
+		return Merchant{}, errors.E(op, err)
+	}
+	return merch, nil
 }

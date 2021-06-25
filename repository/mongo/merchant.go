@@ -86,3 +86,13 @@ func (s *merchantStorage) Get(ctx context.Context, id string) (core.Merchant, er
 	}
 	return cust, nil
 }
+
+func (s *merchantStorage) GetByKey(ctx context.Context, key string) (core.Merchant, error) {
+	const op = errors.Op("mongo/merchantStorage/GetByKey")
+	merch := core.Merchant{}
+	f := bson.M{"keys.token": key}
+	if err := s.driver.findOneAndDecode(ctx, &merch, f); err != nil {
+		return core.Merchant{}, errors.E(op, err)
+	}
+	return merch, nil
+}
