@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/backium/backend/errors"
 )
@@ -44,12 +45,18 @@ type ItemVariationStorage interface {
 func (s *CatalogService) PutItemVariation(ctx context.Context, it ItemVariation) (ItemVariation, error) {
 	const op = errors.Op("core/CatalogService.PutItemVariation")
 	if err := s.ItemVariationStorage.Put(ctx, it); err != nil {
-		return ItemVariation{}, err
+		return ItemVariation{}, errors.E(op, err)
 	}
 	it, err := s.ItemVariationStorage.Get(ctx, it.ID, it.MerchantID, nil)
 	if err != nil {
-		return ItemVariation{}, err
+		return ItemVariation{}, errors.E(op, err)
 	}
+
+	// Initialize inventory counts
+	if err := s.initializeInventory(ctx, it); err != nil {
+		fmt.Printf("Problem generating inventory for item %v: %v", it.ID, err)
+	}
+
 	return it, nil
 }
 

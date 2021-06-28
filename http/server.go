@@ -2,7 +2,7 @@ package http
 
 import (
 	"github.com/backium/backend/core"
-	"github.com/backium/backend/repository/mongo"
+	"github.com/backium/backend/storage/mongo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 )
@@ -21,6 +21,7 @@ type Server struct {
 	TaxStorage           core.TaxStorage
 	DiscountStorage      core.DiscountStorage
 	OrderStorage         core.OrderStorage
+	InventoryStorage     core.InventoryStorage
 	SessionRepository    SessionRepository
 }
 
@@ -55,6 +56,8 @@ func (s *Server) setupHandlers() {
 		ItemVariationStorage: s.ItemVariationStorage,
 		TaxStorage:           s.TaxStorage,
 		DiscountStorage:      s.DiscountStorage,
+		InventoryStorage:     s.InventoryStorage,
+		LocationStorage:      s.LocationStorage,
 	}
 	orderingService := core.OrderingService{
 		OrderStorage:         s.OrderStorage,

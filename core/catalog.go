@@ -6,4 +6,6 @@ type CatalogService struct {
 	ItemVariationStorage ItemVariationStorage
 	TaxStorage           TaxStorage
 	DiscountStorage      DiscountStorage
+	InventoryStorage     InventoryStorage
+	LocationStorage      LocationStorage
 }

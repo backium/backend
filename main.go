@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/backium/backend/http"
-	"github.com/backium/backend/repository/mongo"
-	"github.com/backium/backend/repository/redis"
+	"github.com/backium/backend/storage/mongo"
+	"github.com/backium/backend/storage/redis"
 	"github.com/labstack/echo/v4"
 )
 
@@ -29,6 +29,7 @@ func main() {
 	taxStorage := mongo.NewTaxStorage(db)
 	discountStorage := mongo.NewDiscountStorage(db)
 	orderStorage := mongo.NewOrderStorage(db)
+	inventoryStorage := mongo.NewInventoryStorage(db)
 
 	redis := redis.NewSessionRepository(config.RedisURI, config.RedisPassword)
 	s := http.Server{
@@ -44,6 +45,7 @@ func main() {
 		TaxStorage:           taxStorage,
 		DiscountStorage:      discountStorage,
 		OrderStorage:         orderStorage,
+		InventoryStorage:     inventoryStorage,
 		SessionRepository:    redis,
 	}
 	s.Setup()

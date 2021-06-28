@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	itemIDPrefix       = "item"
 	itemCollectionName = "items"
 )
 

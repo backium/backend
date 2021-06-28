@@ -35,6 +35,9 @@ func (s *Server) setupRoutes() {
 	userGroup.PUT("/customers/:id", s.Handler.UpdateCustomer)
 	userGroup.DELETE("/customers/:id", s.Handler.DeleteCustomer)
 
+	userGroup.POST("/inventory/batch-change", s.Handler.ChangeInventory)
+	userGroup.POST("/inventory/batch-retrieve-counts", s.Handler.BatchRetrieveInventory)
+
 	userGroup.GET("/categories/:id", s.Handler.RetrieveCategory)
 	userGroup.GET("/categories", s.Handler.ListCategories)
 	userGroup.POST("/categories", s.Handler.CreateCategory)
