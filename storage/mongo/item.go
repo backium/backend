@@ -34,13 +34,13 @@ func (s *itemStorage) Put(ctx context.Context, item core.Item) error {
 	const op = errors.Op("mongo/itemStorage.Put")
 	now := time.Now().Unix()
 	item.UpdatedAt = now
-	f := bson.M{
+	filter := bson.M{
 		"_id":         item.ID,
 		"merchant_id": item.MerchantID,
 	}
-	u := bson.M{"$set": item}
+	query := bson.M{"$set": item}
 	opts := options.Update().SetUpsert(true)
-	res, err := s.collection.UpdateOne(ctx, f, u, opts)
+	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
@@ -48,7 +48,7 @@ func (s *itemStorage) Put(ctx context.Context, item core.Item) error {
 	if res.UpsertedCount == 1 {
 		item.CreatedAt = now
 		query := bson.M{"$set": item}
-		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		_, err := s.collection.UpdateOne(ctx, filter, query, opts)
 		if err != nil {
 			return errors.E(op, errors.KindUnexpected, err)
 		}
@@ -58,12 +58,12 @@ func (s *itemStorage) Put(ctx context.Context, item core.Item) error {
 
 func (s *itemStorage) PutBatch(ctx context.Context, batch []core.Item) error {
 	const op = errors.Op("mongo/itemStorage.PutBatch")
-	sess, err := s.client.StartSession()
+	session, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
 
-	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+	_, err = session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
 		for _, t := range batch {
 			if err := s.Put(sessCtx, t); err != nil {
 				return nil, err
@@ -79,18 +79,18 @@ func (s *itemStorage) PutBatch(ctx context.Context, batch []core.Item) error {
 
 func (s *itemStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Item, error) {
 	const op = errors.Op("mongo/itemStorage/Get")
-	d := core.Item{}
-	f := bson.M{
+	item := core.Item{}
+	filter := bson.M{
 		"_id":         id,
 		"merchant_id": merchantID,
 	}
 	if len(locationIDs) != 0 {
-		f["location_ids"] = bson.M{"$in": locationIDs}
+		filter["location_ids"] = bson.M{"$in": locationIDs}
 	}
-	if err := s.driver.findOneAndDecode(ctx, &d, f); err != nil {
+	if err := s.driver.findOneAndDecode(ctx, &item, filter); err != nil {
 		return core.Item{}, errors.E(op, err)
 	}
-	return d, nil
+	return item, nil
 }
 
 func (s *itemStorage) List(ctx context.Context, f core.ItemFilter) ([]core.Item, error) {
@@ -99,24 +99,24 @@ func (s *itemStorage) List(ctx context.Context, f core.ItemFilter) ([]core.Item,
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
 
-	fil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
+	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
 	if f.MerchantID != "" {
-		fil["merchant_id"] = f.MerchantID
+		filter["merchant_id"] = f.MerchantID
 	}
 	if f.IDs != nil {
-		fil["_id"] = bson.M{"$in": f.IDs}
+		filter["_id"] = bson.M{"$in": f.IDs}
 	}
 	if f.LocationIDs != nil {
-		fil["location_ids"] = bson.M{"$in": f.LocationIDs}
+		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
 	}
 
-	res, err := s.collection.Find(ctx, fil, opts)
+	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var dd []core.Item
-	if err := res.All(ctx, &dd); err != nil {
+	var items []core.Item
+	if err := res.All(ctx, &items); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	return dd, nil
+	return items, nil
 }

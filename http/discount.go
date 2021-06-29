@@ -9,6 +9,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	DiscountListDefaultSize = 10
+	DiscountListMaxSize     = 50
+)
+
 func (h *Handler) CreateDiscount(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateDiscount")
 	ac, ok := c.(*AuthContext)
@@ -19,29 +24,28 @@ func (h *Handler) CreateDiscount(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	d := core.NewDiscount()
-	d.Name = req.Name
-	d.MerchantID = ac.MerchantID
-	d.Type = req.Type
+	discount := core.NewDiscount(ac.MerchantID)
+	discount.Name = req.Name
+	discount.Type = req.Type
 	if req.LocationIDs != nil {
-		d.LocationIDs = *req.LocationIDs
+		discount.LocationIDs = *req.LocationIDs
 	}
 	if req.Type == core.DiscountTypePercentage {
-		d.Percentage = ptr.GetFloat64(req.Percentage)
+		discount.Percentage = ptr.GetFloat64(req.Percentage)
 	}
 	if req.Type == core.DiscountTypeFixed && req.Fixed != nil {
-		d.Fixed = core.Money{
+		discount.Fixed = core.Money{
 			Amount:   *req.Fixed.Amount,
 			Currency: req.Fixed.Currency,
 		}
 	}
 
 	ctx := c.Request().Context()
-	d, err := h.CatalogService.PutDiscount(ctx, d)
+	discount, err := h.CatalogService.PutDiscount(ctx, discount)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewDiscount(d))
+	return c.JSON(http.StatusOK, NewDiscount(discount))
 }
 
 func (h *Handler) UpdateDiscount(c echo.Context) error {
@@ -55,35 +59,35 @@ func (h *Handler) UpdateDiscount(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	d, err := h.CatalogService.GetDiscount(ctx, req.ID, ac.MerchantID, nil)
+	discount, err := h.CatalogService.GetDiscount(ctx, req.ID, ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
 
 	if req.Name != nil {
-		d.Name = *req.Name
+		discount.Name = *req.Name
 	}
 	if req.Type != nil {
-		d.Type = *req.Type
+		discount.Type = *req.Type
 	}
 	if req.Percentage != nil {
-		d.Percentage = *req.Percentage
+		discount.Percentage = *req.Percentage
 	}
 	if req.LocationIDs != nil {
-		d.LocationIDs = *req.LocationIDs
+		discount.LocationIDs = *req.LocationIDs
 	}
 	if req.Fixed != nil {
-		d.Fixed = core.Money{
+		discount.Fixed = core.Money{
 			Amount:   *req.Fixed.Amount,
 			Currency: req.Fixed.Currency,
 		}
 	}
 
-	d, err = h.CatalogService.PutDiscount(ctx, d)
+	discount, err = h.CatalogService.PutDiscount(ctx, discount)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewDiscount(d))
+	return c.JSON(http.StatusOK, NewDiscount(discount))
 }
 
 func (h *Handler) BatchCreateDiscount(c echo.Context) error {
@@ -96,27 +100,26 @@ func (h *Handler) BatchCreateDiscount(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	dd := make([]core.Discount, len(req.Discounts))
-	for i, d := range req.Discounts {
-		dd[i] = core.NewDiscount()
-		if d.LocationIDs != nil {
-			dd[i].LocationIDs = *d.LocationIDs
+	discounts := make([]core.Discount, len(req.Discounts))
+	for i, discount := range req.Discounts {
+		discounts[i] = core.NewDiscount(ac.MerchantID)
+		if discount.LocationIDs != nil {
+			discounts[i].LocationIDs = *discount.LocationIDs
 		}
-		dd[i].Name = d.Name
-		dd[i].Percentage = *d.Percentage
-		dd[i].MerchantID = ac.MerchantID
+		discounts[i].Name = discount.Name
+		discounts[i].Percentage = *discount.Percentage
 	}
 
 	ctx := c.Request().Context()
-	dd, err := h.CatalogService.PutDiscounts(ctx, dd)
+	discounts, err := h.CatalogService.PutDiscounts(ctx, discounts)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]Discount, len(dd))
-	for i, t := range dd {
-		res[i] = NewDiscount(t)
+	resp := DiscountListResponse{Discounts: make([]Discount, len(discounts))}
+	for i, t := range discounts {
+		resp.Discounts[i] = NewDiscount(t)
 	}
-	return c.JSON(http.StatusOK, DiscountListResponse{Discounts: res})
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) RetrieveDiscount(c echo.Context) error {
@@ -126,11 +129,11 @@ func (h *Handler) RetrieveDiscount(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.GetDiscount(ctx, c.Param("id"), ac.MerchantID, nil)
+	discount, err := h.CatalogService.GetDiscount(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewDiscount(it))
+	return c.JSON(http.StatusOK, NewDiscount(discount))
 }
 
 func (h *Handler) ListDiscounts(c echo.Context) error {
@@ -143,10 +146,22 @@ func (h *Handler) ListDiscounts(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+
+	var limit, offset int64 = DiscountListDefaultSize, 0
+	if req.Limit <= DiscountListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > DiscountListMaxSize {
+		limit = DiscountListMaxSize
+	}
+	if req.Offset != 0 {
+		offset = req.Offset
+	}
+
 	ctx := c.Request().Context()
 	its, err := h.CatalogService.ListDiscount(ctx, core.DiscountFilter{
-		Limit:      ptr.GetInt64(req.Limit),
-		Offset:     ptr.GetInt64(req.Offset),
+		Limit:      limit,
+		Offset:     offset,
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
@@ -166,11 +181,11 @@ func (h *Handler) DeleteDiscount(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	d, err := h.CatalogService.DeleteDiscount(ctx, c.Param("id"), ac.MerchantID, nil)
+	discount, err := h.CatalogService.DeleteDiscount(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewDiscount(d))
+	return c.JSON(http.StatusOK, NewDiscount(discount))
 }
 
 type Discount struct {
@@ -186,26 +201,26 @@ type Discount struct {
 	Status      core.Status       `json:"status"`
 }
 
-func NewDiscount(d core.Discount) Discount {
-	dr := Discount{
-		ID:          d.ID,
-		Name:        d.Name,
-		Type:        d.Type,
-		LocationIDs: d.LocationIDs,
-		MerchantID:  d.MerchantID,
-		CreatedAt:   d.CreatedAt,
-		UpdatedAt:   d.UpdatedAt,
-		Status:      d.Status,
+func NewDiscount(discount core.Discount) Discount {
+	resp := Discount{
+		ID:          discount.ID,
+		Name:        discount.Name,
+		Type:        discount.Type,
+		LocationIDs: discount.LocationIDs,
+		MerchantID:  discount.MerchantID,
+		CreatedAt:   discount.CreatedAt,
+		UpdatedAt:   discount.UpdatedAt,
+		Status:      discount.Status,
 	}
-	if d.Type == core.DiscountTypeFixed {
-		dr.Fixed = &Money{
-			Amount:   &d.Fixed.Amount,
-			Currency: d.Fixed.Currency,
+	if discount.Type == core.DiscountTypeFixed {
+		resp.Fixed = &Money{
+			Amount:   &discount.Fixed.Amount,
+			Currency: discount.Fixed.Currency,
 		}
 	} else {
-		dr.Percentage = ptr.Float64(d.Percentage)
+		resp.Percentage = ptr.Float64(discount.Percentage)
 	}
-	return dr
+	return resp
 }
 
 type DiscountCreateRequest struct {
@@ -230,8 +245,8 @@ type DiscountBatchCreateRequest struct {
 }
 
 type DiscountListRequest struct {
-	Limit  *int64 `query:"limit" validate:"omitempty,gte=1"`
-	Offset *int64 `query:"offset"`
+	Limit  int64 `query:"limit" validate:"gte=0"`
+	Offset int64 `query:"offset" validate:"gte=0"`
 }
 
 type DiscountListResponse struct {

@@ -71,6 +71,7 @@ func (s *Server) setupRoutes() {
 	userGroup.POST("/discounts/batch", s.Handler.BatchCreateDiscount)
 
 	userGroup.POST("/orders", s.Handler.CreateOrder)
+	userGroup.POST("/orders/search", s.Handler.SearchOrders)
 }
 
 func (s *Server) loggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {

@@ -1,13 +1,16 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
-	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	TaxListDefaultSize = 10
+	TaxListMaxSize     = 50
 )
 
 func (h *Handler) CreateTax(c echo.Context) error {
@@ -20,20 +23,19 @@ func (h *Handler) CreateTax(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	t := core.NewTax()
+	tax := core.NewTax(ac.MerchantID)
 	if req.LocationIDs != nil {
-		t.LocationIDs = *req.LocationIDs
+		tax.LocationIDs = *req.LocationIDs
 	}
-	t.Name = req.Name
-	t.Percentage = *req.Percentage
-	t.MerchantID = ac.MerchantID
+	tax.Name = req.Name
+	tax.Percentage = *req.Percentage
 
 	ctx := c.Request().Context()
-	t, err := h.CatalogService.PutTax(ctx, t)
+	tax, err := h.CatalogService.PutTax(ctx, tax)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewTax(t))
+	return c.JSON(http.StatusOK, NewTax(tax))
 }
 
 func (h *Handler) UpdateTax(c echo.Context) error {
@@ -47,28 +49,26 @@ func (h *Handler) UpdateTax(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	t, err := h.CatalogService.GetTax(ctx, req.ID, ac.MerchantID, nil)
+	tax, err := h.CatalogService.GetTax(ctx, req.ID, ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-
-	fmt.Println(t)
 
 	if req.Name != nil {
-		t.Name = *req.Name
+		tax.Name = *req.Name
 	}
 	if req.Percentage != nil {
-		t.Percentage = *req.Percentage
+		tax.Percentage = *req.Percentage
 	}
 	if req.LocationIDs != nil {
-		t.LocationIDs = *req.LocationIDs
+		tax.LocationIDs = *req.LocationIDs
 	}
 
-	ut, err := h.CatalogService.PutTax(ctx, t)
+	tax, err = h.CatalogService.PutTax(ctx, tax)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewTax(ut))
+	return c.JSON(http.StatusOK, NewTax(tax))
 }
 
 func (h *Handler) BatchCreateTax(c echo.Context) error {
@@ -81,27 +81,26 @@ func (h *Handler) BatchCreateTax(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	tt := make([]core.Tax, len(req.Taxes))
-	for i, tr := range req.Taxes {
-		tt[i] = core.NewTax()
-		if tr.LocationIDs != nil {
-			tt[i].LocationIDs = *tr.LocationIDs
+	taxes := make([]core.Tax, len(req.Taxes))
+	for i, tax := range req.Taxes {
+		taxes[i] = core.NewTax(ac.MerchantID)
+		if tax.LocationIDs != nil {
+			taxes[i].LocationIDs = *tax.LocationIDs
 		}
-		tt[i].Name = tr.Name
-		tt[i].Percentage = *tr.Percentage
-		tt[i].MerchantID = ac.MerchantID
+		taxes[i].Name = tax.Name
+		taxes[i].Percentage = *tax.Percentage
 	}
 
 	ctx := c.Request().Context()
-	tt, err := h.CatalogService.PutTaxes(ctx, tt)
+	taxes, err := h.CatalogService.PutTaxes(ctx, taxes)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]Tax, len(tt))
-	for i, t := range tt {
-		res[i] = NewTax(t)
+	resp := TaxListResponse{Taxes: make([]Tax, len(taxes))}
+	for i, tax := range taxes {
+		resp.Taxes[i] = NewTax(tax)
 	}
-	return c.JSON(http.StatusOK, TaxListResponse{Taxes: res})
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) RetrieveTax(c echo.Context) error {
@@ -111,11 +110,11 @@ func (h *Handler) RetrieveTax(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.GetTax(ctx, c.Param("id"), ac.MerchantID, nil)
+	tax, err := h.CatalogService.GetTax(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewTax(it))
+	return c.JSON(http.StatusOK, NewTax(tax))
 }
 
 func (h *Handler) ListTaxes(c echo.Context) error {
@@ -128,20 +127,32 @@ func (h *Handler) ListTaxes(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+
+	var limit, offset int64 = TaxListDefaultSize, 0
+	if req.Limit <= TaxListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > TaxListMaxSize {
+		limit = TaxListMaxSize
+	}
+	if req.Offset != 0 {
+		offset = req.Offset
+	}
+
 	ctx := c.Request().Context()
-	its, err := h.CatalogService.ListTax(ctx, core.TaxFilter{
-		Limit:      ptr.GetInt64(req.Limit),
-		Offset:     ptr.GetInt64(req.Offset),
+	taxes, err := h.CatalogService.ListTax(ctx, core.TaxFilter{
+		Limit:      limit,
+		Offset:     offset,
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]Tax, len(its))
-	for i, it := range its {
-		res[i] = NewTax(it)
+	resp := TaxListResponse{Taxes: make([]Tax, len(taxes))}
+	for i, tax := range taxes {
+		resp.Taxes[i] = NewTax(tax)
 	}
-	return c.JSON(http.StatusOK, TaxListResponse{res})
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) DeleteTax(c echo.Context) error {
@@ -169,16 +180,16 @@ type Tax struct {
 	Status      core.Status `json:"status"`
 }
 
-func NewTax(t core.Tax) Tax {
+func NewTax(tax core.Tax) Tax {
 	return Tax{
-		ID:          t.ID,
-		Name:        t.Name,
-		Percentage:  t.Percentage,
-		LocationIDs: t.LocationIDs,
-		MerchantID:  t.MerchantID,
-		CreatedAt:   t.CreatedAt,
-		UpdatedAt:   t.UpdatedAt,
-		Status:      t.Status,
+		ID:          tax.ID,
+		Name:        tax.Name,
+		Percentage:  tax.Percentage,
+		LocationIDs: tax.LocationIDs,
+		MerchantID:  tax.MerchantID,
+		CreatedAt:   tax.CreatedAt,
+		UpdatedAt:   tax.UpdatedAt,
+		Status:      tax.Status,
 	}
 }
 
@@ -200,8 +211,8 @@ type TaxBatchCreateRequest struct {
 }
 
 type TaxListRequest struct {
-	Limit  *int64 `query:"limit" validate:"omitempty,gte=1"`
-	Offset *int64 `query:"offset"`
+	Limit  int64 `query:"limit"`
+	Offset int64 `query:"offset"`
 }
 
 type TaxListResponse struct {

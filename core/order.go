@@ -76,9 +76,17 @@ type OrderDiscount struct {
 	Applied    Money        `bson:"applied"`
 }
 
+type OrderFilter struct {
+	Limit       int64
+	Offset      int64
+	LocationIDs []string
+	MerchantID  string
+}
+
 type OrderStorage interface {
 	Put(context.Context, Order) error
 	Get(context.Context, string, string, []string) (Order, error)
+	List(context.Context, OrderFilter) ([]Order, error)
 }
 
 // OrderSchema represents a potential order to be created.
