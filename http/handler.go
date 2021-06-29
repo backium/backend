@@ -17,6 +17,7 @@ type Handler struct {
 	LocationService   core.LocationService
 	CustomerService   core.CustomerService
 	OrderingService   core.OrderingService
+	PaymentService    core.PaymentService
 	SessionRepository SessionRepository
 }
 

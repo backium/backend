@@ -66,8 +66,8 @@ func TestCreateOrder(t *testing.T) {
 				t.Error("creating order: ", err)
 			}
 
-			assert.Equal(t, tc.Order.Total, order.Total, "incorrect order total")
-			assert.Equal(t, tc.Order.TotalTax, order.TotalTax, "incorrect order total tax")
+			assert.Equal(t, tc.Order.TotalAmount, order.TotalAmount, "incorrect order total")
+			assert.Equal(t, tc.Order.TotalTaxAmount, order.TotalTaxAmount, "incorrect order total tax")
 			assert.Equal(t, tc.Order.Items, order.Items, "incorrect order items")
 			assert.Equal(t, tc.Order.Taxes, order.Taxes, "incorrect order taxes")
 			assert.Equal(t, tc.Order.Discounts, order.Discounts, "incorrect order discounts")
@@ -83,7 +83,7 @@ var testcases = []OrderingTestCase{
 				ID:   "variation1_id",
 				Name: "variation1",
 				Price: Money{
-					Amount:   500,
+					Value:    500,
 					Currency: "PEN",
 				},
 			},
@@ -91,7 +91,7 @@ var testcases = []OrderingTestCase{
 				ID:   "variation2_id",
 				Name: "variation2",
 				Price: Money{
-					Amount:   1000,
+					Value:    1000,
 					Currency: "PEN",
 				},
 			},
@@ -122,23 +122,23 @@ var testcases = []OrderingTestCase{
 					Name:        "variation1",
 					Quantity:    2,
 					BasePrice: Money{
-						Amount:   500,
+						Value:    500,
 						Currency: "PEN",
 					},
 					GrossSales: Money{
-						Amount:   1000,
+						Value:    1000,
 						Currency: "PEN",
 					},
-					TotalDiscount: Money{
-						Amount:   0,
+					TotalDiscountAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					TotalTax: Money{
-						Amount:   0,
+					TotalTaxAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					Total: Money{
-						Amount:   1000,
+					TotalAmount: Money{
+						Value:    1000,
 						Currency: "PEN",
 					},
 				},
@@ -148,37 +148,37 @@ var testcases = []OrderingTestCase{
 					Name:        "variation2",
 					Quantity:    2,
 					BasePrice: Money{
-						Amount:   1000,
+						Value:    1000,
 						Currency: "PEN",
 					},
 					GrossSales: Money{
-						Amount:   2000,
+						Value:    2000,
 						Currency: "PEN",
 					},
-					TotalDiscount: Money{
-						Amount:   0,
+					TotalDiscountAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					TotalTax: Money{
-						Amount:   0,
+					TotalTaxAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					Total: Money{
-						Amount:   2000,
+					TotalAmount: Money{
+						Value:    2000,
 						Currency: "PEN",
 					},
 				},
 			},
-			TotalDiscount: Money{
-				Amount:   0,
+			TotalDiscountAmount: Money{
+				Value:    0,
 				Currency: "PEN",
 			},
-			TotalTax: Money{
-				Amount:   0,
+			TotalTaxAmount: Money{
+				Value:    0,
 				Currency: "PEN",
 			},
-			Total: Money{
-				Amount:   3000,
+			TotalAmount: Money{
+				Value:    3000,
 				Currency: "PEN",
 			},
 		},
@@ -190,7 +190,7 @@ var testcases = []OrderingTestCase{
 				ID:   "variation1_id",
 				Name: "variation1",
 				Price: Money{
-					Amount:   500,
+					Value:    500,
 					Currency: "PEN",
 				},
 			},
@@ -199,7 +199,7 @@ var testcases = []OrderingTestCase{
 			{
 				ID:         "discount1_id",
 				Name:       "discount1",
-				Type:       DiscountTypePercentage,
+				Type:       DiscountPercentage,
 				Percentage: 20,
 			},
 		},
@@ -232,30 +232,30 @@ var testcases = []OrderingTestCase{
 					AppliedDiscounts: []OrderItemAppliedDiscount{
 						{
 							DiscountUID: "discount1_uid",
-							Applied: Money{
-								Amount:   200,
+							AppliedAmount: Money{
+								Value:    200,
 								Currency: "PEN",
 							},
 						},
 					},
 					BasePrice: Money{
-						Amount:   500,
+						Value:    500,
 						Currency: "PEN",
 					},
 					GrossSales: Money{
-						Amount:   1000,
+						Value:    1000,
 						Currency: "PEN",
 					},
-					TotalDiscount: Money{
-						Amount:   200,
+					TotalDiscountAmount: Money{
+						Value:    200,
 						Currency: "PEN",
 					},
-					TotalTax: Money{
-						Amount:   0,
+					TotalTaxAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					Total: Money{
-						Amount:   800,
+					TotalAmount: Money{
+						Value:    800,
 						Currency: "PEN",
 					},
 				},
@@ -265,22 +265,22 @@ var testcases = []OrderingTestCase{
 					UID:  "discount1_uid",
 					ID:   "discount1_id",
 					Name: "discount1",
-					Applied: Money{
-						Amount:   200,
+					AppliedAmount: Money{
+						Value:    200,
 						Currency: "PEN",
 					},
 				},
 			},
-			TotalDiscount: Money{
-				Amount:   200,
+			TotalDiscountAmount: Money{
+				Value:    200,
 				Currency: "PEN",
 			},
-			TotalTax: Money{
-				Amount:   0,
+			TotalTaxAmount: Money{
+				Value:    0,
 				Currency: "PEN",
 			},
-			Total: Money{
-				Amount:   800,
+			TotalAmount: Money{
+				Value:    800,
 				Currency: "PEN",
 			},
 		},
@@ -292,7 +292,7 @@ var testcases = []OrderingTestCase{
 				ID:   "variation1_id",
 				Name: "variation1",
 				Price: Money{
-					Amount:   500,
+					Value:    500,
 					Currency: "PEN",
 				},
 			},
@@ -332,30 +332,30 @@ var testcases = []OrderingTestCase{
 					Name:        "variation1",
 					Quantity:    2,
 					BasePrice: Money{
-						Amount:   500,
+						Value:    500,
 						Currency: "PEN",
 					},
 					GrossSales: Money{
-						Amount:   1000,
+						Value:    1000,
 						Currency: "PEN",
 					},
-					TotalDiscount: Money{
-						Amount:   0,
+					TotalDiscountAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					TotalTax: Money{
-						Amount:   200,
+					TotalTaxAmount: Money{
+						Value:    200,
 						Currency: "PEN",
 					},
-					Total: Money{
-						Amount:   1200,
+					TotalAmount: Money{
+						Value:    1200,
 						Currency: "PEN",
 					},
 					AppliedTaxes: []OrderItemAppliedTax{
 						{
 							TaxUID: "tax1_uid",
-							Applied: Money{
-								Amount:   200,
+							AppliedAmount: Money{
+								Value:    200,
 								Currency: "PEN",
 							},
 						},
@@ -368,22 +368,22 @@ var testcases = []OrderingTestCase{
 					ID:    "tax1_id",
 					Name:  "tax1",
 					Scope: TaxScopeOrder,
-					Applied: Money{
-						Amount:   200,
+					AppliedAmount: Money{
+						Value:    200,
 						Currency: "PEN",
 					},
 				},
 			},
-			TotalDiscount: Money{
-				Amount:   0,
+			TotalDiscountAmount: Money{
+				Value:    0,
 				Currency: "PEN",
 			},
-			TotalTax: Money{
-				Amount:   200,
+			TotalTaxAmount: Money{
+				Value:    200,
 				Currency: "PEN",
 			},
-			Total: Money{
-				Amount:   1200,
+			TotalAmount: Money{
+				Value:    1200,
 				Currency: "PEN",
 			},
 		},
@@ -395,7 +395,7 @@ var testcases = []OrderingTestCase{
 				ID:   "variation1_id",
 				Name: "variation1",
 				Price: Money{
-					Amount:   350,
+					Value:    350,
 					Currency: "PEN",
 				},
 			},
@@ -403,7 +403,7 @@ var testcases = []OrderingTestCase{
 				ID:   "variation2_id",
 				Name: "variation2",
 				Price: Money{
-					Amount:   350,
+					Value:    350,
 					Currency: "PEN",
 				},
 			},
@@ -411,7 +411,7 @@ var testcases = []OrderingTestCase{
 				ID:   "variation3_id",
 				Name: "variation3",
 				Price: Money{
-					Amount:   350,
+					Value:    350,
 					Currency: "PEN",
 				},
 			},
@@ -461,30 +461,30 @@ var testcases = []OrderingTestCase{
 					Name:        "variation1",
 					Quantity:    1,
 					BasePrice: Money{
-						Amount:   350,
+						Value:    350,
 						Currency: "PEN",
 					},
 					GrossSales: Money{
-						Amount:   350,
+						Value:    350,
 						Currency: "PEN",
 					},
-					TotalDiscount: Money{
-						Amount:   0,
+					TotalDiscountAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					TotalTax: Money{
-						Amount:   32,
+					TotalTaxAmount: Money{
+						Value:    32,
 						Currency: "PEN",
 					},
-					Total: Money{
-						Amount:   382,
+					TotalAmount: Money{
+						Value:    382,
 						Currency: "PEN",
 					},
 					AppliedTaxes: []OrderItemAppliedTax{
 						{
 							TaxUID: "tax1_uid",
-							Applied: Money{
-								Amount:   32,
+							AppliedAmount: Money{
+								Value:    32,
 								Currency: "PEN",
 							},
 						},
@@ -496,30 +496,30 @@ var testcases = []OrderingTestCase{
 					Name:        "variation2",
 					Quantity:    1,
 					BasePrice: Money{
-						Amount:   350,
+						Value:    350,
 						Currency: "PEN",
 					},
 					GrossSales: Money{
-						Amount:   350,
+						Value:    350,
 						Currency: "PEN",
 					},
-					TotalDiscount: Money{
-						Amount:   0,
+					TotalDiscountAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					TotalTax: Money{
-						Amount:   32,
+					TotalTaxAmount: Money{
+						Value:    32,
 						Currency: "PEN",
 					},
-					Total: Money{
-						Amount:   382,
+					TotalAmount: Money{
+						Value:    382,
 						Currency: "PEN",
 					},
 					AppliedTaxes: []OrderItemAppliedTax{
 						{
 							TaxUID: "tax1_uid",
-							Applied: Money{
-								Amount:   32,
+							AppliedAmount: Money{
+								Value:    32,
 								Currency: "PEN",
 							},
 						},
@@ -531,30 +531,30 @@ var testcases = []OrderingTestCase{
 					Name:        "variation3",
 					Quantity:    1,
 					BasePrice: Money{
-						Amount:   350,
+						Value:    350,
 						Currency: "PEN",
 					},
 					GrossSales: Money{
-						Amount:   350,
+						Value:    350,
 						Currency: "PEN",
 					},
-					TotalDiscount: Money{
-						Amount:   0,
+					TotalDiscountAmount: Money{
+						Value:    0,
 						Currency: "PEN",
 					},
-					TotalTax: Money{
-						Amount:   33,
+					TotalTaxAmount: Money{
+						Value:    33,
 						Currency: "PEN",
 					},
-					Total: Money{
-						Amount:   383,
+					TotalAmount: Money{
+						Value:    383,
 						Currency: "PEN",
 					},
 					AppliedTaxes: []OrderItemAppliedTax{
 						{
 							TaxUID: "tax1_uid",
-							Applied: Money{
-								Amount:   33,
+							AppliedAmount: Money{
+								Value:    33,
 								Currency: "PEN",
 							},
 						},
@@ -567,22 +567,22 @@ var testcases = []OrderingTestCase{
 					ID:    "tax1_id",
 					Scope: TaxScopeOrder,
 					Name:  "tax1",
-					Applied: Money{
-						Amount:   97,
+					AppliedAmount: Money{
+						Value:    97,
 						Currency: "PEN",
 					},
 				},
 			},
-			TotalDiscount: Money{
-				Amount:   0,
+			TotalDiscountAmount: Money{
+				Value:    0,
 				Currency: "PEN",
 			},
-			TotalTax: Money{
-				Amount:   97,
+			TotalTaxAmount: Money{
+				Value:    97,
 				Currency: "PEN",
 			},
-			Total: Money{
-				Amount:   1147,
+			TotalAmount: Money{
+				Value:    1147,
 				Currency: "PEN",
 			},
 		},

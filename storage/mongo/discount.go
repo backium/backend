@@ -103,10 +103,10 @@ func (s *discountStorage) List(ctx context.Context, f core.DiscountFilter) ([]co
 	if f.MerchantID != "" {
 		filter["merchant_id"] = f.MerchantID
 	}
-	if f.IDs != nil {
+	if len(f.IDs) != 0 {
 		filter["_id"] = bson.M{"$in": f.IDs}
 	}
-	if f.LocationIDs != nil {
+	if len(f.LocationIDs) != 0 {
 		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
 	}
 

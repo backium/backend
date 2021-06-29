@@ -9,71 +9,82 @@ var (
 	ErrInvalidOrder = errors.New("invalid order")
 )
 
+type OrderState string
+
+const (
+	OrderStateOpen      OrderState = "open"
+	OrderStateCompleted OrderState = "completed"
+	OrderStateCanceled  OrderState = "canceled"
+)
+
 type Order struct {
-	ID            string          `bson:"_id"`
-	Items         []OrderItem     `bson:"items"`
-	Taxes         []OrderTax      `bson:"taxes"`
-	Discounts     []OrderDiscount `bson:"discounts"`
-	TotalDiscount Money           `bson:"total_discount"`
-	TotalTax      Money           `bson:"total_tax"`
-	Total         Money           `bson:"total"`
-	LocationID    string          `bson:"location_id"`
-	MerchantID    string          `bson:"merchant_id"`
-	CreatedAt     int64           `bson:"created_at"`
-	UpdatedAt     int64           `bson:"updated_at"`
-	Schema        OrderSchema     `bson:"schema"`
+	ID                  string          `bson:"_id"`
+	Items               []OrderItem     `bson:"items"`
+	Taxes               []OrderTax      `bson:"taxes"`
+	Discounts           []OrderDiscount `bson:"discounts"`
+	TotalDiscountAmount Money           `bson:"total_discount_amount"`
+	TotalTaxAmount      Money           `bson:"total_tax_amount"`
+	TotalTipAmount      Money           `bson:"total_tip_amount"`
+	TotalAmount         Money           `bson:"total_amount"`
+	State               OrderState      `bson:"state"`
+	LocationID          string          `bson:"location_id"`
+	MerchantID          string          `bson:"merchant_id"`
+	CreatedAt           int64           `bson:"created_at"`
+	UpdatedAt           int64           `bson:"updated_at"`
+	Schema              OrderSchema     `bson:"schema"`
 }
 
 func NewOrder(locationID, merchantID string) Order {
 	return Order{
 		ID:         NewID("order"),
 		Items:      []OrderItem{},
+		State:      OrderStateOpen,
 		LocationID: locationID,
 		MerchantID: merchantID,
 	}
 }
 
 type OrderItem struct {
-	UID              string                     `bson:"uid"`
-	VariationID      string                     `bson:"variation_id"`
-	Name             string                     `bson:"name"`
-	Quantity         int64                      `bson:"quantity"`
-	GrossSales       Money                      `bson:"gross_sales"`
-	TotalDiscount    Money                      `bson:"total_discount"`
-	TotalTax         Money                      `bson:"total_tax"`
-	Total            Money                      `bson:"total"`
-	BasePrice        Money                      `bson:"base_price"`
-	AppliedTaxes     []OrderItemAppliedTax      `bson:"applied_taxes"`
-	AppliedDiscounts []OrderItemAppliedDiscount `bson:"applied_discounts"`
+	UID                 string                     `bson:"uid"`
+	VariationID         string                     `bson:"variation_id"`
+	Name                string                     `bson:"name"`
+	Quantity            int64                      `bson:"quantity"`
+	GrossSales          Money                      `bson:"gross_sales"`
+	TotalDiscountAmount Money                      `bson:"total_discount_amount"`
+	TotalTaxAmount      Money                      `bson:"total_tax_amount"`
+	TotalAmount         Money                      `bson:"total_amount"`
+	BasePrice           Money                      `bson:"base_price"`
+	AppliedTaxes        []OrderItemAppliedTax      `bson:"applied_taxes"`
+	AppliedDiscounts    []OrderItemAppliedDiscount `bson:"applied_discounts"`
 }
 
 type OrderItemAppliedTax struct {
-	TaxUID  string `bson:"tax_uid"`
-	Applied Money  `bson:"applied_money"`
+	TaxUID        string `bson:"tax_uid"`
+	AppliedAmount Money  `bson:"applied_amount"`
 }
 
 type OrderItemAppliedDiscount struct {
-	DiscountUID string `bson:"discount_uid"`
-	Applied     Money  `bson:"applied_money"`
+	DiscountUID   string `bson:"discount_uid"`
+	AppliedAmount Money  `bson:"applied_amount"`
 }
 
 type OrderTax struct {
-	UID        string   `bson:"uid"`
-	ID         string   `bson:"id"`
-	Name       string   `bson:"name"`
-	Scope      TaxScope `bson:"scope"`
-	Percentage float64  `bson:"percentage"`
-	Applied    Money    `bson:"applied"`
+	UID           string   `bson:"uid"`
+	ID            string   `bson:"id"`
+	Name          string   `bson:"name"`
+	Scope         TaxScope `bson:"scope"`
+	Percentage    float64  `bson:"percentage"`
+	AppliedAmount Money    `bson:"applied_amount"`
 }
 
 type OrderDiscount struct {
-	UID        string       `bson:"uid"`
-	ID         string       `bson:"id"`
-	Type       DiscountType `bson:"type"`
-	Name       string       `bson:"name"`
-	Percentage float64      `bson:"percentage"`
-	Fixed      Money        `bson:"fixed"`
-	Applied    Money        `bson:"applied"`
+	UID           string       `bson:"uid"`
+	ID            string       `bson:"id"`
+	Type          DiscountType `bson:"type"`
+	Name          string       `bson:"name"`
+	Percentage    float64      `bson:"percentage"`
+	Amount        Money        `bson:"amount"`
+	AppliedAmount Money        `bson:"applied_amount"`
 }
 
 type OrderFilter struct {
@@ -91,12 +102,12 @@ type OrderStorage interface {
 
 // OrderSchema represents a potential order to be created.
 type OrderSchema struct {
-	Items      []OrderSchemaItem
-	Taxes      []OrderSchemaTax
-	Discounts  []OrderSchemaDiscount
-	LocationID string
-	MerchantID string
-	currency   string
+	Items      []OrderSchemaItem     `bson:"items"`
+	Taxes      []OrderSchemaTax      `bson:"taxes"`
+	Discounts  []OrderSchemaDiscount `bson:"discounts"`
+	LocationID string                `bson:"location_id"`
+	MerchantID string                `bson:"merchant_id"`
+	Currency   string                `bson:"currency"`
 }
 
 func (sch *OrderSchema) itemVariationIDs() []string {
@@ -115,7 +126,6 @@ func (sch *OrderSchema) taxIDs() []string {
 	return ids
 }
 
-// rotazo
 func (sch *OrderSchema) discountIDs() []string {
 	ids := make([]string, len(sch.Discounts))
 	for i, d := range sch.Discounts {
@@ -125,18 +135,18 @@ func (sch *OrderSchema) discountIDs() []string {
 }
 
 type OrderSchemaItem struct {
-	UID         string
-	VariationID string
-	Quantity    int64
+	UID         string `bson:"uid"`
+	VariationID string `bson:"variation_id"`
+	Quantity    int64  `bson:"quantity"`
 }
 
 type OrderSchemaTax struct {
-	UID   string
-	ID    string
-	Scope TaxScope
+	UID   string   `bson:"uid"`
+	ID    string   `bson:"id"`
+	Scope TaxScope `bson:"scope"`
 }
 
 type OrderSchemaDiscount struct {
-	UID string
-	ID  string
+	UID string `bson:"uid"`
+	ID  string `bson:"id"`
 }

@@ -8,13 +8,13 @@ const (
 )
 
 type Money struct {
-	Amount   int64  `bson:"amount"`
+	Value    int64  `bson:"value"`
 	Currency string `bson:"currency"`
 }
 
-func NewMoney(amount int64, currency string) Money {
+func NewMoney(value int64, currency string) Money {
 	return Money{
-		Amount:   amount,
+		Value:    value,
 		Currency: currency,
 	}
 }

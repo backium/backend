@@ -30,13 +30,13 @@ func (h *Handler) CreateDiscount(c echo.Context) error {
 	if req.LocationIDs != nil {
 		discount.LocationIDs = *req.LocationIDs
 	}
-	if req.Type == core.DiscountTypePercentage {
+	if req.Type == core.DiscountPercentage {
 		discount.Percentage = ptr.GetFloat64(req.Percentage)
 	}
-	if req.Type == core.DiscountTypeFixed && req.Fixed != nil {
-		discount.Fixed = core.Money{
-			Amount:   *req.Fixed.Amount,
-			Currency: req.Fixed.Currency,
+	if req.Type == core.DiscountFixed && req.Amount != nil {
+		discount.Amount = core.Money{
+			Value:    *req.Amount.Value,
+			Currency: req.Amount.Currency,
 		}
 	}
 
@@ -76,10 +76,10 @@ func (h *Handler) UpdateDiscount(c echo.Context) error {
 	if req.LocationIDs != nil {
 		discount.LocationIDs = *req.LocationIDs
 	}
-	if req.Fixed != nil {
-		discount.Fixed = core.Money{
-			Amount:   *req.Fixed.Amount,
-			Currency: req.Fixed.Currency,
+	if req.Amount != nil {
+		discount.Amount = core.Money{
+			Value:    *req.Amount.Value,
+			Currency: req.Amount.Currency,
 		}
 	}
 
@@ -192,7 +192,7 @@ type Discount struct {
 	ID          string            `json:"id"`
 	Name        string            `json:"name"`
 	Type        core.DiscountType `json:"type"`
-	Fixed       *Money            `json:"fixed,omitempty"`
+	Amount      *Money            `json:"amount,omitempty"`
 	Percentage  *float64          `json:"percentage,omitempty"`
 	LocationIDs []string          `json:"location_ids"`
 	MerchantID  string            `json:"merchant_id"`
@@ -212,10 +212,10 @@ func NewDiscount(discount core.Discount) Discount {
 		UpdatedAt:   discount.UpdatedAt,
 		Status:      discount.Status,
 	}
-	if discount.Type == core.DiscountTypeFixed {
-		resp.Fixed = &Money{
-			Amount:   &discount.Fixed.Amount,
-			Currency: discount.Fixed.Currency,
+	if discount.Type == core.DiscountFixed {
+		resp.Amount = &Money{
+			Value:    &discount.Amount.Value,
+			Currency: discount.Amount.Currency,
 		}
 	} else {
 		resp.Percentage = ptr.Float64(discount.Percentage)
@@ -226,7 +226,7 @@ func NewDiscount(discount core.Discount) Discount {
 type DiscountCreateRequest struct {
 	Name        string            `json:"name" validate:"required"`
 	Type        core.DiscountType `json:"type" validate:"required"`
-	Fixed       *Money            `json:"fixed" validate:"omitempty"`
+	Amount      *Money            `json:"amount" validate:"omitempty"`
 	Percentage  *float64          `json:"percentage" validate:"omitempty,min=0,max=100"`
 	LocationIDs *[]string         `json:"location_ids" validate:"omitempty,dive,required"`
 }
@@ -235,7 +235,7 @@ type DiscountUpdateRequest struct {
 	ID          string             `param:"id" validate:"required"`
 	Name        *string            `json:"name" validate:"omitempty,min=1"`
 	Type        *core.DiscountType `json:"type"`
-	Fixed       *Money             `json:"fixed" validate:"omitempty"`
+	Amount      *Money             `json:"amount" validate:"omitempty"`
 	Percentage  *float64           `json:"percentage" validate:"omitempty,min=0,max=100"`
 	LocationIDs *[]string          `json:"location_ids" validate:"omitempty,dive,required"`
 }

@@ -15,7 +15,7 @@ const (
 )
 
 type Money struct {
-	Amount   *int64 `json:"amount" validate:"required"`
+	Value    *int64 `json:"value" validate:"required"`
 	Currency string `json:"currency" validate:"required"`
 }
 
@@ -40,7 +40,7 @@ func (h *Handler) CreateItemVariation(c echo.Context) error {
 	variation.ItemID = req.ItemID
 	variation.Image = req.Image
 	variation.Price = core.Money{
-		Amount:   ptr.GetInt64(req.Price.Amount),
+		Value:    ptr.GetInt64(req.Price.Value),
 		Currency: req.Price.Currency,
 	}
 
@@ -67,7 +67,7 @@ func (h *Handler) UpdateItemVariation(c echo.Context) error {
 	variation, err := h.CatalogService.GetItemVariation(ctx, c.Param("id"), ac.MerchantID, nil)
 	if req.Price != nil {
 		variation.Price = core.Money{
-			Amount:   ptr.GetInt64(req.Price.Amount),
+			Value:    ptr.GetInt64(req.Price.Value),
 			Currency: req.Price.Currency,
 		}
 	}
@@ -177,7 +177,7 @@ func NewItemVariation(itvar core.ItemVariation) ItemVariation {
 		SKU:    itvar.SKU,
 		ItemID: itvar.ItemID,
 		Price: Money{
-			Amount:   &itvar.Price.Amount,
+			Value:    &itvar.Price.Value,
 			Currency: itvar.Price.Currency,
 		},
 		Image:       itvar.Image,

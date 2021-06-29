@@ -10,15 +10,15 @@ import (
 type DiscountType string
 
 const (
-	DiscountTypePercentage DiscountType = "percentage"
-	DiscountTypeFixed      DiscountType = "fixed_amount"
+	DiscountPercentage DiscountType = "percentage"
+	DiscountFixed      DiscountType = "fixed_amount"
 )
 
 type Discount struct {
 	ID          string       `bson:"_id"`
 	Name        string       `bson:"name"`
 	Type        DiscountType `bson:"type"`
-	Fixed       Money        `bson:"fixed"`
+	Amount      Money        `bson:"amount"`
 	Percentage  float64      `bson:"percentage"`
 	LocationIDs []string     `bson:"location_ids"`
 	MerchantID  string       `bson:"merchant_id"`
@@ -38,8 +38,8 @@ func NewDiscount(merchantID string) Discount {
 
 // calculate computes the discount over a given amount, it uses bank's rounding
 func (d *Discount) calculate(amount int64) int64 {
-	if d.Type == DiscountTypeFixed {
-		return d.Fixed.Amount
+	if d.Type == DiscountFixed {
+		return d.Amount.Value
 	} else {
 		ptg := decimal.NewFromFloat(d.Percentage).Div(hundred)
 		total := decimal.NewFromInt(amount)

@@ -6,7 +6,7 @@
         "ID": "variation1_id",
         "Name": "variation1",
         "Price": {
-          "Amount": 500,
+          "Value": 500,
           "Currency": "PEN"
         }
       },
@@ -14,7 +14,7 @@
         "ID": "variation2_id",
         "Name": "variation2",
         "Price": {
-          "Amount": 1000,
+          "Value": 1000,
           "Currency": "PEN"
         }
       }
@@ -43,23 +43,23 @@
           "Name": "variation1",
           "Quantity": 2,
           "GrossSales": {
-            "Amount": 1000,
+            "Value": 1000,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 0,
+          "TotalDiscountAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 0,
+          "TotalTaxAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 1000,
+          "TotalAmount": {
+            "Value": 1000,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 500,
+            "Value": 500,
             "Currency": "PEN"
           }
         },
@@ -69,37 +69,37 @@
           "Name": "variation2",
           "Quantity": 2,
           "GrossSales": {
-            "Amount": 2000,
+            "Value": 2000,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 0,
+          "TotalDiscountAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 0,
+          "TotalTaxAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 2000,
+          "TotalAmount": {
+            "Value": 2000,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 1000,
+            "Value": 1000,
             "Currency": "PEN"
           }
         }
       ],
-      "TotalDiscount": {
-        "Amount": 0,
+      "TotalDiscountAmount": {
+        "Value": 0,
         "Currency": "PEN"
       },
-      "TotalTax": {
-        "Amount": 0,
+      "TotalTaxAmount": {
+        "Value": 0,
         "Currency": "PEN"
       },
-      "Total": {
-        "Amount": 3000,
+      "TotalAmount": {
+        "Value": 3000,
         "Currency": "PEN"
       },
       "LocationID": "location_id",
@@ -113,7 +113,7 @@
         "ID": "variation1_id",
         "Name": "variation1",
         "Price": {
-          "Amount": 500,
+          "Value": 500,
           "Currency": "PEN"
         }
       }
@@ -129,8 +129,8 @@
         "ID": "discount2_id",
         "Name": "discount2",
         "Type": "fixed_amount",
-        "Fixed": {
-            "Amount": 100,
+        "Amount": {
+            "Value": 100,
             "Currency": "PEN"
         }
       }
@@ -164,37 +164,37 @@
           "Name": "variation1",
           "Quantity": 2,
           "GrossSales": {
-            "Amount": 1000,
+            "Value": 1000,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 300,
+          "TotalDiscountAmount": {
+            "Value": 300,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 0,
+          "TotalTaxAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 700,
+          "TotalAmount": {
+            "Value": 700,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 500,
+            "Value": 500,
             "Currency": "PEN"
           },
           "AppliedDiscounts": [
             {
               "DiscountUID": "discount1_uid",
-              "Applied": {
-                "Amount": 200,
+              "AppliedAmount": {
+                "Value": 200,
                 "Currency": "PEN"
               }
             },
             {
               "DiscountUID": "discount2_uid",
-              "Applied": {
-                "Amount": 100,
+              "AppliedAmount": {
+                "Value": 100,
                 "Currency": "PEN"
               }
             }
@@ -208,8 +208,8 @@
           "Name": "discount1",
           "Percentage": 20,
           "Type": "percentage",
-          "Applied": {
-            "Amount": 200,
+          "AppliedAmount": {
+            "Value": 200,
             "Currency": "PEN"
           }
         },
@@ -217,27 +217,27 @@
           "UID": "discount2_uid",
           "ID": "discount2_id",
           "Name": "discount2",
-          "Fixed": {
-              "Amount": 100,
+          "Amount": {
+              "Value": 100,
               "Currency": "PEN"
           },
           "Type": "fixed_amount",
-          "Applied": {
-            "Amount": 100,
+          "AppliedAmount": {
+            "Value": 100,
             "Currency": "PEN"
           }
         }
       ],
-      "TotalDiscount": {
-        "Amount": 300,
+      "TotalDiscountAmount": {
+        "Value": 300,
         "Currency": "PEN"
       },
-      "TotalTax": {
-        "Amount": 0,
+      "TotalTaxAmount": {
+        "Value": 0,
         "Currency": "PEN"
       },
-      "Total": {
-        "Amount": 700,
+      "TotalAmount": {
+        "Value": 700,
         "Currency": "PEN"
       },
       "LocationID": "location_id",
@@ -251,7 +251,7 @@
         "ID": "variation1_id",
         "Name": "variation1",
         "Price": {
-          "Amount": 350,
+          "Value": 350,
           "Currency": "PEN"
         }
       },
@@ -259,7 +259,7 @@
         "ID": "variation2_id",
         "Name": "variation2",
         "Price": {
-          "Amount": 350,
+          "Value": 350,
           "Currency": "PEN"
         }
       },
@@ -267,7 +267,7 @@
         "ID": "variation3_id",
         "Name": "variation3",
         "Price": {
-          "Amount": 350,
+          "Value": 350,
           "Currency": "PEN"
         }
       }
@@ -315,30 +315,30 @@
           "Name": "variation1",
           "Quantity": 1,
           "GrossSales": {
-            "Amount": 350,
+            "Value": 350,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 0,
+          "TotalDiscountAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 32,
+          "TotalTaxAmount": {
+            "Value": 32,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 382,
+          "TotalAmount": {
+            "Value": 382,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 350,
+            "Value": 350,
             "Currency": "PEN"
           },
           "AppliedTaxes": [
             {
               "TaxUID": "tax1_uid",
-              "Applied": {
-                "Amount": 32,
+              "AppliedAmount": {
+                "Value": 32,
                 "Currency": "PEN"
               }
             }
@@ -350,30 +350,30 @@
           "Name": "variation2",
           "Quantity": 1,
           "GrossSales": {
-            "Amount": 350,
+            "Value": 350,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 0,
+          "TotalDiscountAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 32,
+          "TotalTaxAmount": {
+            "Value": 32,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 382,
+          "TotalAmount": {
+            "Value": 382,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 350,
+            "Value": 350,
             "Currency": "PEN"
           },
           "AppliedTaxes": [
             {
               "TaxUID": "tax1_uid",
-              "Applied": {
-                "Amount": 32,
+              "AppliedAmount": {
+                "Value": 32,
                 "Currency": "PEN"
               }
             }
@@ -385,30 +385,30 @@
           "Name": "variation3",
           "Quantity": 1,
           "GrossSales": {
-            "Amount": 350,
+            "Value": 350,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 0,
+          "TotalDiscountAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 33,
+          "TotalTaxAmount": {
+            "Value": 33,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 383,
+          "TotalAmount": {
+            "Value": 383,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 350,
+            "Value": 350,
             "Currency": "PEN"
           },
           "AppliedTaxes": [
             {
               "TaxUID": "tax1_uid",
-              "Applied": {
-                "Amount": 33,
+              "AppliedAmount": {
+                "Value": 33,
                 "Currency": "PEN"
               }
             }
@@ -422,22 +422,22 @@
           "Name": "tax1",
           "Percentage": 9.25,
           "Scope": "order",
-          "Applied": {
-            "Amount": 97,
+          "AppliedAmount": {
+            "Value": 97,
             "Currency": "PEN"
           }
         }
       ],
-      "TotalDiscount": {
-        "Amount": 0,
+      "TotalDiscountAmount": {
+        "Value": 0,
         "Currency": "PEN"
       },
-      "TotalTax": {
-        "Amount": 97,
+      "TotalTaxAmount": {
+        "Value": 97,
         "Currency": "PEN"
       },
-      "Total": {
-        "Amount": 1147,
+      "TotalAmount": {
+        "Value": 1147,
         "Currency": "PEN"
       },
       "LocationID": "location_id",
@@ -451,7 +451,7 @@
         "ID": "variation1_id",
         "Name": "variation1",
         "Price": {
-          "Amount": 5150,
+          "Value": 5150,
           "Currency": "PEN"
         }
       }
@@ -468,8 +468,8 @@
             "ID": "discount_fixed_id",
             "Name": "discount_fixed",
             "Type": "fixed_amount",
-            "Fixed": {
-                "Amount": 120,
+            "Amount": {
+                "Value": 120,
                 "Currency": "PEN"
             }
         },
@@ -526,30 +526,30 @@
           "Name": "variation1",
           "Quantity": 2,
           "GrossSales": {
-            "Amount": 10300,
+            "Value": 10300,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 5210,
+          "TotalDiscountAmount": {
+            "Value": 5210,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 471,
+          "TotalTaxAmount": {
+            "Value": 471,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 5561,
+          "TotalAmount": {
+            "Value": 5561,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 5150,
+            "Value": 5150,
             "Currency": "PEN"
           },
           "AppliedTaxes": [
             {
               "TaxUID": "tax1_uid",
-              "Applied": {
-                "Amount": 471,
+              "AppliedAmount": {
+                "Value": 471,
                 "Currency": "PEN"
               }
             }
@@ -557,15 +557,15 @@
           "AppliedDiscounts": [
               {
                   "DiscountUID": "discount2_uid",
-                  "Applied": {
-                      "Amount": 5150,
+                  "AppliedAmount": {
+                      "Value": 5150,
                       "Currency": "PEN"
                   }
               },
               {
                   "DiscountUID": "discount1_uid",
-                  "Applied": {
-                      "Amount": 60,
+                  "AppliedAmount": {
+                      "Value": 60,
                       "Currency": "PEN"
                   }
               }
@@ -577,30 +577,30 @@
           "Name": "variation1",
           "Quantity": 1,
           "GrossSales": {
-            "Amount": 5150,
+            "Value": 5150,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 2605,
+          "TotalDiscountAmount": {
+            "Value": 2605,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 236,
+          "TotalTaxAmount": {
+            "Value": 236,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 2781,
+          "TotalAmount": {
+            "Value": 2781,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 5150,
+            "Value": 5150,
             "Currency": "PEN"
           },
           "AppliedTaxes": [
             {
               "TaxUID": "tax1_uid",
-              "Applied": {
-                "Amount": 236,
+              "AppliedAmount": {
+                "Value": 236,
                 "Currency": "PEN"
               }
             }
@@ -608,15 +608,15 @@
           "AppliedDiscounts": [
               {
                   "DiscountUID": "discount2_uid",
-                  "Applied": {
-                      "Amount": 2575,
+                  "AppliedAmount": {
+                      "Value": 2575,
                       "Currency": "PEN"
                   }
               },
               {
                   "DiscountUID": "discount1_uid",
-                  "Applied": {
-                      "Amount": 30,
+                  "AppliedAmount": {
+                      "Value": 30,
                       "Currency": "PEN"
                   }
               }
@@ -628,30 +628,30 @@
           "Name": "variation1",
           "Quantity": 1,
           "GrossSales": {
-            "Amount": 5150,
+            "Value": 5150,
             "Currency": "PEN"
           },
-          "TotalDiscount": {
-            "Amount": 2605,
+          "TotalDiscountAmount": {
+            "Value": 2605,
             "Currency": "PEN"
           },
-          "TotalTax": {
-            "Amount": 235,
+          "TotalTaxAmount": {
+            "Value": 235,
             "Currency": "PEN"
           },
-          "Total": {
-            "Amount": 2780,
+          "TotalAmount": {
+            "Value": 2780,
             "Currency": "PEN"
           },
           "BasePrice": {
-            "Amount": 5150,
+            "Value": 5150,
             "Currency": "PEN"
           },
           "AppliedTaxes": [
             {
               "TaxUID": "tax1_uid",
-              "Applied": {
-                "Amount": 235,
+              "AppliedAmount": {
+                "Value": 235,
                 "Currency": "PEN"
               }
             }
@@ -659,15 +659,15 @@
           "AppliedDiscounts": [
               {
                   "DiscountUID": "discount2_uid",
-                  "Applied": {
-                      "Amount": 2575,
+                  "AppliedAmount": {
+                      "Value": 2575,
                       "Currency": "PEN"
                   }
               },
               {
                   "DiscountUID": "discount1_uid",
-                  "Applied": {
-                      "Amount": 30,
+                  "AppliedAmount": {
+                      "Value": 30,
                       "Currency": "PEN"
                   }
               }
@@ -681,8 +681,8 @@
           "Name": "tax1",
           "Percentage": 9.25,
           "Scope": "order",
-          "Applied": {
-            "Amount": 942,
+          "AppliedAmount": {
+            "Value": 942,
             "Currency": "PEN"
           }
         }
@@ -694,8 +694,8 @@
               "Name": "discount_percentage",
               "Percentage": 50,
               "Type": "percentage",
-              "Applied": {
-                  "Amount": 10300,
+              "AppliedAmount": {
+                  "Value": 10300,
                   "Currency": "PEN"
               }
           },
@@ -703,27 +703,27 @@
               "UID": "discount1_uid",
               "ID": "discount_fixed_id",
               "Name": "discount_fixed",
-              "Fixed": {
-                  "Amount": 120,
+              "Amount": {
+                  "Value": 120,
                   "Currency": "PEN"
               },
               "Type": "fixed_amount",
-              "Applied": {
-                  "Amount": 120,
+              "AppliedAmount": {
+                  "Value": 120,
                   "Currency": "PEN"
               }
           }
       ],
-      "TotalDiscount": {
-        "Amount": 10420,
+      "TotalDiscountAmount": {
+        "Value": 10420,
         "Currency": "PEN"
       },
-      "TotalTax": {
-        "Amount": 942,
+      "TotalTaxAmount": {
+        "Value": 942,
         "Currency": "PEN"
       },
-      "Total": {
-        "Amount": 11122,
+      "TotalAmount": {
+        "Value": 11122,
         "Currency": "PEN"
       },
       "LocationID": "location_id",
