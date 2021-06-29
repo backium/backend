@@ -30,25 +30,25 @@ func NewCustomerStorage(db DB) core.CustomerStorage {
 	}
 }
 
-func (s *customerStorage) Put(ctx context.Context, t core.Customer) error {
+func (s *customerStorage) Put(ctx context.Context, customer core.Customer) error {
 	const op = errors.Op("mongo/customerStorage.Put")
 	now := time.Now().Unix()
-	t.UpdatedAt = now
-	f := bson.M{
-		"_id":         t.ID,
-		"merchant_id": t.MerchantID,
+	customer.UpdatedAt = now
+	filter := bson.M{
+		"_id":         customer.ID,
+		"merchant_id": customer.MerchantID,
 	}
-	u := bson.M{"$set": t}
+	query := bson.M{"$set": customer}
 	opts := options.Update().SetUpsert(true)
-	res, err := s.collection.UpdateOne(ctx, f, u, opts)
+	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
-		t.CreatedAt = now
-		query := bson.M{"$set": t}
-		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		customer.CreatedAt = now
+		query := bson.M{"$set": customer}
+		_, err := s.collection.UpdateOne(ctx, filter, query, opts)
 		if err != nil {
 			return errors.E(op, errors.KindUnexpected, err)
 		}
@@ -58,14 +58,14 @@ func (s *customerStorage) Put(ctx context.Context, t core.Customer) error {
 
 func (s *customerStorage) PutBatch(ctx context.Context, batch []core.Customer) error {
 	const op = errors.Op("mongo/customerStorage.PutBatch")
-	sess, err := s.client.StartSession()
+	session, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
 
-	_, err = sess.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
-		for _, t := range batch {
-			if err := s.Put(sessCtx, t); err != nil {
+	_, err = session.WithTransaction(ctx, func(sessCtx mongo.SessionContext) (interface{}, error) {
+		for _, customer := range batch {
+			if err := s.Put(sessCtx, customer); err != nil {
 				return nil, err
 			}
 		}
@@ -79,38 +79,38 @@ func (s *customerStorage) PutBatch(ctx context.Context, batch []core.Customer) e
 
 func (s *customerStorage) Get(ctx context.Context, id, merchantID string) (core.Customer, error) {
 	const op = errors.Op("mongo/customerStorage/Get")
-	cust := core.Customer{}
-	f := bson.M{
+	customer := core.Customer{}
+	filter := bson.M{
 		"_id":         id,
 		"merchant_id": merchantID,
 	}
-	if err := s.driver.findOneAndDecode(ctx, &cust, f); err != nil {
+	if err := s.driver.findOneAndDecode(ctx, &customer, filter); err != nil {
 		return core.Customer{}, errors.E(op, err)
 	}
-	return cust, nil
+	return customer, nil
 }
 
-func (s *customerStorage) List(ctx context.Context, fil core.CustomerFilter) ([]core.Customer, error) {
+func (s *customerStorage) List(ctx context.Context, f core.CustomerFilter) ([]core.Customer, error) {
 	const op = errors.Op("mongo/customerStorage.List")
 	opts := options.Find().
-		SetLimit(fil.Limit).
-		SetSkip(fil.Offset)
+		SetLimit(f.Limit).
+		SetSkip(f.Offset)
 
-	mfil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if fil.MerchantID != "" {
-		mfil["merchant_id"] = fil.MerchantID
+	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
+	if f.MerchantID != "" {
+		filter["merchant_id"] = f.MerchantID
 	}
-	if fil.IDs != nil {
-		mfil["_id"] = bson.M{"$in": fil.IDs}
+	if f.IDs != nil {
+		filter["_id"] = bson.M{"$in": f.IDs}
 	}
 
-	res, err := s.collection.Find(ctx, mfil, opts)
+	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	var custs []core.Customer
-	if err := res.All(ctx, &custs); err != nil {
+	var customers []core.Customer
+	if err := res.All(ctx, &customers); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
-	return custs, nil
+	return customers, nil
 }

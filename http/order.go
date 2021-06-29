@@ -9,6 +9,52 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	OrderListDefaultSize = 10
+	OrderListMaxSize     = 50
+)
+
+func (h *Handler) SearchOrders(c echo.Context) error {
+	const op = errors.Op("http/Handler.SearchOrders")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+	req := OrderSearchRequest{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit, offset int64 = OrderListDefaultSize, 0
+	if req.Limit <= OrderListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > OrderListMaxSize {
+		limit = OrderListMaxSize
+	}
+	if req.Offset != 0 {
+		offset = req.Offset
+	}
+
+	ctx := c.Request().Context()
+	orders, err := h.OrderingService.ListOrder(ctx, core.OrderFilter{
+		Limit:       limit,
+		Offset:      offset,
+		LocationIDs: req.LocationIDs,
+		MerchantID:  ac.MerchantID,
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := OrderSearchResponse{Orders: make([]Order, len(orders))}
+	for i, order := range orders {
+		resp.Orders[i] = NewOrder(order)
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (h *Handler) CreateOrder(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateOrder")
 	ac, ok := c.(*AuthContext)
@@ -23,24 +69,24 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 		LocationID: req.LocationID,
 		MerchantID: ac.MerchantID,
 	}
-	for _, it := range req.Items {
+	for _, item := range req.Items {
 		schema.Items = append(schema.Items, core.OrderSchemaItem{
-			UID:         it.UID,
-			VariationID: it.VariationID,
-			Quantity:    it.Quantity,
+			UID:         item.UID,
+			VariationID: item.VariationID,
+			Quantity:    item.Quantity,
 		})
 	}
-	for _, t := range req.Taxes {
+	for _, tax := range req.Taxes {
 		schema.Taxes = append(schema.Taxes, core.OrderSchemaTax{
-			UID:   t.UID,
-			ID:    t.ID,
-			Scope: t.Scope,
+			UID:   tax.UID,
+			ID:    tax.ID,
+			Scope: tax.Scope,
 		})
 	}
-	for _, t := range req.Discounts {
+	for _, discount := range req.Discounts {
 		schema.Discounts = append(schema.Discounts, core.OrderSchemaDiscount{
-			UID: t.UID,
-			ID:  t.ID,
+			UID: discount.UID,
+			ID:  discount.ID,
 		})
 	}
 
@@ -66,40 +112,40 @@ type Order struct {
 	UpdatedAt     int64           `json:"updated_at"`
 }
 
-func NewOrder(o core.Order) Order {
-	items := make([]OrderItem, len(o.Items))
-	for i, oi := range o.Items {
-		items[i] = NewOrderItem(oi)
+func NewOrder(order core.Order) Order {
+	items := make([]OrderItem, len(order.Items))
+	for i, orderItem := range order.Items {
+		items[i] = NewOrderItem(orderItem)
 	}
-	taxes := make([]OrderTax, len(o.Taxes))
-	for i, t := range o.Taxes {
-		taxes[i] = NewOrderTax(t)
+	taxes := make([]OrderTax, len(order.Taxes))
+	for i, orderTax := range order.Taxes {
+		taxes[i] = NewOrderTax(orderTax)
 	}
-	discounts := make([]OrderDiscount, len(o.Discounts))
-	for i, d := range o.Discounts {
-		discounts[i] = NewOrderDiscount(d)
+	discounts := make([]OrderDiscount, len(order.Discounts))
+	for i, orderDiscount := range order.Discounts {
+		discounts[i] = NewOrderDiscount(orderDiscount)
 	}
 	return Order{
-		ID:        o.ID,
+		ID:        order.ID,
 		Items:     items,
 		Taxes:     taxes,
 		Discounts: discounts,
 		TotalDiscount: Money{
-			Amount:   ptr.Int64(o.TotalDiscount.Amount),
-			Currency: o.TotalTax.Currency,
+			Amount:   ptr.Int64(order.TotalDiscount.Amount),
+			Currency: order.TotalTax.Currency,
 		},
 		TotalTax: Money{
-			Amount:   ptr.Int64(o.TotalTax.Amount),
-			Currency: o.TotalTax.Currency,
+			Amount:   ptr.Int64(order.TotalTax.Amount),
+			Currency: order.TotalTax.Currency,
 		},
 		Total: Money{
-			Amount:   ptr.Int64(o.Total.Amount),
-			Currency: o.Total.Currency,
+			Amount:   ptr.Int64(order.Total.Amount),
+			Currency: order.Total.Currency,
 		},
-		LocationID: o.LocationID,
-		MerchantID: o.MerchantID,
-		CreatedAt:  o.CreatedAt,
-		UpdatedAt:  o.UpdatedAt,
+		LocationID: order.LocationID,
+		MerchantID: order.MerchantID,
+		CreatedAt:  order.CreatedAt,
+		UpdatedAt:  order.UpdatedAt,
 	}
 }
 
@@ -117,51 +163,51 @@ type OrderItem struct {
 	Total            Money                      `json:"total"`
 }
 
-func NewOrderItem(it core.OrderItem) OrderItem {
-	taxes := make([]OrderItemAppliedTax, len(it.AppliedTaxes))
-	for i, t := range it.AppliedTaxes {
+func NewOrderItem(item core.OrderItem) OrderItem {
+	taxes := make([]OrderItemAppliedTax, len(item.AppliedTaxes))
+	for i, tax := range item.AppliedTaxes {
 		taxes[i] = OrderItemAppliedTax{
-			TaxUID: t.TaxUID,
+			TaxUID: tax.TaxUID,
 			Applied: Money{
-				Amount:   ptr.Int64(t.Applied.Amount),
-				Currency: t.Applied.Currency,
+				Amount:   ptr.Int64(tax.Applied.Amount),
+				Currency: tax.Applied.Currency,
 			},
 		}
 	}
-	discounts := make([]OrderItemAppliedDiscount, len(it.AppliedDiscounts))
-	for i, d := range it.AppliedDiscounts {
+	discounts := make([]OrderItemAppliedDiscount, len(item.AppliedDiscounts))
+	for i, discount := range item.AppliedDiscounts {
 		discounts[i] = OrderItemAppliedDiscount{
-			DiscountUID: d.DiscountUID,
+			DiscountUID: discount.DiscountUID,
 			Applied: Money{
-				Amount:   ptr.Int64(d.Applied.Amount),
-				Currency: d.Applied.Currency,
+				Amount:   ptr.Int64(discount.Applied.Amount),
+				Currency: discount.Applied.Currency,
 			},
 		}
 	}
 	return OrderItem{
-		UID:         it.UID,
-		VariationID: it.VariationID,
-		Name:        it.Name,
-		Quantity:    it.Quantity,
+		UID:         item.UID,
+		VariationID: item.VariationID,
+		Name:        item.Name,
+		Quantity:    item.Quantity,
 		BasePrice: Money{
-			Amount:   ptr.Int64(it.BasePrice.Amount),
-			Currency: it.BasePrice.Currency,
+			Amount:   ptr.Int64(item.BasePrice.Amount),
+			Currency: item.BasePrice.Currency,
 		},
 		GrossSales: Money{
-			Amount:   ptr.Int64(it.GrossSales.Amount),
-			Currency: it.GrossSales.Currency,
+			Amount:   ptr.Int64(item.GrossSales.Amount),
+			Currency: item.GrossSales.Currency,
 		},
 		TotalDiscount: Money{
-			Amount:   ptr.Int64(it.TotalDiscount.Amount),
-			Currency: it.TotalDiscount.Currency,
+			Amount:   ptr.Int64(item.TotalDiscount.Amount),
+			Currency: item.TotalDiscount.Currency,
 		},
 		TotalTax: Money{
-			Amount:   ptr.Int64(it.TotalTax.Amount),
-			Currency: it.TotalTax.Currency,
+			Amount:   ptr.Int64(item.TotalTax.Amount),
+			Currency: item.TotalTax.Currency,
 		},
 		Total: Money{
-			Amount:   ptr.Int64(it.Total.Amount),
-			Currency: it.Total.Currency,
+			Amount:   ptr.Int64(item.Total.Amount),
+			Currency: item.Total.Currency,
 		},
 		AppliedTaxes:     taxes,
 		AppliedDiscounts: discounts,
@@ -187,16 +233,16 @@ type OrderTax struct {
 	Applied    Money         `json:"applied"`
 }
 
-func NewOrderTax(ot core.OrderTax) OrderTax {
+func NewOrderTax(tax core.OrderTax) OrderTax {
 	return OrderTax{
-		UID:        ot.UID,
-		ID:         ot.ID,
-		Scope:      ot.Scope,
-		Name:       ot.Name,
-		Percentage: ot.Percentage,
+		UID:        tax.UID,
+		ID:         tax.ID,
+		Scope:      tax.Scope,
+		Name:       tax.Name,
+		Percentage: tax.Percentage,
 		Applied: Money{
-			Amount:   ptr.Int64(ot.Applied.Amount),
-			Currency: ot.Applied.Currency,
+			Amount:   ptr.Int64(tax.Applied.Amount),
+			Currency: tax.Applied.Currency,
 		},
 	}
 }
@@ -211,26 +257,26 @@ type OrderDiscount struct {
 	Applied    Money             `json:"applied"`
 }
 
-func NewOrderDiscount(ot core.OrderDiscount) OrderDiscount {
-	d := OrderDiscount{
-		UID:  ot.UID,
-		ID:   ot.ID,
-		Name: ot.Name,
-		Type: ot.Type,
+func NewOrderDiscount(discount core.OrderDiscount) OrderDiscount {
+	orderDiscount := OrderDiscount{
+		UID:  discount.UID,
+		ID:   discount.ID,
+		Name: discount.Name,
+		Type: discount.Type,
 		Applied: Money{
-			Amount:   ptr.Int64(ot.Applied.Amount),
-			Currency: ot.Applied.Currency,
+			Amount:   ptr.Int64(discount.Applied.Amount),
+			Currency: discount.Applied.Currency,
 		},
 	}
-	if ot.Type == core.DiscountTypeFixed {
-		d.Fixed = &Money{
-			Amount:   ptr.Int64(ot.Fixed.Amount),
-			Currency: ot.Fixed.Currency,
+	if discount.Type == core.DiscountTypeFixed {
+		orderDiscount.Fixed = &Money{
+			Amount:   ptr.Int64(discount.Fixed.Amount),
+			Currency: discount.Fixed.Currency,
 		}
 	} else {
-		d.Percentage = ptr.Float64(ot.Percentage)
+		orderDiscount.Percentage = ptr.Float64(discount.Percentage)
 	}
-	return d
+	return orderDiscount
 }
 
 type OrderItemRequest struct {
@@ -255,4 +301,14 @@ type OrderCreateRequest struct {
 	LocationID string                 `json:"location_id" validate:"required"`
 	Taxes      []OrderTaxRequest      `json:"taxes" validate:"omitempty,dive"`
 	Discounts  []OrderDiscountRequest `json:"discounts" validate:"omitempty,dive"`
+}
+
+type OrderSearchRequest struct {
+	LocationIDs []string `json:"location_ids" validate:"omitempty,dive,required"`
+	Limit       int64    `json:"limit" validate:"gte=0"`
+	Offset      int64    `json:"offset" validate:"gte=0"`
+}
+
+type OrderSearchResponse struct {
+	Orders []Order `json:"orders"`
 }

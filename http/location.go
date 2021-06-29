@@ -5,8 +5,12 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
-	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	LocationListDefaultSize = 10
+	LocationListMaxSize     = 50
 )
 
 func (h *Handler) CreateLocation(c echo.Context) error {
@@ -20,18 +24,17 @@ func (h *Handler) CreateLocation(c echo.Context) error {
 		return err
 	}
 
-	loc := core.NewLocation()
-	loc.Name = req.Name
-	loc.BusinessName = req.BusinessName
-	loc.Image = req.Image
-	loc.MerchantID = ac.MerchantID
+	location := core.NewLocation(ac.MerchantID)
+	location.Name = req.Name
+	location.BusinessName = req.BusinessName
+	location.Image = req.Image
 
 	ctx := c.Request().Context()
-	loc, err := h.LocationService.PutLocation(ctx, loc)
+	location, err := h.LocationService.PutLocation(ctx, location)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewLocation(loc))
+	return c.JSON(http.StatusOK, NewLocation(location))
 }
 
 func (h *Handler) UpdateLocation(c echo.Context) error {
@@ -46,24 +49,24 @@ func (h *Handler) UpdateLocation(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	loc, err := h.LocationService.GetLocation(ctx, req.ID, ac.MerchantID)
+	location, err := h.LocationService.GetLocation(ctx, req.ID, ac.MerchantID)
 	if err != nil {
 		return err
 	}
 	if req.Name != nil {
-		loc.Name = *req.Name
+		location.Name = *req.Name
 	}
 	if req.BusinessName != nil {
-		loc.BusinessName = *req.BusinessName
+		location.BusinessName = *req.BusinessName
 	}
 	if req.Image != nil {
-		loc.Image = *req.Image
+		location.Image = *req.Image
 	}
-	loc, err = h.LocationService.PutLocation(ctx, loc)
+	location, err = h.LocationService.PutLocation(ctx, location)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewLocation(loc))
+	return c.JSON(http.StatusOK, NewLocation(location))
 }
 
 func (h *Handler) RetrieveLocation(c echo.Context) error {
@@ -74,11 +77,11 @@ func (h *Handler) RetrieveLocation(c echo.Context) error {
 	}
 	id := c.Param("id")
 	ctx := c.Request().Context()
-	loc, err := h.LocationService.GetLocation(ctx, id, ac.MerchantID)
+	location, err := h.LocationService.GetLocation(ctx, id, ac.MerchantID)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewLocation(loc))
+	return c.JSON(http.StatusOK, NewLocation(location))
 }
 
 func (h *Handler) ListLocations(c echo.Context) error {
@@ -91,19 +94,30 @@ func (h *Handler) ListLocations(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	locs, err := h.LocationService.ListLocation(c.Request().Context(), core.LocationFilter{
-		Limit:      ptr.GetInt64(req.Limit),
-		Offset:     ptr.GetInt64(req.Offset),
+	var limit, offset int64 = LocationListDefaultSize, 0
+	if req.Limit <= LocationListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > LocationListMaxSize {
+		limit = LocationListMaxSize
+	}
+	if req.Offset != 0 {
+		offset = req.Offset
+	}
+
+	locations, err := h.LocationService.ListLocation(c.Request().Context(), core.LocationFilter{
+		Limit:      limit,
+		Offset:     offset,
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]Location, len(locs))
-	for i, loc := range locs {
-		res[i] = NewLocation(loc)
+	resp := LocationListResponse{Locations: make([]Location, len(locations))}
+	for i, loc := range locations {
+		resp.Locations[i] = NewLocation(loc)
 	}
-	return c.JSON(http.StatusOK, LocationListResponse{res})
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) DeleteLocation(c echo.Context) error {
@@ -114,11 +128,11 @@ func (h *Handler) DeleteLocation(c echo.Context) error {
 	}
 	id := c.Param("id")
 	ctx := c.Request().Context()
-	loc, err := h.LocationService.DeleteLocation(ctx, id, ac.MerchantID)
+	location, err := h.LocationService.DeleteLocation(ctx, id, ac.MerchantID)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewLocation(loc))
+	return c.JSON(http.StatusOK, NewLocation(location))
 }
 
 type Location struct {
@@ -132,16 +146,16 @@ type Location struct {
 	Status       core.Status `json:"status"`
 }
 
-func NewLocation(loc core.Location) Location {
+func NewLocation(location core.Location) Location {
 	return Location{
-		ID:           loc.ID,
-		Name:         loc.Name,
-		BusinessName: loc.BusinessName,
-		Image:        loc.Image,
-		MerchantID:   loc.MerchantID,
-		CreatedAt:    loc.CreatedAt,
-		UpdatedAt:    loc.UpdatedAt,
-		Status:       loc.Status,
+		ID:           location.ID,
+		Name:         location.Name,
+		BusinessName: location.BusinessName,
+		Image:        location.Image,
+		MerchantID:   location.MerchantID,
+		CreatedAt:    location.CreatedAt,
+		UpdatedAt:    location.UpdatedAt,
+		Status:       location.Status,
 	}
 }
 
@@ -159,8 +173,8 @@ type LocationUpdateRequest struct {
 }
 
 type LocationListRequest struct {
-	Limit  *int64 `query:"limit" validate:"omitempty,gte=1"`
-	Offset *int64 `query:"offset"`
+	Limit  int64 `query:"limit" validate:"gte=0"`
+	Offset int64 `query:"offset" validate:"gte=0"`
 }
 
 type LocationListResponse struct {

@@ -6,11 +6,6 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-const (
-	maxReturnedCategories     = 50
-	defaultReturnedCategories = 10
-)
-
 type Category struct {
 	ID          string   `bson:"_id"`
 	Name        string   `bson:"name"`
@@ -37,65 +32,57 @@ type CategoryStorage interface {
 	List(context.Context, CategoryFilter) ([]Category, error)
 }
 
-func (svc *CatalogService) PutCategory(ctx context.Context, t Category) (Category, error) {
+func (svc *CatalogService) PutCategory(ctx context.Context, category Category) (Category, error) {
 	const op = errors.Op("core/CatalogService.PutCategory")
-	if err := svc.CategoryStorage.Put(ctx, t); err != nil {
+	if err := svc.CategoryStorage.Put(ctx, category); err != nil {
 		return Category{}, err
 	}
-	t, err := svc.CategoryStorage.Get(ctx, t.ID, t.MerchantID, t.LocationIDs)
+	category, err := svc.CategoryStorage.Get(ctx, category.ID, category.MerchantID, category.LocationIDs)
 	if err != nil {
 		return Category{}, err
 	}
-	return t, nil
+	return category, nil
 }
 
-func (svc *CatalogService) PutCategories(ctx context.Context, tt []Category) ([]Category, error) {
+func (svc *CatalogService) PutCategories(ctx context.Context, categories []Category) ([]Category, error) {
 	const op = errors.Op("core/CatalogService.PutCategories")
-	if err := svc.CategoryStorage.PutBatch(ctx, tt); err != nil {
+	if err := svc.CategoryStorage.PutBatch(ctx, categories); err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(tt))
-	for i, t := range tt {
+	ids := make([]string, len(categories))
+	for i, t := range categories {
 		ids[i] = t.ID
 	}
-	tt, err := svc.CategoryStorage.List(ctx, CategoryFilter{
-		Limit: int64(len(tt)),
+	categories, err := svc.CategoryStorage.List(ctx, CategoryFilter{
+		Limit: int64(len(categories)),
 		IDs:   ids,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return tt, nil
+	return categories, nil
 }
 
 func (svc *CatalogService) GetCategory(ctx context.Context, id, merchantID string, locationIDs []string) (Category, error) {
 	const op = errors.Op("core/CatalogService/GetCategory")
-	it, err := svc.CategoryStorage.Get(ctx, id, merchantID, locationIDs)
+	category, err := svc.CategoryStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
-	return it, nil
+	return category, nil
 }
 
 func (svc *CatalogService) ListCategory(ctx context.Context, f CategoryFilter) ([]Category, error) {
 	const op = errors.Op("core/CatalogService.ListCategory")
-	limit, offset := int64(defaultReturnedCategories), int64(0)
-	if f.Limit != 0 && f.Limit < maxReturnedCategories {
-		limit = f.Limit
-	}
-	if f.Offset != 0 {
-		offset = f.Offset
-	}
-
-	its, err := svc.CategoryStorage.List(ctx, CategoryFilter{
+	categories, err := svc.CategoryStorage.List(ctx, CategoryFilter{
 		MerchantID: f.MerchantID,
-		Limit:      limit,
-		Offset:     offset,
+		Limit:      f.Limit,
+		Offset:     f.Offset,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
-	return its, nil
+	return categories, nil
 }
 
 func (svc *CatalogService) DeleteCategory(ctx context.Context, id, merchantID string, locationIDs []string) (Category, error) {
@@ -109,11 +96,11 @@ func (svc *CatalogService) DeleteCategory(ctx context.Context, id, merchantID st
 	if err := svc.CategoryStorage.Put(ctx, category); err != nil {
 		return Category{}, errors.E(op, err)
 	}
-	resp, err := svc.CategoryStorage.Get(ctx, id, merchantID, locationIDs)
+	category, err = svc.CategoryStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
-	return resp, nil
+	return category, nil
 }
 
 type CategoryFilter struct {

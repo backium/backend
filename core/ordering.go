@@ -19,10 +19,24 @@ type OrderingService struct {
 	DiscountStorage      DiscountStorage
 }
 
-func (s *OrderingService) CreateOrder(ctx context.Context, sch OrderSchema) (Order, error) {
+func (s *OrderingService) ListOrder(ctx context.Context, f OrderFilter) ([]Order, error) {
+	const op = errors.Op("core/OrderingService.ListOrder")
+	orders, err := s.OrderStorage.List(ctx, OrderFilter{
+		LocationIDs: f.LocationIDs,
+		MerchantID:  f.MerchantID,
+		Limit:       f.Limit,
+		Offset:      f.Offset,
+	})
+	if err != nil {
+		return nil, errors.E(op, err)
+	}
+	return orders, nil
+}
+
+func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (Order, error) {
 	const op = errors.Op("core/OrderingService.CreateOrder")
-	sch.currency = "PEN"
-	order, err := s.build(ctx, sch)
+	schema.currency = "PEN"
+	order, err := s.build(ctx, schema)
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}
@@ -30,11 +44,11 @@ func (s *OrderingService) CreateOrder(ctx context.Context, sch OrderSchema) (Ord
 	if err := s.OrderStorage.Put(ctx, *order); err != nil {
 		return Order{}, errors.E(op, err)
 	}
-	norder, err := s.OrderStorage.Get(ctx, order.ID, order.MerchantID, nil)
+	newOrder, err := s.OrderStorage.Get(ctx, order.ID, order.MerchantID, nil)
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}
-	return norder, nil
+	return newOrder, nil
 }
 
 // OrderLookup provides easy access to order elements (items, taxes, discounts) using schema uids
@@ -44,40 +58,40 @@ type OrderLookup struct {
 	discount map[string]Discount
 }
 
-func NewOrderLookup(sch OrderSchema, items []ItemVariation, taxes []Tax, discounts []Discount) (*OrderLookup, error) {
+func NewOrderLookup(schema OrderSchema, items []ItemVariation, taxes []Tax, discounts []Discount) (*OrderLookup, error) {
 	// Save items by UID for easy access
 	itemLookup := map[string]ItemVariation{}
-	for _, oit := range sch.Items {
-		for _, it := range items {
-			if it.ID == oit.VariationID {
-				itemLookup[oit.UID] = it
+	for _, schemaItem := range schema.Items {
+		for _, item := range items {
+			if item.ID == schemaItem.VariationID {
+				itemLookup[schemaItem.UID] = item
 			}
 		}
-		if _, ok := itemLookup[oit.UID]; !ok {
-			return nil, errors.E(fmt.Sprintf("Item variation '%v' doesn't exist or is not available.", oit.UID))
+		if _, ok := itemLookup[schemaItem.UID]; !ok {
+			return nil, errors.E(fmt.Sprintf("Item variation '%v' doesn't exist or is not available.", schemaItem.UID))
 		}
 	}
 
 	taxLookup := map[string]Tax{}
-	for _, ot := range sch.Taxes {
-		for _, t := range taxes {
-			if t.ID == ot.ID {
-				taxLookup[ot.UID] = t
+	for _, schemaTax := range schema.Taxes {
+		for _, tax := range taxes {
+			if tax.ID == schemaTax.ID {
+				taxLookup[schemaTax.UID] = tax
 			}
 		}
-		if _, ok := taxLookup[ot.UID]; !ok {
-			return nil, errors.E(fmt.Sprintf("Tax '%v' doesn't exist or is not available.", ot.UID))
+		if _, ok := taxLookup[schemaTax.UID]; !ok {
+			return nil, errors.E(fmt.Sprintf("Tax '%v' doesn't exist or is not available.", schemaTax.UID))
 		}
 	}
 
 	discountLookup := map[string]Discount{}
-	for _, ot := range sch.Discounts {
-		for _, d := range discounts {
-			if d.ID == ot.ID {
-				discountLookup[ot.UID] = d
+	for _, schemaDiscount := range schema.Discounts {
+		for _, discount := range discounts {
+			if discount.ID == schemaDiscount.ID {
+				discountLookup[schemaDiscount.UID] = discount
 			}
 		}
-		if _, ok := discountLookup[ot.UID]; !ok {
+		if _, ok := discountLookup[schemaDiscount.UID]; !ok {
 			return nil, errors.E("Unknow discounts in order")
 		}
 	}
@@ -118,18 +132,18 @@ func NewOrderBuilder(sch OrderSchema, lookup *OrderLookup) *OrderBuilder {
 func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 	var itemsTotalAmount int64
 	currency := b.schema.currency
-	for _, schItem := range b.schema.Items {
-		item := b.lookup.Item(schItem.UID)
+	for _, schemaItem := range b.schema.Items {
+		item := b.lookup.Item(schemaItem.UID)
 		orderItem := OrderItem{
-			UID:           schItem.UID,
-			VariationID:   schItem.VariationID,
+			UID:           schemaItem.UID,
+			VariationID:   schemaItem.VariationID,
 			Name:          item.Name,
-			Quantity:      schItem.Quantity,
+			Quantity:      schemaItem.Quantity,
 			BasePrice:     NewMoney(item.Price.Amount, currency),
-			GrossSales:    NewMoney(item.Price.Amount*schItem.Quantity, currency),
+			GrossSales:    NewMoney(item.Price.Amount*schemaItem.Quantity, currency),
 			TotalDiscount: NewMoney(0, currency),
 			TotalTax:      NewMoney(0, currency),
-			Total:         NewMoney(item.Price.Amount*schItem.Quantity, currency),
+			Total:         NewMoney(item.Price.Amount*schemaItem.Quantity, currency),
 		}
 		order.Items = append(order.Items, orderItem)
 		itemsTotalAmount += orderItem.Total.Amount
@@ -142,9 +156,9 @@ func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 func (b *OrderBuilder) applyOrderLevelFixedDiscounts(order *Order) {
 	var schemaDiscounts []OrderSchemaDiscount
 	currency := b.schema.currency
-	for _, d := range b.schema.Discounts {
-		if b.lookup.Discount(d.UID).Type == DiscountTypeFixed {
-			schemaDiscounts = append(schemaDiscounts, d)
+	for _, schemaDiscount := range b.schema.Discounts {
+		if b.lookup.Discount(schemaDiscount.UID).Type == DiscountTypeFixed {
+			schemaDiscounts = append(schemaDiscounts, schemaDiscount)
 		}
 	}
 	// Compute and save order level taxes amount
@@ -194,11 +208,10 @@ func (b *OrderBuilder) applyOrderLevelFixedDiscounts(order *Order) {
 		order.Items[i].AppliedDiscounts = append(orderItem.AppliedDiscounts, appliedDiscounts...)
 		order.Items[i].TotalDiscount.Amount += itemDiscountTotalAmount
 	}
-	for _, v := range discountTotalAmount {
-		order.Total.Amount -= v
-		order.TotalDiscount.Amount += v
+	for _, amount := range discountTotalAmount {
+		order.Total.Amount -= amount
+		order.TotalDiscount.Amount += amount
 	}
-
 }
 
 func (b *OrderBuilder) applyOrderLevelPercentageDiscounts(order *Order) {
@@ -258,9 +271,9 @@ func (b *OrderBuilder) applyOrderLevelPercentageDiscounts(order *Order) {
 		order.Items[i].AppliedDiscounts = append(orderItem.AppliedDiscounts, appliedDiscounts...)
 		order.Items[i].TotalDiscount.Amount += itemDiscountTotalAmount
 	}
-	for _, v := range discountTotalAmount {
-		order.Total.Amount -= v
-		order.TotalDiscount.Amount += v
+	for _, amount := range discountTotalAmount {
+		order.Total.Amount -= amount
+		order.TotalDiscount.Amount += amount
 	}
 }
 
@@ -317,9 +330,9 @@ func (b *OrderBuilder) applyOrderLevelTaxes(order *Order) {
 		order.Items[i].AppliedTaxes = append(orderItem.AppliedTaxes, appliedTaxes...)
 		order.Items[i].TotalTax.Amount += itemTaxTotalAmount
 	}
-	for _, v := range taxTotalAmount {
-		order.Total.Amount += v
-		order.TotalTax.Amount += v
+	for _, amount := range taxTotalAmount {
+		order.Total.Amount += amount
+		order.TotalTax.Amount += amount
 	}
 }
 

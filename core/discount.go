@@ -7,11 +7,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-const (
-	maxReturnedDiscounts     = 50
-	defaultReturnedDiscounts = 10
-)
-
 type DiscountType string
 
 const (
@@ -32,11 +27,12 @@ type Discount struct {
 	Status      Status       `bson:"status"`
 }
 
-func NewDiscount() Discount {
+func NewDiscount(merchantID string) Discount {
 	return Discount{
 		ID:          NewID("disc"),
 		LocationIDs: []string{},
 		Status:      StatusActive,
+		MerchantID:  merchantID,
 	}
 }
 
@@ -58,83 +54,75 @@ type DiscountStorage interface {
 	List(context.Context, DiscountFilter) ([]Discount, error)
 }
 
-func (s *CatalogService) PutDiscount(ctx context.Context, d Discount) (Discount, error) {
+func (s *CatalogService) PutDiscount(ctx context.Context, discount Discount) (Discount, error) {
 	const op = errors.Op("core/CatalogService.PutDiscount")
-	if err := s.DiscountStorage.Put(ctx, d); err != nil {
+	if err := s.DiscountStorage.Put(ctx, discount); err != nil {
 		return Discount{}, err
 	}
-	d, err := s.DiscountStorage.Get(ctx, d.ID, d.MerchantID, nil)
+	discount, err := s.DiscountStorage.Get(ctx, discount.ID, discount.MerchantID, nil)
 	if err != nil {
 		return Discount{}, err
 	}
-	return d, nil
+	return discount, nil
 }
 
-func (s *CatalogService) PutDiscounts(ctx context.Context, dd []Discount) ([]Discount, error) {
+func (s *CatalogService) PutDiscounts(ctx context.Context, discounts []Discount) ([]Discount, error) {
 	const op = errors.Op("core/CatalogService.PutDiscounts")
-	if err := s.DiscountStorage.PutBatch(ctx, dd); err != nil {
+	if err := s.DiscountStorage.PutBatch(ctx, discounts); err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(dd))
-	for i, d := range dd {
+	ids := make([]string, len(discounts))
+	for i, d := range discounts {
 		ids[i] = d.ID
 	}
-	dd, err := s.DiscountStorage.List(ctx, DiscountFilter{
-		Limit: int64(len(dd)),
+	discounts, err := s.DiscountStorage.List(ctx, DiscountFilter{
+		Limit: int64(len(discounts)),
 		IDs:   ids,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return dd, nil
+	return discounts, nil
 }
 
 func (s *CatalogService) GetDiscount(ctx context.Context, id, merchantID string, locationIDs []string) (Discount, error) {
 	const op = errors.Op("core/CatalogService.GetDiscount")
-	d, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
+	discount, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
 	}
-	return d, nil
+	return discount, nil
 }
 
 func (s *CatalogService) ListDiscount(ctx context.Context, f DiscountFilter) ([]Discount, error) {
 	const op = errors.Op("core/CatalogService.ListDiscount")
-	limit, offset := int64(defaultReturnedDiscounts), int64(0)
-	if f.Limit != 0 && f.Limit < maxReturnedDiscounts {
-		limit = f.Limit
-	}
-	if f.Offset != 0 {
-		offset = f.Offset
-	}
-
-	dd, err := s.DiscountStorage.List(ctx, DiscountFilter{
+	discounts, err := s.DiscountStorage.List(ctx, DiscountFilter{
 		MerchantID: f.MerchantID,
-		Limit:      limit,
-		Offset:     offset,
+		Limit:      f.Limit,
+		Offset:     f.Offset,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
-	return dd, nil
+	return discounts, nil
 }
 
 func (s *CatalogService) DeleteDiscount(ctx context.Context, id, merchantID string, locationIDs []string) (Discount, error) {
 	const op = errors.Op("core/CatalogService.DeleteDiscount")
-	d, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
+	discount, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
 	}
 
-	d.Status = StatusShadowDeleted
-	if err := s.DiscountStorage.Put(ctx, d); err != nil {
+	discount.Status = StatusShadowDeleted
+	if err := s.DiscountStorage.Put(ctx, discount); err != nil {
 		return Discount{}, errors.E(op, err)
 	}
-	resp, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
+	discount, err = s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
 	}
-	return resp, nil
+	return discount, nil
 }
 
 type DiscountFilter struct {

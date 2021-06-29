@@ -6,11 +6,6 @@ import (
 	"github.com/backium/backend/errors"
 )
 
-const (
-	maxReturnedLocations     = 50
-	defaultReturnedLocations = 10
-)
-
 type Location struct {
 	ID           string `bson:"_id"`
 	Name         string `bson:"name"`
@@ -23,10 +18,11 @@ type Location struct {
 }
 
 // Creates a Location with default values
-func NewLocation() Location {
+func NewLocation(merchantID string) Location {
 	return Location{
-		ID:     NewID("loc"),
-		Status: StatusActive,
+		ID:         NewID("loc"),
+		Status:     StatusActive,
+		MerchantID: merchantID,
 	}
 }
 
@@ -53,53 +49,45 @@ func (svc *LocationService) PutLocation(ctx context.Context, location Location) 
 	return location, nil
 }
 
-func (svc *LocationService) PutLocations(ctx context.Context, cc []Location) ([]Location, error) {
+func (svc *LocationService) PutLocations(ctx context.Context, locations []Location) ([]Location, error) {
 	const op = errors.Op("core/LocationService.PutLocations")
-	if err := svc.LocationStorage.PutBatch(ctx, cc); err != nil {
+	if err := svc.LocationStorage.PutBatch(ctx, locations); err != nil {
 		return nil, err
 	}
-	ids := make([]string, len(cc))
-	for i, t := range cc {
+	ids := make([]string, len(locations))
+	for i, t := range locations {
 		ids[i] = t.ID
 	}
-	cc, err := svc.LocationStorage.List(ctx, LocationFilter{
-		Limit: int64(len(cc)),
+	locations, err := svc.LocationStorage.List(ctx, LocationFilter{
+		Limit: int64(len(locations)),
 		IDs:   ids,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return cc, nil
+	return locations, nil
 }
 
 func (svc *LocationService) GetLocation(ctx context.Context, id, merchantID string) (Location, error) {
 	const op = errors.Op("core/LocationService.GetLocation")
-	cust, err := svc.LocationStorage.Get(ctx, id, merchantID)
+	location, err := svc.LocationStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Location{}, errors.E(op, err)
 	}
-	return cust, nil
+	return location, nil
 }
 
 func (svc *LocationService) ListLocation(ctx context.Context, f LocationFilter) ([]Location, error) {
 	const op = errors.Op("core/LocationService.ListLocation")
-	limit, offset := int64(defaultReturnedLocations), int64(0)
-	if f.Limit != 0 && f.Limit < maxReturnedLocations {
-		limit = f.Limit
-	}
-	if f.Offset != 0 {
-		offset = f.Offset
-	}
-
-	cc, err := svc.LocationStorage.List(ctx, LocationFilter{
+	locations, err := svc.LocationStorage.List(ctx, LocationFilter{
 		MerchantID: f.MerchantID,
-		Limit:      limit,
-		Offset:     offset,
+		Limit:      f.Limit,
+		Offset:     f.Offset,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
-	return cc, nil
+	return locations, nil
 }
 
 func (svc *LocationService) DeleteLocation(ctx context.Context, id, merchantID string) (Location, error) {
@@ -113,11 +101,11 @@ func (svc *LocationService) DeleteLocation(ctx context.Context, id, merchantID s
 	if err := svc.LocationStorage.Put(ctx, location); err != nil {
 		return Location{}, errors.E(op, err)
 	}
-	resp, err := svc.LocationStorage.Get(ctx, id, merchantID)
+	location, err = svc.LocationStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Location{}, errors.E(op, err)
 	}
-	return resp, nil
+	return location, nil
 }
 
 type LocationFilter struct {

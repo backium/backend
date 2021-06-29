@@ -5,8 +5,9 @@ import (
 )
 
 type mockOrderStorage struct {
-	PutFn func(context.Context, Order) error
-	GetFn func(context.Context, string, string, []string) (Order, error)
+	PutFn  func(context.Context, Order) error
+	GetFn  func(context.Context, string, string, []string) (Order, error)
+	ListFn func(context.Context, OrderFilter) ([]Order, error)
 }
 
 func NewMockOrderStorage() *mockOrderStorage {
@@ -19,6 +20,10 @@ func (s *mockOrderStorage) Put(ctx context.Context, order Order) error {
 
 func (s *mockOrderStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (Order, error) {
 	return s.GetFn(ctx, id, merchantID, locationIDs)
+}
+
+func (s *mockOrderStorage) List(ctx context.Context, f OrderFilter) ([]Order, error) {
+	return s.ListFn(ctx, f)
 }
 
 type mockItemVariationStorage struct {

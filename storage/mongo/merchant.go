@@ -31,22 +31,22 @@ func NewMerchantStorage(db DB) core.MerchantStorage {
 	}
 }
 
-func (s *merchantStorage) Put(ctx context.Context, merch core.Merchant) error {
+func (s *merchantStorage) Put(ctx context.Context, merchant core.Merchant) error {
 	const op = errors.Op("mongo/merchantStorage.Put")
 	now := time.Now().Unix()
-	merch.UpdatedAt = now
-	f := bson.M{"_id": merch.ID}
-	u := bson.M{"$set": merch}
+	merchant.UpdatedAt = now
+	filter := bson.M{"_id": merchant.ID}
+	query := bson.M{"$set": merchant}
 	opts := options.Update().SetUpsert(true)
-	res, err := s.collection.UpdateOne(ctx, f, u, opts)
+	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
-		merch.CreatedAt = now
-		query := bson.M{"$set": merch}
-		_, err := s.collection.UpdateOne(ctx, f, query, opts)
+		merchant.CreatedAt = now
+		query := bson.M{"$set": merchant}
+		_, err := s.collection.UpdateOne(ctx, filter, query, opts)
 		if err != nil {
 			return errors.E(op, errors.KindUnexpected, err)
 		}
@@ -56,22 +56,22 @@ func (s *merchantStorage) Put(ctx context.Context, merch core.Merchant) error {
 
 func (s *merchantStorage) PutKey(ctx context.Context, merchantID string, key core.Key) error {
 	const op = errors.Op("mongo/merchantStorage/PutKey")
-	merch, err := s.Get(ctx, merchantID)
+	merchant, err := s.Get(ctx, merchantID)
 	if err != nil {
 		return errors.E(op, err)
 	}
 	newKey := true
-	for i, k := range merch.Keys {
+	for i, k := range merchant.Keys {
 		if k.Token == key.Token {
-			merch.Keys[i].Name = key.Name
+			merchant.Keys[i].Name = key.Name
 			newKey = false
 			break
 		}
 	}
 	if newKey {
-		merch.Keys = append(merch.Keys, key)
+		merchant.Keys = append(merchant.Keys, key)
 	}
-	if err := s.Put(ctx, merch); err != nil {
+	if err := s.Put(ctx, merchant); err != nil {
 		return errors.E(op, err)
 	}
 	return nil
@@ -79,20 +79,20 @@ func (s *merchantStorage) PutKey(ctx context.Context, merchantID string, key cor
 
 func (s *merchantStorage) Get(ctx context.Context, id string) (core.Merchant, error) {
 	const op = errors.Op("mongo/merchantStorage/Get")
-	cust := core.Merchant{}
-	f := bson.M{"_id": id}
-	if err := s.driver.findOneAndDecode(ctx, &cust, f); err != nil {
+	merchant := core.Merchant{}
+	filter := bson.M{"_id": id}
+	if err := s.driver.findOneAndDecode(ctx, &merchant, filter); err != nil {
 		return core.Merchant{}, errors.E(op, err)
 	}
-	return cust, nil
+	return merchant, nil
 }
 
 func (s *merchantStorage) GetByKey(ctx context.Context, key string) (core.Merchant, error) {
 	const op = errors.Op("mongo/merchantStorage/GetByKey")
-	merch := core.Merchant{}
-	f := bson.M{"keys.token": key}
-	if err := s.driver.findOneAndDecode(ctx, &merch, f); err != nil {
+	merchant := core.Merchant{}
+	filter := bson.M{"keys.token": key}
+	if err := s.driver.findOneAndDecode(ctx, &merchant, filter); err != nil {
 		return core.Merchant{}, errors.E(op, err)
 	}
-	return merch, nil
+	return merchant, nil
 }

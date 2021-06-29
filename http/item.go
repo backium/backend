@@ -5,8 +5,12 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
-	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	ItemListDefaultSize = 10
+	ItemListMaxSize     = 50
 )
 
 func (h *Handler) CreateItem(c echo.Context) error {
@@ -19,20 +23,23 @@ func (h *Handler) CreateItem(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	it := core.NewItem()
+	item := core.NewItem(ac.MerchantID)
 	if req.LocationIDs != nil {
-		it.LocationIDs = *req.LocationIDs
+		item.LocationIDs = *req.LocationIDs
 	}
-	it.Name = req.Name
-	it.CategoryID = req.CategoryID
-	it.Description = req.Description
-	it.MerchantID = ac.MerchantID
+	item.Name = req.Name
+	item.CategoryID = req.CategoryID
+	item.Description = req.Description
 
-	it, err := h.CatalogService.PutItem(c.Request().Context(), it)
+	ctx := c.Request().Context()
+	item, err := h.CatalogService.PutItem(c.Request().Context(), item)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewItem(it))
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
+		ItemIDs: []string{item.ID},
+	})
+	return c.JSON(http.StatusOK, NewItem(item, variations))
 }
 
 func (h *Handler) UpdateItem(c echo.Context) error {
@@ -46,28 +53,31 @@ func (h *Handler) UpdateItem(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.GetItem(ctx, req.ID, ac.MerchantID, nil)
+	item, err := h.CatalogService.GetItem(ctx, req.ID, ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
 	if req.Name != nil {
-		it.Name = *req.Name
+		item.Name = *req.Name
 	}
 	if req.Description != nil {
-		it.Description = *req.Description
+		item.Description = *req.Description
 	}
 	if req.LocationIDs != nil {
-		it.LocationIDs = *req.LocationIDs
+		item.LocationIDs = *req.LocationIDs
 	}
 	if req.CategoryID != nil {
-		it.CategoryID = *req.CategoryID
+		item.CategoryID = *req.CategoryID
 	}
 
-	uit, err := h.CatalogService.PutItem(ctx, it)
+	item, err = h.CatalogService.PutItem(ctx, item)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewItem(uit))
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
+		ItemIDs: []string{item.ID},
+	})
+	return c.JSON(http.StatusOK, NewItem(item, variations))
 }
 
 func (h *Handler) RetrieveItem(c echo.Context) error {
@@ -77,18 +87,14 @@ func (h *Handler) RetrieveItem(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.GetItem(ctx, c.Param("id"), ac.MerchantID, nil)
+	item, err := h.CatalogService.GetItem(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	itvars, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []string{it.ID},
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
+		ItemIDs: []string{item.ID},
 	})
-	resp := NewItem(it)
-	for _, itvar := range itvars {
-		resp.Variations = append(resp.Variations, NewItemVariation(itvar))
-	}
-
+	resp := NewItem(item, variations)
 	return c.JSON(http.StatusOK, resp)
 }
 
@@ -102,30 +108,40 @@ func (h *Handler) ListItems(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+	var limit, offset int64 = ItemListDefaultSize, 0
+	if req.Limit <= ItemListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > ItemListMaxSize {
+		limit = ItemListMaxSize
+	}
+	if req.Offset != 0 {
+		offset = req.Offset
+	}
+
 	ctx := c.Request().Context()
-	its, err := h.CatalogService.ListItem(ctx, core.ItemFilter{
-		Limit:      ptr.GetInt64(req.Limit),
-		Offset:     ptr.GetInt64(req.Offset),
+	items, err := h.CatalogService.ListItem(ctx, core.ItemFilter{
+		Limit:      limit,
+		Offset:     offset,
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
 
-	ids := make([]string, len(its))
-	for i, it := range its {
-		ids[i] = it.ID
+	itemIDs := make([]string, len(items))
+	for i, item := range items {
+		itemIDs[i] = item.ID
 	}
-	itvars, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: ids,
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
+		ItemIDs: itemIDs,
 	})
-	resp := make([]Item, len(its))
-	for i, it := range its {
-		vars := it.ItemVariations(itvars)
-		resp[i] = NewItem(it)
-		resp[i].Variations = NewItemVariations(vars)
+	resp := ItemListResponse{Items: make([]Item, len(items))}
+	for i, item := range items {
+		vars := item.ItemVariations(variations)
+		resp.Items[i] = NewItem(item, vars)
 	}
-	return c.JSON(http.StatusOK, ItemListResponse{resp})
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) DeleteItem(c echo.Context) error {
@@ -135,11 +151,14 @@ func (h *Handler) DeleteItem(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	it, err := h.CatalogService.DeleteItem(ctx, c.Param("id"), ac.MerchantID, nil)
+	item, err := h.CatalogService.DeleteItem(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewItem(it))
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
+		ItemIDs: []string{item.ID},
+	})
+	return c.JSON(http.StatusOK, NewItem(item, variations))
 }
 
 type Item struct {
@@ -153,16 +172,16 @@ type Item struct {
 	Status      core.Status     `json:"status"`
 }
 
-func NewItem(it core.Item) Item {
+func NewItem(item core.Item, variations []core.ItemVariation) Item {
 	return Item{
-		ID:          it.ID,
-		Name:        it.Name,
-		Description: it.Description,
-		CategoryID:  it.CategoryID,
-		Variations:  []ItemVariation{},
-		LocationIDs: it.LocationIDs,
-		MerchantID:  it.MerchantID,
-		Status:      it.Status,
+		ID:          item.ID,
+		Name:        item.Name,
+		Description: item.Description,
+		CategoryID:  item.CategoryID,
+		Variations:  NewItemVariations(variations),
+		LocationIDs: item.LocationIDs,
+		MerchantID:  item.MerchantID,
+		Status:      item.Status,
 	}
 }
 
@@ -182,8 +201,8 @@ type ItemUpdateRequest struct {
 }
 
 type ItemListRequest struct {
-	Limit  *int64 `query:"limit" validate:"omitempty,gte=1"`
-	Offset *int64 `query:"offset"`
+	Limit  int64 `query:"limit" validate:"gte=0"`
+	Offset int64 `query:"offset" validate:"gte=0"`
 }
 
 type ItemListResponse struct {

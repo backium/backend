@@ -58,17 +58,16 @@ func (svc *UserService) Create(ctx context.Context, req UserCreateRequest) (User
 
 	// Create an owner user with merchant, locations, etc
 	user := User{}
-	merch := NewMerchant()
-	merch.BusinessName = "My Business"
-	if err := svc.MerchantStorage.Put(ctx, merch); err != nil {
+	merchant := NewMerchant()
+	merchant.BusinessName = "My Business"
+	if err := svc.MerchantStorage.Put(ctx, merchant); err != nil {
 		return user, errors.E(op, errors.KindUnexpected, err)
 
 	}
-	loc := NewLocation()
-	loc.Name = "My Business"
-	loc.BusinessName = "My Business"
-	loc.MerchantID = merch.ID
-	err = svc.LocationStorage.Put(ctx, loc)
+	location := NewLocation(merchant.ID)
+	location.Name = "My Business"
+	location.BusinessName = "My Business"
+	err = svc.LocationStorage.Put(ctx, location)
 	if err != nil {
 		return user, errors.E(op, errors.KindUnexpected, err)
 	}
@@ -76,7 +75,7 @@ func (svc *UserService) Create(ctx context.Context, req UserCreateRequest) (User
 		Email:        req.Email,
 		PasswordHash: hash,
 		Kind:         UserKindOwner,
-		MerchantID:   merch.ID,
+		MerchantID:   merchant.ID,
 	})
 	if err != nil {
 		return User{}, errors.E(op, errors.KindUnexpected, err)

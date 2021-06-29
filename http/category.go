@@ -5,8 +5,12 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
-	"github.com/backium/backend/ptr"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	CategoryListDefaultSize = 10
+	CategoryListMaxSize     = 50
 )
 
 func (h *Handler) CreateCategory(c echo.Context) error {
@@ -19,20 +23,20 @@ func (h *Handler) CreateCategory(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cat := core.NewCategory()
+	category := core.NewCategory()
 	if req.LocationIDs != nil {
-		cat.LocationIDs = *req.LocationIDs
+		category.LocationIDs = *req.LocationIDs
 	}
-	cat.Name = req.Name
-	cat.Image = req.Image
-	cat.MerchantID = ac.MerchantID
+	category.Name = req.Name
+	category.Image = req.Image
+	category.MerchantID = ac.MerchantID
 
 	ctx := c.Request().Context()
-	cat, err := h.CatalogService.PutCategory(ctx, cat)
+	category, err := h.CatalogService.PutCategory(ctx, category)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewCategory(cat))
+	return c.JSON(http.StatusOK, NewCategory(category))
 }
 
 func (h *Handler) UpdateCategory(c echo.Context) error {
@@ -46,24 +50,24 @@ func (h *Handler) UpdateCategory(c echo.Context) error {
 		return err
 	}
 	ctx := c.Request().Context()
-	cat, err := h.CatalogService.GetCategory(ctx, req.ID, ac.MerchantID, nil)
+	category, err := h.CatalogService.GetCategory(ctx, req.ID, ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
 	if req.Name != nil {
-		cat.Name = *req.Name
+		category.Name = *req.Name
 	}
 	if req.Image != nil {
-		cat.Image = *req.Image
+		category.Image = *req.Image
 	}
 	if req.LocationIDs != nil {
-		cat.LocationIDs = *req.LocationIDs
+		category.LocationIDs = *req.LocationIDs
 	}
-	ucat, err := h.CatalogService.PutCategory(ctx, cat)
+	category, err = h.CatalogService.PutCategory(ctx, category)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewCategory(ucat))
+	return c.JSON(http.StatusOK, NewCategory(category))
 }
 
 func (h *Handler) RetrieveCategory(c echo.Context) error {
@@ -90,19 +94,31 @@ func (h *Handler) ListCategories(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	cuss, err := h.CatalogService.ListCategory(c.Request().Context(), core.CategoryFilter{
-		Limit:      ptr.GetInt64(req.Limit),
-		Offset:     ptr.GetInt64(req.Offset),
+
+	var limit, offset int64 = CategoryListDefaultSize, 0
+	if req.Limit <= CategoryListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > CategoryListMaxSize {
+		limit = CategoryListMaxSize
+	}
+	if req.Offset != 0 {
+		offset = req.Offset
+	}
+
+	categories, err := h.CatalogService.ListCategory(c.Request().Context(), core.CategoryFilter{
+		Limit:      limit,
+		Offset:     offset,
 		MerchantID: ac.MerchantID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	res := make([]Category, len(cuss))
-	for i, cus := range cuss {
-		res[i] = NewCategory(cus)
+	resp := CategoryListResponse{Categories: make([]Category, len(categories))}
+	for i, category := range categories {
+		resp.Categories[i] = NewCategory(category)
 	}
-	return c.JSON(http.StatusOK, CategoryListResponse{res})
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) DeleteCategory(c echo.Context) error {
@@ -112,11 +128,11 @@ func (h *Handler) DeleteCategory(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 	ctx := c.Request().Context()
-	cus, err := h.CatalogService.DeleteCategory(ctx, c.Param("id"), ac.MerchantID, nil)
+	category, err := h.CatalogService.DeleteCategory(ctx, c.Param("id"), ac.MerchantID, nil)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, NewCategory(cus))
+	return c.JSON(http.StatusOK, NewCategory(category))
 }
 
 type Category struct {
@@ -130,16 +146,16 @@ type Category struct {
 	Status      core.Status `json:"status"`
 }
 
-func NewCategory(cat core.Category) Category {
+func NewCategory(category core.Category) Category {
 	return Category{
-		ID:          cat.ID,
-		Name:        cat.Name,
-		Image:       cat.Image,
-		LocationIDs: cat.LocationIDs,
-		MerchantID:  cat.MerchantID,
-		CreatedAt:   cat.CreatedAt,
-		UpdatedAt:   cat.UpdatedAt,
-		Status:      cat.Status,
+		ID:          category.ID,
+		Name:        category.Name,
+		Image:       category.Image,
+		LocationIDs: category.LocationIDs,
+		MerchantID:  category.MerchantID,
+		CreatedAt:   category.CreatedAt,
+		UpdatedAt:   category.UpdatedAt,
+		Status:      category.Status,
 	}
 }
 
@@ -157,8 +173,8 @@ type CategoryUpdateRequest struct {
 }
 
 type CategoryListRequest struct {
-	Limit  *int64 `query:"limit" validate:"omitempty,gte=1"`
-	Offset *int64 `query:"offset"`
+	Limit  int64 `query:"limit" validate:"gte=0"`
+	Offset int64 `query:"offset" validate:"gte=0"`
 }
 
 type CategoryListResponse struct {

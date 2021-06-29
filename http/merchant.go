@@ -13,16 +13,16 @@ func (h *Handler) CreateMerchant(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	merch := core.NewMerchant()
-	merch.FirstName = req.FirstName
-	merch.LastName = req.LastName
-	merch.BusinessName = req.BusinessName
+	merchant := core.NewMerchant()
+	merchant.FirstName = req.FirstName
+	merchant.LastName = req.LastName
+	merchant.BusinessName = req.BusinessName
 	ctx := c.Request().Context()
-	merch, err := h.MerchantService.PutMerchant(ctx, merch)
+	merchant, err := h.MerchantService.PutMerchant(ctx, merchant)
 	if err != nil {
 		return err
 	}
-	return c.JSON(http.StatusOK, NewMerchant(merch))
+	return c.JSON(http.StatusOK, NewMerchant(merchant))
 }
 
 func (h *Handler) CreateAPIKey(c echo.Context) error {

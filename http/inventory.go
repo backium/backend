@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/backium/backend/core"
@@ -52,7 +51,6 @@ func (h *Handler) BatchRetrieveInventory(c echo.Context) error {
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	fmt.Println("request", req)
 	var limit, offset int64 = InventoryCountListDefaultSize, 0
 	if req.Limit <= InventoryCountListMaxSize {
 		limit = req.Limit
@@ -97,11 +95,11 @@ func NewInventoryCount(count core.InventoryCount) InventoryCount {
 }
 
 func NewInventoryCounts(counts []core.InventoryCount) []InventoryCount {
-	res := make([]InventoryCount, len(counts))
+	resp := make([]InventoryCount, len(counts))
 	for i, count := range counts {
-		res[i] = NewInventoryCount(count)
+		resp[i] = NewInventoryCount(count)
 	}
-	return res
+	return resp
 }
 
 type InventoryAdjustmentRequest struct {
