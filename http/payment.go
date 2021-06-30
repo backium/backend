@@ -9,31 +9,41 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (h *Handler) CreatePayment(c echo.Context) error {
+func (h *Handler) HandleCreatePayment(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreatePayment")
-	ac, ok := c.(*AuthContext)
-	if !ok {
+
+	type request struct {
+		OrderID    string           `json:"order_id" validate:"required"`
+		Type       core.PaymentType `json:"type" validate:"required"`
+		Amount     *Money           `json:"amount" validate:"required,dive"`
+		TipAmount  *Money           `json:"tip_amount" validate:"omitempty,dive"`
+		LocationID string           `json:"location_id" validate:"required"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := PaymentCreateRequest{}
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
 
-	payment := core.NewPayment(ac.MerchantID, req.LocationID)
-	payment.Type = req.Type
-	payment.OrderID = req.OrderID
+	payment := core.NewPayment(req.Type, req.OrderID, merchant.ID, req.LocationID)
 	payment.Amount = core.NewMoney(*req.Amount.Value, req.Amount.Currency)
 	payment.TipAmount = core.NewMoney(0, req.Amount.Currency)
 	if req.TipAmount != nil {
 		payment.TipAmount = core.NewMoney(*req.TipAmount.Value, req.TipAmount.Currency)
 	}
 
-	ctx := c.Request().Context()
 	payment, err := h.PaymentService.CreatePayment(ctx, payment)
 	if err != nil {
 		return errors.E(op, err)
 	}
+
 	return c.JSON(http.StatusOK, NewPayment(payment))
 }
 
@@ -65,12 +75,4 @@ func NewPayment(payment core.Payment) Payment {
 		CreatedAt:  payment.CreatedAt,
 		UpdatedAt:  payment.UpdatedAt,
 	}
-}
-
-type PaymentCreateRequest struct {
-	OrderID    string           `json:"order_id" validate:"required"`
-	Type       core.PaymentType `json:"type" validate:"required"`
-	Amount     *Money           `json:"amount" validate:"required,dive"`
-	TipAmount  *Money           `json:"tip_amount" validate:"omitempty,dive"`
-	LocationID string           `json:"location_id" validate:"required"`
 }

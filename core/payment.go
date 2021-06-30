@@ -28,12 +28,13 @@ type Payment struct {
 	UpdatedAt  int64  `bson:"updated_at"`
 }
 
-func NewPayment(merchantID, locationID string) Payment {
+func NewPayment(ptype PaymentType, orderID, merchantID, locationID string) Payment {
 	return Payment{
 		ID:         NewID("payment"),
+		OrderID:    orderID,
+		Type:       ptype,
 		LocationID: locationID,
 		MerchantID: merchantID,
-		Type:       PaymentCash,
 	}
 }
 
@@ -58,12 +59,15 @@ type PaymentService struct {
 
 func (svc *PaymentService) CreatePayment(ctx context.Context, payment Payment) (Payment, error) {
 	const op = errors.Op("core/PaymentService.PutPayment")
+
 	if err := svc.PaymentStorage.Put(ctx, payment); err != nil {
 		return Payment{}, err
 	}
+
 	payment, err := svc.PaymentStorage.Get(ctx, payment.ID)
 	if err != nil {
 		return Payment{}, err
 	}
+
 	return payment, nil
 }

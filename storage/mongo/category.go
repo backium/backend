@@ -33,6 +33,7 @@ func NewCategoryStorage(db DB) core.CategoryStorage {
 
 func (s *categoryStorage) Put(ctx context.Context, category core.Category) error {
 	const op = errors.Op("mongo/categoryStorage.Put")
+
 	now := time.Now().Unix()
 	category.UpdatedAt = now
 	filter := bson.M{
@@ -41,10 +42,12 @@ func (s *categoryStorage) Put(ctx context.Context, category core.Category) error
 	}
 	query := bson.M{"$set": category}
 	opts := options.Update().SetUpsert(true)
+
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		category.CreatedAt = now
@@ -54,11 +57,13 @@ func (s *categoryStorage) Put(ctx context.Context, category core.Category) error
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *categoryStorage) PutBatch(ctx context.Context, batch []core.Category) error {
 	const op = errors.Op("mongo/categoryStorage.PutBatch")
+
 	session, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
@@ -75,11 +80,13 @@ func (s *categoryStorage) PutBatch(ctx context.Context, batch []core.Category) e
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
 func (s *categoryStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Category, error) {
 	const op = errors.Op("mongo/categoryStorage/Get")
+
 	category := core.Category{}
 	filter := bson.M{
 		"_id":         id,
@@ -88,14 +95,17 @@ func (s *categoryStorage) Get(ctx context.Context, id, merchantID string, locati
 	if len(locationIDs) != 0 {
 		filter["location_ids"] = bson.M{"$in": locationIDs}
 	}
+
 	if err := s.driver.findOneAndDecode(ctx, &category, filter); err != nil {
 		return core.Category{}, errors.E(op, err)
 	}
+
 	return category, nil
 }
 
 func (s *categoryStorage) List(ctx context.Context, f core.CategoryFilter) ([]core.Category, error) {
 	const op = errors.Op("mongo/categoryStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -115,9 +125,11 @@ func (s *categoryStorage) List(ctx context.Context, f core.CategoryFilter) ([]co
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var categories []core.Category
 	if err := res.All(ctx, &categories); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return categories, nil
 }

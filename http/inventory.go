@@ -13,60 +13,92 @@ const (
 	InventoryCountListMaxSize     = 50
 )
 
-func (h *Handler) ChangeInventory(c echo.Context) error {
+func (h *Handler) HandleChangeInventory(c echo.Context) error {
 	const op = errors.Op("http/Handler.ChangeInventory")
-	ac, ok := c.(*AuthContext)
-	if !ok {
+
+	type adjustment struct {
+		ItemVariationID string           `json:"item_variation_id" validate:"required"`
+		Op              core.InventoryOp `json:"op" validate:"required"`
+		Quantity        *int64           `json:"quantity" validate:"required"`
+		LocationID      string           `json:"location_id" validate:"required"`
+	}
+
+	type request struct {
+		Adjustments []adjustment `json:"adjustments" validate:"required,dive"`
+	}
+
+	type response struct {
+		Counts []InventoryCount `json:"counts"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := InventoryChangeRequest{}
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
+
 	adjs := make([]core.InventoryAdjustment, len(req.Adjustments))
 	for i, adj := range req.Adjustments {
-		adjs[i] = core.NewInventoryAdjustment(adj.ItemVariationID, adj.LocationID, ac.MerchantID)
+		adjs[i] = core.NewInventoryAdjustment(adj.ItemVariationID, adj.LocationID, merchant.ID)
 		adjs[i].Op = adj.Op
 		adjs[i].Quantity = *adj.Quantity
 	}
 
-	ctx := c.Request().Context()
 	counts, err := h.CatalogService.ApplyInventoryAdjustments(ctx, adjs)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	resp := InventoryChangeResponse{
+
+	resp := response{
 		Counts: NewInventoryCounts(counts),
 	}
+
 	return c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) BatchRetrieveInventory(c echo.Context) error {
+func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 	const op = errors.Op("http/Handler.ListInventoryCounts")
-	ac, ok := c.(*AuthContext)
-	if !ok {
-		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+
+	type request struct {
+		ItemVariationIDs []string `json:"item_variation_ids"`
+		LocationIDs      []string `json:"location_ids"`
+		Limit            int64    `json:"limit" validate:"gte=0"`
+		Offset           int64    `json:"offset" validate:"gte=0"`
 	}
-	req := InventoryBatchRetrieveRequest{}
-	if err := bindAndValidate(c, &req); err != nil {
-		return err
-	}
-	var limit, offset int64 = InventoryCountListDefaultSize, 0
-	if req.Limit <= InventoryCountListMaxSize {
-		limit = req.Limit
-	}
-	if req.Limit > InventoryCountListMaxSize {
-		limit = InventoryCountListMaxSize
-	}
-	if req.Offset != 0 {
-		offset = req.Offset
+
+	type response struct {
+		Counts []InventoryCount `json:"counts"`
 	}
 
 	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit, offset int64 = InventoryCountListDefaultSize, req.Offset
+	if req.Limit <= InventoryCountListMaxSize {
+		limit = req.Limit
+	} else {
+		limit = InventoryCountListMaxSize
+	}
+
 	counts, err := h.CatalogService.ListInventoryCounts(ctx, core.InventoryFilter{
 		Limit:            limit,
 		Offset:           offset,
-		MerchantID:       ac.MerchantID,
+		MerchantID:       merchant.ID,
 		LocationIDs:      req.LocationIDs,
 		ItemVariationIDs: req.ItemVariationIDs,
 	})
@@ -74,7 +106,8 @@ func (h *Handler) BatchRetrieveInventory(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := InventoryListResponse{Counts: NewInventoryCounts(counts)}
+	resp := response{Counts: NewInventoryCounts(counts)}
+
 	return c.JSON(http.StatusOK, resp)
 }
 
@@ -100,30 +133,4 @@ func NewInventoryCounts(counts []core.InventoryCount) []InventoryCount {
 		resp[i] = NewInventoryCount(count)
 	}
 	return resp
-}
-
-type InventoryAdjustmentRequest struct {
-	ItemVariationID string           `json:"item_variation_id" validate:"required"`
-	Op              core.InventoryOp `json:"op" validate:"required"`
-	Quantity        *int64           `json:"quantity" validate:"required"`
-	LocationID      string           `json:"location_id" validate:"required"`
-}
-
-type InventoryChangeRequest struct {
-	Adjustments []InventoryAdjustmentRequest `json:"adjustments" validate:"required,dive"`
-}
-
-type InventoryChangeResponse struct {
-	Counts []InventoryCount `json:"counts"`
-}
-
-type InventoryBatchRetrieveRequest struct {
-	ItemVariationIDs []string `json:"item_variation_ids"`
-	LocationIDs      []string `json:"location_ids"`
-	Limit            int64    `json:"limit" validate:"gte=0"`
-	Offset           int64    `json:"offset" validate:"gte=0"`
-}
-
-type InventoryListResponse struct {
-	Counts []InventoryCount `json:"counts"`
 }

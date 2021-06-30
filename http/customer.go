@@ -13,17 +13,32 @@ const (
 	CustomerListMaxSize     = 50
 )
 
-func (h *Handler) CreateCustomer(c echo.Context) error {
-	const op = errors.Op("handler.Customer.Create")
-	ac, ok := c.(*AuthContext)
-	if !ok {
+func (h *Handler) HandleCreateCustomer(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleCreateCustomer")
+
+	type request struct {
+		Name    string   `json:"name" validate:"required"`
+		Email   string   `json:"email" validate:"required,email"`
+		Phone   string   `json:"phone"`
+		Image   string   `json:"image"`
+		Address *Address `json:"address"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := CustomerCreateRequest{}
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	customer := core.NewCustomer(ac.MerchantID)
+
+	customer := core.NewCustomer(req.Name, req.Email, merchant.ID)
+	customer.Phone = req.Phone
+	customer.Image = req.Image
 	if req.Address != nil {
 		customer.Address = &core.Address{
 			Line1:      req.Address.Line1,
@@ -33,31 +48,40 @@ func (h *Handler) CreateCustomer(c echo.Context) error {
 			Department: req.Address.Department,
 		}
 	}
-	customer.Name = req.Name
-	customer.Email = req.Email
-	customer.Phone = req.Phone
-	customer.Image = req.Image
 
-	ctx := c.Request().Context()
 	customer, err := h.CustomerService.PutCustomer(ctx, customer)
 	if err != nil {
 		return errors.E(op, err)
 	}
+
 	return c.JSON(http.StatusOK, NewCustomer(customer))
 }
 
-func (h *Handler) UpdateCustomer(c echo.Context) error {
+func (h *Handler) HandleUpdateCustomer(c echo.Context) error {
 	const op = errors.Op("handler.Customer.Update")
-	ac, ok := c.(*AuthContext)
-	if !ok {
+
+	type request struct {
+		ID      string   `param:"id"`
+		Name    *string  `json:"name" validate:"omitempty,min=1"`
+		Email   *string  `json:"email" validate:"omitempty,email"`
+		Phone   *string  `json:"phone"`
+		Image   *string  `json:"image"`
+		Address *Address `json:"address"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := CustomerUpdateRequest{}
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	ctx := c.Request().Context()
-	customer, err := h.CustomerService.GetCustomer(ctx, c.Param("id"), ac.MerchantID)
+
+	customer, err := h.CustomerService.GetCustomer(ctx, req.ID, merchant.ID)
 	if req.Address != nil {
 		customer.Address = &core.Address{
 			Line1:      req.Address.Line1,
@@ -79,76 +103,96 @@ func (h *Handler) UpdateCustomer(c echo.Context) error {
 	if req.Image != nil {
 		customer.Image = *req.Image
 	}
+
 	customer, err = h.CustomerService.PutCustomer(ctx, customer)
 	if err != nil {
 		return errors.E(op, err)
 	}
+
 	return c.JSON(http.StatusOK, NewCustomer(customer))
 }
 
-func (h *Handler) RetrieveCustomer(c echo.Context) error {
+func (h *Handler) HandleRetrieveCustomer(c echo.Context) error {
 	const op = errors.Op("handler.Customer.Retrieve")
-	ac, ok := c.(*AuthContext)
-	if !ok {
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	ctx := c.Request().Context()
-	customer, err := h.CustomerService.GetCustomer(ctx, c.Param("id"), ac.MerchantID)
+
+	customer, err := h.CustomerService.GetCustomer(ctx, c.Param("id"), merchant.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
+
 	return c.JSON(http.StatusOK, NewCustomer(customer))
 }
 
-func (h *Handler) ListCustomers(c echo.Context) error {
+func (h *Handler) HandleListCustomers(c echo.Context) error {
 	const op = errors.Op("handler.Customer.ListAll")
-	ac, ok := c.(*AuthContext)
-	if !ok {
+
+	type request struct {
+		Limit  int64 `query:"limit" validate:"gte=0"`
+		Offset int64 `query:"offset" validate:"gte=0"`
+	}
+
+	type response struct {
+		Customers []Customer `json:"customers"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := CustomerListRequest{}
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
 
-	var limit, offset int64 = CustomerListDefaultSize, 0
+	var limit, offset int64 = CustomerListDefaultSize, req.Offset
 	if req.Limit <= CustomerListMaxSize {
 		limit = req.Limit
-	}
-	if req.Limit > CustomerListMaxSize {
+	} else {
 		limit = CustomerListMaxSize
 	}
-	if req.Offset != 0 {
-		offset = req.Offset
-	}
 
-	ctx := c.Request().Context()
 	customers, err := h.CustomerService.ListCustomer(ctx, core.CustomerFilter{
 		Limit:      limit,
 		Offset:     offset,
-		MerchantID: ac.MerchantID,
+		MerchantID: merchant.ID,
 	})
 	if err != nil {
 		return errors.E(op, err)
 	}
-	resp := CustomerListResponse{Customers: make([]Customer, len(customers))}
+
+	resp := response{Customers: make([]Customer, len(customers))}
 	for i, customer := range customers {
 		resp.Customers[i] = NewCustomer(customer)
 	}
+
 	return c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) DeleteCustomer(c echo.Context) error {
-	const op = errors.Op("handler.Customer.Delete")
-	ac, ok := c.(*AuthContext)
-	if !ok {
+func (h *Handler) HandleDeleteCustomer(c echo.Context) error {
+	const op = errors.Op("http/Handle.Handle.DeleteCustomer")
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	ctx := c.Request().Context()
-	customer, err := h.CustomerService.DeleteCustomer(ctx, c.Param("id"), ac.MerchantID)
+
+	customer, err := h.CustomerService.DeleteCustomer(ctx, c.Param("id"), merchant.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
+
 	return c.JSON(http.StatusOK, NewCustomer(customer))
 }
 
@@ -174,7 +218,7 @@ type Address struct {
 }
 
 func NewCustomer(customer core.Customer) Customer {
-	resp := Customer{
+	c := Customer{
 		ID:         customer.ID,
 		Name:       customer.Name,
 		Email:      customer.Email,
@@ -186,7 +230,7 @@ func NewCustomer(customer core.Customer) Customer {
 		Status:     customer.Status,
 	}
 	if customer.Address != nil {
-		resp.Address = &Address{
+		c.Address = &Address{
 			Line1:      customer.Address.Line1,
 			Line2:      customer.Address.Line2,
 			District:   customer.Address.District,
@@ -194,31 +238,5 @@ func NewCustomer(customer core.Customer) Customer {
 			Department: customer.Address.Department,
 		}
 	}
-	return resp
-}
-
-type CustomerCreateRequest struct {
-	Name    string   `json:"name" validate:"required"`
-	Email   string   `json:"email" validate:"required,email"`
-	Phone   string   `json:"phone"`
-	Image   string   `json:"image"`
-	Address *Address `json:"address"`
-}
-
-type CustomerUpdateRequest struct {
-	ID      string   `param:"id"`
-	Name    *string  `json:"name" validate:"omitempty,min=1"`
-	Email   *string  `json:"email" validate:"omitempty,email"`
-	Phone   *string  `json:"phone"`
-	Image   *string  `json:"image"`
-	Address *Address `json:"address"`
-}
-
-type CustomerListRequest struct {
-	Limit  int64 `query:"limit" validate:"gte=0"`
-	Offset int64 `query:"offset" validate:"gte=0"`
-}
-
-type CustomerListResponse struct {
-	Customers []Customer `json:"customers"`
+	return c
 }

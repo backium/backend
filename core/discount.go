@@ -27,9 +27,11 @@ type Discount struct {
 	Status      Status       `bson:"status"`
 }
 
-func NewDiscount(merchantID string) Discount {
+func NewDiscount(name string, dtype DiscountType, merchantID string) Discount {
 	return Discount{
 		ID:          NewID("disc"),
+		Name:        name,
+		Type:        dtype,
 		LocationIDs: []string{},
 		Status:      StatusActive,
 		MerchantID:  merchantID,
@@ -56,21 +58,26 @@ type DiscountStorage interface {
 
 func (s *CatalogService) PutDiscount(ctx context.Context, discount Discount) (Discount, error) {
 	const op = errors.Op("core/CatalogService.PutDiscount")
+
 	if err := s.DiscountStorage.Put(ctx, discount); err != nil {
 		return Discount{}, err
 	}
+
 	discount, err := s.DiscountStorage.Get(ctx, discount.ID, discount.MerchantID, nil)
 	if err != nil {
 		return Discount{}, err
 	}
+
 	return discount, nil
 }
 
 func (s *CatalogService) PutDiscounts(ctx context.Context, discounts []Discount) ([]Discount, error) {
 	const op = errors.Op("core/CatalogService.PutDiscounts")
+
 	if err := s.DiscountStorage.PutBatch(ctx, discounts); err != nil {
 		return nil, err
 	}
+
 	ids := make([]string, len(discounts))
 	for i, d := range discounts {
 		ids[i] = d.ID
@@ -82,20 +89,24 @@ func (s *CatalogService) PutDiscounts(ctx context.Context, discounts []Discount)
 	if err != nil {
 		return nil, err
 	}
+
 	return discounts, nil
 }
 
 func (s *CatalogService) GetDiscount(ctx context.Context, id, merchantID string, locationIDs []string) (Discount, error) {
 	const op = errors.Op("core/CatalogService.GetDiscount")
+
 	discount, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
 	}
+
 	return discount, nil
 }
 
 func (s *CatalogService) ListDiscount(ctx context.Context, f DiscountFilter) ([]Discount, error) {
 	const op = errors.Op("core/CatalogService.ListDiscount")
+
 	discounts, err := s.DiscountStorage.List(ctx, DiscountFilter{
 		MerchantID: f.MerchantID,
 		Limit:      f.Limit,
@@ -104,11 +115,13 @@ func (s *CatalogService) ListDiscount(ctx context.Context, f DiscountFilter) ([]
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return discounts, nil
 }
 
 func (s *CatalogService) DeleteDiscount(ctx context.Context, id, merchantID string, locationIDs []string) (Discount, error) {
 	const op = errors.Op("core/CatalogService.DeleteDiscount")
+
 	discount, err := s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
@@ -118,10 +131,12 @@ func (s *CatalogService) DeleteDiscount(ctx context.Context, id, merchantID stri
 	if err := s.DiscountStorage.Put(ctx, discount); err != nil {
 		return Discount{}, errors.E(op, err)
 	}
+
 	discount, err = s.DiscountStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Discount{}, errors.E(op, err)
 	}
+
 	return discount, nil
 }
 

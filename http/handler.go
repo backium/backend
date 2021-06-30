@@ -19,13 +19,13 @@ type Handler struct {
 	CustomerService   core.CustomerService
 	OrderingService   core.OrderingService
 	PaymentService    core.PaymentService
-	SessionRepository SessionRepository
+	SessionRepository core.SessionRepository
 }
 
 func bindAndValidate(c echo.Context, req interface{}) error {
 	const op = errors.Op("handler.bindAndValidate")
+
 	if err := c.Bind(req); err != nil {
-		fmt.Printf("error type %T", err)
 		return errors.E(op, errors.KindValidation, err)
 	}
 
@@ -39,5 +39,6 @@ func bindAndValidate(c echo.Context, req interface{}) error {
 		msg := fmt.Sprintf("request field '%v' is not valid, it should satisfy: %v", path, ferr.Tag())
 		return errors.E(op, errors.KindValidation, msg)
 	}
+
 	return nil
 }

@@ -17,11 +17,13 @@ type Category struct {
 	Status      Status   `bson:"status"`
 }
 
-func NewCategory() Category {
+func NewCategory(name, merchantID string) Category {
 	return Category{
 		ID:          NewID("cat"),
+		Name:        name,
 		LocationIDs: []string{},
 		Status:      StatusActive,
+		MerchantID:  merchantID,
 	}
 }
 
@@ -34,21 +36,26 @@ type CategoryStorage interface {
 
 func (svc *CatalogService) PutCategory(ctx context.Context, category Category) (Category, error) {
 	const op = errors.Op("core/CatalogService.PutCategory")
+
 	if err := svc.CategoryStorage.Put(ctx, category); err != nil {
 		return Category{}, err
 	}
+
 	category, err := svc.CategoryStorage.Get(ctx, category.ID, category.MerchantID, category.LocationIDs)
 	if err != nil {
 		return Category{}, err
 	}
+
 	return category, nil
 }
 
 func (svc *CatalogService) PutCategories(ctx context.Context, categories []Category) ([]Category, error) {
 	const op = errors.Op("core/CatalogService.PutCategories")
+
 	if err := svc.CategoryStorage.PutBatch(ctx, categories); err != nil {
 		return nil, err
 	}
+
 	ids := make([]string, len(categories))
 	for i, t := range categories {
 		ids[i] = t.ID
@@ -60,20 +67,24 @@ func (svc *CatalogService) PutCategories(ctx context.Context, categories []Categ
 	if err != nil {
 		return nil, err
 	}
+
 	return categories, nil
 }
 
 func (svc *CatalogService) GetCategory(ctx context.Context, id, merchantID string, locationIDs []string) (Category, error) {
 	const op = errors.Op("core/CatalogService/GetCategory")
+
 	category, err := svc.CategoryStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
+
 	return category, nil
 }
 
 func (svc *CatalogService) ListCategory(ctx context.Context, f CategoryFilter) ([]Category, error) {
 	const op = errors.Op("core/CatalogService.ListCategory")
+
 	categories, err := svc.CategoryStorage.List(ctx, CategoryFilter{
 		MerchantID: f.MerchantID,
 		Limit:      f.Limit,
@@ -82,11 +93,13 @@ func (svc *CatalogService) ListCategory(ctx context.Context, f CategoryFilter) (
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return categories, nil
 }
 
 func (svc *CatalogService) DeleteCategory(ctx context.Context, id, merchantID string, locationIDs []string) (Category, error) {
 	const op = errors.Op("controller.Category.Delete")
+
 	category, err := svc.CategoryStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Category{}, errors.E(op, err)
@@ -96,10 +109,12 @@ func (svc *CatalogService) DeleteCategory(ctx context.Context, id, merchantID st
 	if err := svc.CategoryStorage.Put(ctx, category); err != nil {
 		return Category{}, errors.E(op, err)
 	}
+
 	category, err = svc.CategoryStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Category{}, errors.E(op, err)
 	}
+
 	return category, nil
 }
 

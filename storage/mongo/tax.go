@@ -32,6 +32,7 @@ func NewTaxStorage(db DB) core.TaxStorage {
 
 func (s *taxStorage) Put(ctx context.Context, tax core.Tax) error {
 	const op = errors.Op("mongo/taxStorage.Put")
+
 	now := time.Now().Unix()
 	tax.UpdatedAt = now
 	filter := bson.M{
@@ -40,10 +41,12 @@ func (s *taxStorage) Put(ctx context.Context, tax core.Tax) error {
 	}
 	query := bson.M{"$set": tax}
 	opts := options.Update().SetUpsert(true)
+
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		tax.CreatedAt = now
@@ -53,11 +56,13 @@ func (s *taxStorage) Put(ctx context.Context, tax core.Tax) error {
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *taxStorage) PutBatch(ctx context.Context, batch []core.Tax) error {
 	const op = errors.Op("mongo/taxStorage.PutBatch")
+
 	session, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
@@ -74,11 +79,13 @@ func (s *taxStorage) PutBatch(ctx context.Context, batch []core.Tax) error {
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
 func (s *taxStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Tax, error) {
 	const op = errors.Op("mongo/taxStorage/Get")
+
 	tax := core.Tax{}
 	filter := bson.M{
 		"_id":         id,
@@ -87,14 +94,17 @@ func (s *taxStorage) Get(ctx context.Context, id, merchantID string, locationIDs
 	if len(locationIDs) != 0 {
 		filter["location_ids"] = bson.M{"$in": locationIDs}
 	}
+
 	if err := s.driver.findOneAndDecode(ctx, &tax, filter); err != nil {
 		return core.Tax{}, errors.E(op, err)
 	}
+
 	return tax, nil
 }
 
 func (s *taxStorage) List(ctx context.Context, f core.TaxFilter) ([]core.Tax, error) {
 	const op = errors.Op("mongo/taxStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -114,9 +124,11 @@ func (s *taxStorage) List(ctx context.Context, f core.TaxFilter) ([]core.Tax, er
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var taxes []core.Tax
 	if err := res.All(ctx, &taxes); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return taxes, nil
 }
