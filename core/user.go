@@ -69,9 +69,11 @@ type UserService struct {
 
 func (svc *UserService) Create(ctx context.Context, user User, password string) (User, error) {
 	const op = errors.Op("controller.User.Create")
+
 	if _, err := svc.UserStorage.GetByEmail(ctx, user.Email); err == nil {
 		return User{}, errors.E(op, errors.KindUserExist, "user email used")
 	}
+
 	if err := user.HashPassword(password); err != nil {
 		return User{}, errors.E(op, errors.KindUnexpected, err)
 	}
@@ -84,9 +86,9 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 			return User{}, errors.E(op, errors.KindUnexpected, err)
 
 		}
+
 		user.MerchantID = merchant.ID
-		location := NewLocation(merchant.ID)
-		location.Name = "My Business"
+		location := NewLocation("My Business", merchant.ID)
 		location.BusinessName = "My Business"
 		if err := svc.LocationStorage.Put(ctx, location); err != nil {
 			return User{}, errors.E(op, errors.KindUnexpected, err)
@@ -96,6 +98,7 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 		if err != nil {
 			return User{}, errors.E(op, errors.KindValidation, "Provided employee not found")
 		}
+
 		if employee.MerchantID != user.MerchantID {
 			return User{}, errors.E(op, errors.KindValidation, "Provided employee doesn't belong to your business")
 		}
@@ -106,32 +109,26 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 	if err := svc.UserStorage.Put(ctx, user); err != nil {
 		return User{}, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	user, err := svc.UserStorage.Get(ctx, user.ID)
 	if err != nil {
 		return User{}, errors.E(op, err)
 	}
+
 	return user, nil
 }
 
 func (svc *UserService) Login(ctx context.Context, email, password string) (User, error) {
 	const op = errors.Op("controller.User.Login")
+
 	user, err := svc.UserStorage.GetByEmail(ctx, email)
 	if err != nil {
 		return User{}, errors.E(op, errors.KindInvalidCredentials, err)
 	}
+
 	if !user.PasswordEquals(password) {
 		return User{}, errors.E(op, errors.KindInvalidCredentials, "invalid password")
 	}
+
 	return user, nil
-}
-
-type UserCreateRequest struct {
-	Email    string
-	Password string
-	IsOwner  bool
-}
-
-type UserLoginRequest struct {
-	Email    string
-	Password string
 }

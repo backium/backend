@@ -18,9 +18,10 @@ type Location struct {
 }
 
 // Creates a Location with default values
-func NewLocation(merchantID string) Location {
+func NewLocation(name, merchantID string) Location {
 	return Location{
 		ID:         NewID("loc"),
+		Name:       name,
 		Status:     StatusActive,
 		MerchantID: merchantID,
 	}
@@ -39,21 +40,26 @@ type LocationService struct {
 
 func (svc *LocationService) PutLocation(ctx context.Context, location Location) (Location, error) {
 	const op = errors.Op("controller.Location.Create")
+
 	if err := svc.LocationStorage.Put(ctx, location); err != nil {
 		return Location{}, err
 	}
+
 	location, err := svc.LocationStorage.Get(ctx, location.ID, location.MerchantID)
 	if err != nil {
 		return Location{}, err
 	}
+
 	return location, nil
 }
 
 func (svc *LocationService) PutLocations(ctx context.Context, locations []Location) ([]Location, error) {
 	const op = errors.Op("core/LocationService.PutLocations")
+
 	if err := svc.LocationStorage.PutBatch(ctx, locations); err != nil {
 		return nil, err
 	}
+
 	ids := make([]string, len(locations))
 	for i, t := range locations {
 		ids[i] = t.ID
@@ -65,20 +71,24 @@ func (svc *LocationService) PutLocations(ctx context.Context, locations []Locati
 	if err != nil {
 		return nil, err
 	}
+
 	return locations, nil
 }
 
 func (svc *LocationService) GetLocation(ctx context.Context, id, merchantID string) (Location, error) {
 	const op = errors.Op("core/LocationService.GetLocation")
+
 	location, err := svc.LocationStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Location{}, errors.E(op, err)
 	}
+
 	return location, nil
 }
 
 func (svc *LocationService) ListLocation(ctx context.Context, f LocationFilter) ([]Location, error) {
 	const op = errors.Op("core/LocationService.ListLocation")
+
 	locations, err := svc.LocationStorage.List(ctx, LocationFilter{
 		MerchantID: f.MerchantID,
 		Limit:      f.Limit,
@@ -87,11 +97,13 @@ func (svc *LocationService) ListLocation(ctx context.Context, f LocationFilter) 
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return locations, nil
 }
 
 func (svc *LocationService) DeleteLocation(ctx context.Context, id, merchantID string) (Location, error) {
 	const op = errors.Op("core/LocationService.DeleteLocation")
+
 	location, err := svc.LocationStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Location{}, errors.E(op, err)
@@ -101,10 +113,12 @@ func (svc *LocationService) DeleteLocation(ctx context.Context, id, merchantID s
 	if err := svc.LocationStorage.Put(ctx, location); err != nil {
 		return Location{}, errors.E(op, err)
 	}
+
 	location, err = svc.LocationStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Location{}, errors.E(op, err)
 	}
+
 	return location, nil
 }
 

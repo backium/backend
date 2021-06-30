@@ -25,9 +25,11 @@ type Customer struct {
 }
 
 // Creates a Customer with default values
-func NewCustomer(merchantID string) Customer {
+func NewCustomer(name, email, merchantID string) Customer {
 	return Customer{
 		ID:         NewID("cust"),
+		Name:       name,
+		Email:      email,
 		Status:     StatusActive,
 		MerchantID: merchantID,
 	}
@@ -46,21 +48,26 @@ type CustomerService struct {
 
 func (svc *CustomerService) PutCustomer(ctx context.Context, customer Customer) (Customer, error) {
 	const op = errors.Op("controller.Customer.Create")
+
 	if err := svc.CustomerStorage.Put(ctx, customer); err != nil {
 		return Customer{}, err
 	}
+
 	customer, err := svc.CustomerStorage.Get(ctx, customer.ID, customer.MerchantID)
 	if err != nil {
 		return Customer{}, err
 	}
+
 	return customer, nil
 }
 
 func (svc *CustomerService) PutCustomers(ctx context.Context, customers []Customer) ([]Customer, error) {
 	const op = errors.Op("core/CustomerService.PutCustomers")
+
 	if err := svc.CustomerStorage.PutBatch(ctx, customers); err != nil {
 		return nil, err
 	}
+
 	ids := make([]string, len(customers))
 	for i, t := range customers {
 		ids[i] = t.ID
@@ -72,41 +79,39 @@ func (svc *CustomerService) PutCustomers(ctx context.Context, customers []Custom
 	if err != nil {
 		return nil, err
 	}
+
 	return customers, nil
 }
 
 func (svc *CustomerService) GetCustomer(ctx context.Context, id, merchantID string) (Customer, error) {
 	const op = errors.Op("core/CustomerService.GetCustomer")
+
 	customer, err := svc.CustomerStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Customer{}, errors.E(op, err)
 	}
+
 	return customer, nil
 }
 
 func (svc *CustomerService) ListCustomer(ctx context.Context, f CustomerFilter) ([]Customer, error) {
 	const op = errors.Op("core/CustomerService.ListCustomer")
-	limit, offset := int64(defaultReturnedCustomers), int64(0)
-	if f.Limit != 0 && f.Limit < maxReturnedCustomers {
-		limit = f.Limit
-	}
-	if f.Offset != 0 {
-		offset = f.Offset
-	}
 
 	customers, err := svc.CustomerStorage.List(ctx, CustomerFilter{
 		MerchantID: f.MerchantID,
-		Limit:      limit,
-		Offset:     offset,
+		Limit:      f.Limit,
+		Offset:     f.Offset,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return customers, nil
 }
 
 func (svc *CustomerService) DeleteCustomer(ctx context.Context, id, merchantID string) (Customer, error) {
 	const op = errors.Op("core/CustomerService.DeleteCustomer")
+
 	customer, err := svc.CustomerStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Customer{}, errors.E(op, err)
@@ -116,10 +121,12 @@ func (svc *CustomerService) DeleteCustomer(ctx context.Context, id, merchantID s
 	if err := svc.CustomerStorage.Put(ctx, customer); err != nil {
 		return Customer{}, errors.E(op, err)
 	}
+
 	customer, err = svc.CustomerStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Customer{}, errors.E(op, err)
 	}
+
 	return customer, nil
 }
 

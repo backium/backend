@@ -68,6 +68,7 @@ func (count *InventoryCount) applyAdjustments(adjs []InventoryAdjustment) (bool,
 			adj.LocationID != count.LocationID {
 			continue
 		}
+
 		changed = true
 		switch adj.Op {
 		case InventoryOpAddStock:
@@ -108,18 +109,22 @@ func (s *CatalogService) initializeInventory(ctx context.Context, variation Item
 	if err != nil {
 		return err
 	}
+
 	for _, loc := range locations {
 		count := NewInventoryCount(variation.ID, loc.ID, variation.MerchantID)
 		inventoryCounts = append(inventoryCounts, count)
 	}
+
 	if err := s.InventoryStorage.PutBatchCount(ctx, inventoryCounts); err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []InventoryAdjustment) ([]InventoryCount, error) {
 	const op = errors.Op("core/CatalogService.PutInventoryAdjusments")
+
 	variations := make([]string, len(adjs))
 	for i, adj := range adjs {
 		variations[i] = adj.ItemVariationID
@@ -146,6 +151,7 @@ func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []I
 			countIDs = append(countIDs, count.ID)
 		}
 	}
+
 	if err := s.InventoryStorage.PutBatchCount(ctx, countsToUpdate); err != nil {
 		return nil, errors.E(op, err)
 	}
@@ -159,11 +165,13 @@ func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []I
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return counts, nil
 }
 
 func (s *CatalogService) ListInventoryCounts(ctx context.Context, f InventoryFilter) ([]InventoryCount, error) {
 	const op = errors.Op("core/CatalogService.ListInventoryCounts")
+
 	counts, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{
 		MerchantID:       f.MerchantID,
 		LocationIDs:      f.LocationIDs,
@@ -174,5 +182,6 @@ func (s *CatalogService) ListInventoryCounts(ctx context.Context, f InventoryFil
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return counts, nil
 }

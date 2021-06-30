@@ -30,6 +30,7 @@ func NewOrderStorage(db DB) core.OrderStorage {
 
 func (s *orderStorage) Put(ctx context.Context, order core.Order) error {
 	const op = errors.Op("mongo/orderStorage.Put")
+
 	now := time.Now().Unix()
 	order.UpdatedAt = now
 	filter := bson.M{
@@ -38,10 +39,12 @@ func (s *orderStorage) Put(ctx context.Context, order core.Order) error {
 	}
 	query := bson.M{"$set": order}
 	opts := options.Update().SetUpsert(true)
+
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		order.CreatedAt = now
@@ -51,11 +54,13 @@ func (s *orderStorage) Put(ctx context.Context, order core.Order) error {
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (r *orderStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Order, error) {
 	const op = errors.Op("mongo/orderStorage.Get")
+
 	order := core.Order{}
 	filter := bson.M{
 		"_id":         id,
@@ -64,14 +69,17 @@ func (r *orderStorage) Get(ctx context.Context, id, merchantID string, locationI
 	if len(locationIDs) != 0 {
 		filter["location_ids"] = bson.M{"$in": locationIDs}
 	}
+
 	if err := r.driver.findOneAndDecode(ctx, &order, filter); err != nil {
 		return core.Order{}, errors.E(op, err)
 	}
+
 	return order, nil
 }
 
 func (s *orderStorage) List(ctx context.Context, f core.OrderFilter) ([]core.Order, error) {
 	const op = errors.Op("mongo/orderStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -88,10 +96,12 @@ func (s *orderStorage) List(ctx context.Context, f core.OrderFilter) ([]core.Ord
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var orders []core.Order
 	if err := res.All(ctx, &orders); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return orders, nil
 
 }

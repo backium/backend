@@ -32,6 +32,7 @@ func NewDiscountStorage(db DB) core.DiscountStorage {
 
 func (s *discountStorage) Put(ctx context.Context, discount core.Discount) error {
 	const op = errors.Op("mongo/discountStorage.Put")
+
 	now := time.Now().Unix()
 	discount.UpdatedAt = now
 	filter := bson.M{
@@ -40,10 +41,12 @@ func (s *discountStorage) Put(ctx context.Context, discount core.Discount) error
 	}
 	query := bson.M{"$set": discount}
 	opts := options.Update().SetUpsert(true)
+
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		discount.CreatedAt = now
@@ -53,11 +56,13 @@ func (s *discountStorage) Put(ctx context.Context, discount core.Discount) error
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *discountStorage) PutBatch(ctx context.Context, batch []core.Discount) error {
 	const op = errors.Op("mongo/discountStorage.PutBatch")
+
 	session, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
@@ -74,11 +79,13 @@ func (s *discountStorage) PutBatch(ctx context.Context, batch []core.Discount) e
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
 func (s *discountStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Discount, error) {
 	const op = errors.Op("mongo/discountStorage/Get")
+
 	discount := core.Discount{}
 	filter := bson.M{
 		"_id":         id,
@@ -87,14 +94,17 @@ func (s *discountStorage) Get(ctx context.Context, id, merchantID string, locati
 	if len(locationIDs) != 0 {
 		filter["location_ids"] = bson.M{"$in": locationIDs}
 	}
+
 	if err := s.driver.findOneAndDecode(ctx, &discount, filter); err != nil {
 		return core.Discount{}, errors.E(op, err)
 	}
+
 	return discount, nil
 }
 
 func (s *discountStorage) List(ctx context.Context, f core.DiscountFilter) ([]core.Discount, error) {
 	const op = errors.Op("mongo/discountStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -114,9 +124,11 @@ func (s *discountStorage) List(ctx context.Context, f core.DiscountFilter) ([]co
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var discounts []core.Discount
 	if err := res.All(ctx, &discounts); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return discounts, nil
 }

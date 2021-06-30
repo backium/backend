@@ -22,6 +22,7 @@ type OrderingService struct {
 
 func (s *OrderingService) ListOrder(ctx context.Context, f OrderFilter) ([]Order, error) {
 	const op = errors.Op("core/OrderingService.ListOrder")
+
 	orders, err := s.OrderStorage.List(ctx, OrderFilter{
 		LocationIDs: f.LocationIDs,
 		MerchantID:  f.MerchantID,
@@ -31,11 +32,13 @@ func (s *OrderingService) ListOrder(ctx context.Context, f OrderFilter) ([]Order
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return orders, nil
 }
 
 func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (Order, error) {
 	const op = errors.Op("core/OrderingService.CreateOrder")
+
 	schema.Currency = "PEN"
 	order, err := s.build(ctx, schema)
 	if err != nil {
@@ -45,20 +48,24 @@ func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (
 	if err := s.OrderStorage.Put(ctx, *order); err != nil {
 		return Order{}, errors.E(op, err)
 	}
+
 	newOrder, err := s.OrderStorage.Get(ctx, order.ID, order.MerchantID, nil)
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}
+
 	return newOrder, nil
 }
 
 func (s *OrderingService) PayOrder(ctx context.Context, orderID, merchantID string,
 	paymentIDs []string) (Order, error) {
 	const op = errors.Op("core/OrderingService.CreateOrder")
+
 	order, err := s.OrderStorage.Get(ctx, orderID, merchantID, nil)
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}
+
 	payments, err := s.PaymentStorage.List(ctx, PaymentFilter{
 		IDs: paymentIDs,
 	})
@@ -68,6 +75,7 @@ func (s *OrderingService) PayOrder(ctx context.Context, orderID, merchantID stri
 	if len(payments) == 0 {
 		return Order{}, errors.E(op, errors.KindValidation, "Payments not found")
 	}
+
 	var payAmount int64
 	var tipAmount int64
 	for _, payment := range payments {
@@ -88,6 +96,7 @@ func (s *OrderingService) PayOrder(ctx context.Context, orderID, merchantID stri
 	if err := s.OrderStorage.Put(ctx, order); err != nil {
 		return Order{}, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	order, err = s.OrderStorage.Get(ctx, order.ID, merchantID, nil)
 	if err != nil {
 		return Order{}, errors.E(op, errors.KindUnexpected, err)
@@ -253,6 +262,7 @@ func (b *OrderBuilder) applyOrderLevelFixedDiscounts(order *Order) {
 		order.Items[i].AppliedDiscounts = append(orderItem.AppliedDiscounts, appliedDiscounts...)
 		order.Items[i].TotalDiscountAmount.Value += itemDiscountTotalAmount
 	}
+
 	for _, amount := range discountTotalAmount {
 		order.TotalAmount.Value -= amount
 		order.TotalDiscountAmount.Value += amount
@@ -267,6 +277,7 @@ func (b *OrderBuilder) applyOrderLevelPercentageDiscounts(order *Order) {
 			schemaDiscounts = append(schemaDiscounts, d)
 		}
 	}
+
 	// Compute and save order total discounts
 	discountTotalAmount := map[string]int64{}
 	remainDiscountTotalAmount := map[string]int64{}
@@ -316,6 +327,7 @@ func (b *OrderBuilder) applyOrderLevelPercentageDiscounts(order *Order) {
 		order.Items[i].AppliedDiscounts = append(orderItem.AppliedDiscounts, appliedDiscounts...)
 		order.Items[i].TotalDiscountAmount.Value += itemDiscountTotalAmount
 	}
+
 	for _, amount := range discountTotalAmount {
 		order.TotalAmount.Value -= amount
 		order.TotalDiscountAmount.Value += amount
@@ -375,6 +387,7 @@ func (b *OrderBuilder) applyOrderLevelTaxes(order *Order) {
 		order.Items[i].AppliedTaxes = append(orderItem.AppliedTaxes, appliedTaxes...)
 		order.Items[i].TotalTaxAmount.Value += itemTaxTotalAmount
 	}
+
 	for _, amount := range taxTotalAmount {
 		order.TotalAmount.Value += amount
 		order.TotalTaxAmount.Value += amount
@@ -385,9 +398,11 @@ func (b *OrderBuilder) applyOrderLevelTaxes(order *Order) {
 // TODO: Add item level taxes and order level discounts
 func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, error) {
 	const op = errors.Op("core/OrderingService.build")
+
 	if sch.LocationID == "" || sch.MerchantID == "" {
 		return nil, errors.E(op, errors.KindValidation, "Invalid order schema")
 	}
+
 	order := NewOrder(sch.LocationID, sch.MerchantID)
 	order.Schema = sch
 
@@ -397,12 +412,14 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	taxes, err := s.TaxStorage.List(ctx, TaxFilter{
 		IDs: sch.taxIDs(),
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	discounts, err := s.DiscountStorage.List(ctx, DiscountFilter{
 		IDs: sch.discountIDs(),
 	})

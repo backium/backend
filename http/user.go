@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/backium/backend/core"
@@ -9,13 +8,21 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (h *Handler) RegisterOwner(c echo.Context) error {
+func (h *Handler) HandleRegisterOwner(c echo.Context) error {
 	const op = errors.Op("http/Handler.RegisterOwner")
-	req := RegisterRequest{}
+
+	type request struct {
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required,password"`
+	}
+
+	ctx := c.Request().Context()
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	ctx := c.Request().Context()
+
 	user := core.NewUserOwner()
 	user.Email = req.Email
 
@@ -28,6 +35,7 @@ func (h *Handler) RegisterOwner(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
+
 	return c.JSON(http.StatusOK, RegisterResponse{
 		UserID:       user.ID,
 		MerchantID:   user.MerchantID,
@@ -35,21 +43,29 @@ func (h *Handler) RegisterOwner(c echo.Context) error {
 	})
 }
 
-func (h *Handler) RegisterEmployee(c echo.Context) error {
+func (h *Handler) HandleRegisterEmployee(c echo.Context) error {
 	const op = errors.Op("http/Handler.RegisterEmployee")
-	ac, ok := c.(*AuthContext)
-	if !ok {
+
+	type request struct {
+		Email      string `json:"email" validate:"required,email"`
+		Password   string `json:"password" validate:"required,password"`
+		EmployeeID string `json:"employee_id" validate:"required"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
-	req := RegisterEmployeeRequest{}
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	ctx := c.Request().Context()
-	user := core.NewUserEmployee(ac.MerchantID, req.EmployeeID)
+	user := core.NewUserEmployee(merchant.ID, req.EmployeeID)
 	user.Email = req.Email
 
-	fmt.Println(user, req.Password)
 	user, err := h.UserService.Create(ctx, user, req.Password)
 	if errors.Is(err, errors.KindUserExist) {
 		return c.JSON(http.StatusOK, RegisterResponse{
@@ -59,6 +75,7 @@ func (h *Handler) RegisterEmployee(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
+
 	return c.JSON(http.StatusOK, RegisterResponse{
 		UserID:       user.ID,
 		MerchantID:   user.MerchantID,
@@ -67,79 +84,117 @@ func (h *Handler) RegisterEmployee(c echo.Context) error {
 	})
 }
 
-func (h *Handler) Login(c echo.Context) error {
+func (h *Handler) HandleLogin(c echo.Context) error {
 	const op = errors.Op("authHandler.Login")
-	req := LoginRequest{}
+
+	type request struct {
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required"`
+	}
+
+	ctx := c.Request().Context()
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return errors.E(op, err)
 	}
-	ctx := c.Request().Context()
+
 	user, err := h.UserService.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		return errors.E(op, err)
 	}
+
 	if err := h.setSession(c, user); err != nil {
 		return errors.E(op, err)
 	}
+
 	return c.JSON(http.StatusOK, NewUser(user))
 }
 
-func (h *Handler) UniversalLogin(c echo.Context) error {
+func (h *Handler) HandleUniversalLogin(c echo.Context) error {
 	const op = errors.Op("http/Handler.UniversalSignin")
-	req := LoginRequest{}
+
+	type request struct {
+		Email    string `json:"email" validate:"required,email"`
+		Password string `json:"password" validate:"required"`
+	}
+
+	ctx := c.Request().Context()
+
+	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return errors.E(op, err)
 	}
-	ctx := c.Request().Context()
+
 	user, err := h.UserService.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	s := newSession(user)
+
+	s := core.NewSession(user)
 	if err := h.SessionRepository.Set(ctx, s); err != nil {
 		return errors.E(op, err)
 	}
 	c.Response().Header().Set("session-id", s.ID)
+
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) UniversalGetSession(c echo.Context) error {
+func (h *Handler) HandleUniversalGetSession(c echo.Context) error {
 	const op = errors.Op("http/Handler.UniversalSignin")
-	sid := c.QueryParam("sid")
+
 	ctx := c.Request().Context()
+
+	sid := c.QueryParam("sid")
 	s, err := h.SessionRepository.Get(ctx, sid)
 	if err != nil {
 		return errors.E(op, errors.KindInvalidCredentials, err)
 	}
-	stoken, err := s.encode([]byte("backium"))
+	token, err := s.Encode([]byte("backium"))
+
 	c.SetCookie(&http.Cookie{
 		Name:  "web_session",
-		Value: stoken,
+		Value: token,
 		Path:  "/api/v1",
 	})
+
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) Logout(c echo.Context) error {
-	ac := c.(*AuthContext)
-	h.SessionRepository.Delete(c.Request().Context(), ac.Session.ID)
-	return c.JSONBlob(http.StatusOK, []byte("{}"))
+func (h *Handler) HandleLogout(c echo.Context) error {
+	const op = errors.Op("http/Handler.Logout")
+
+	ctx := c.Request().Context()
+
+	session := core.SessionFromContext(ctx)
+	if session == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	h.SessionRepository.Delete(ctx, session.ID)
+
+	return c.NoContent(http.StatusOK)
 }
 
 func (h *Handler) setSession(c echo.Context, u core.User) error {
 	const op = errors.Op("authHandler.setSession")
-	s := newSession(u)
-	stoken, err := s.encode([]byte("backium"))
+
+	ctx := c.Request().Context()
+
+	session := core.NewSession(u)
+	token, err := session.Encode([]byte("backium"))
 	if err != nil {
 		return errors.E(op, err)
 	}
-	if err := h.SessionRepository.Set(c.Request().Context(), s); err != nil {
+	if err := h.SessionRepository.Set(ctx, session); err != nil {
 		return errors.E(op, err)
 	}
+
 	c.SetCookie(&http.Cookie{
 		Name:  "web_session",
-		Value: stoken,
+		Value: token,
 	})
+
 	return nil
 }
 
@@ -159,22 +214,6 @@ func NewUser(user core.User) User {
 		EmployeeID: user.EmployeeID,
 		MerchantID: user.MerchantID,
 	}
-}
-
-type RegisterRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,password"`
-}
-
-type RegisterEmployeeRequest struct {
-	Email      string `json:"email" validate:"required,email"`
-	Password   string `json:"password" validate:"required,password"`
-	EmployeeID string `json:"employee_id" validate:"required"`
-}
-
-type LoginRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required"`
 }
 
 type RegisterResponse struct {

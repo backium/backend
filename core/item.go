@@ -18,10 +18,11 @@ type Item struct {
 	Status      Status   `bson:"status,omitempty"`
 }
 
-// Creates an Item with default values
-func NewItem(merchantID string) Item {
+func NewItem(name, categoryID, merchantID string) Item {
 	return Item{
 		ID:          NewID("item"),
+		Name:        name,
+		CategoryID:  categoryID,
 		LocationIDs: []string{},
 		Status:      StatusActive,
 		MerchantID:  merchantID,
@@ -48,21 +49,26 @@ type ItemStorage interface {
 
 func (s *CatalogService) PutItem(ctx context.Context, item Item) (Item, error) {
 	const op = errors.Op("core/CatalogService.PutItem")
+
 	if err := s.ItemStorage.Put(ctx, item); err != nil {
 		return Item{}, err
 	}
+
 	item, err := s.ItemStorage.Get(ctx, item.ID, item.MerchantID, nil)
 	if err != nil {
 		return Item{}, err
 	}
+
 	return item, nil
 }
 
 func (s *CatalogService) PutItems(ctx context.Context, items []Item) ([]Item, error) {
 	const op = errors.Op("core/CatalogService.PutItems")
+
 	if err := s.ItemStorage.PutBatch(ctx, items); err != nil {
 		return nil, err
 	}
+
 	ids := make([]string, len(items))
 	for i, d := range items {
 		ids[i] = d.ID
@@ -74,20 +80,24 @@ func (s *CatalogService) PutItems(ctx context.Context, items []Item) ([]Item, er
 	if err != nil {
 		return nil, err
 	}
+
 	return items, nil
 }
 
 func (s *CatalogService) GetItem(ctx context.Context, id, merchantID string, locationIDs []string) (Item, error) {
 	const op = errors.Op("core/CatalogService.GetItem")
+
 	item, err := s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Item{}, errors.E(op, err)
 	}
+
 	return item, nil
 }
 
 func (s *CatalogService) ListItem(ctx context.Context, f ItemFilter) ([]Item, error) {
 	const op = errors.Op("core/CatalogService.ListItem")
+
 	items, err := s.ItemStorage.List(ctx, ItemFilter{
 		MerchantID: f.MerchantID,
 		Limit:      f.Limit,
@@ -96,11 +106,13 @@ func (s *CatalogService) ListItem(ctx context.Context, f ItemFilter) ([]Item, er
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return items, nil
 }
 
 func (s *CatalogService) DeleteItem(ctx context.Context, id, merchantID string, locationIDs []string) (Item, error) {
 	const op = errors.Op("core/CatalogService.DeleteItem")
+
 	item, err := s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Item{}, errors.E(op, err)
@@ -110,10 +122,12 @@ func (s *CatalogService) DeleteItem(ctx context.Context, id, merchantID string, 
 	if err := s.ItemStorage.Put(ctx, item); err != nil {
 		return Item{}, errors.E(op, err)
 	}
+
 	item, err = s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Item{}, errors.E(op, err)
 	}
+
 	return item, nil
 }
 

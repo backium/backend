@@ -24,9 +24,10 @@ type Tax struct {
 	Status      Status   `bson:"status,omitempty"`
 }
 
-func NewTax(merchantID string) Tax {
+func NewTax(name, merchantID string) Tax {
 	return Tax{
 		ID:          NewID("tax"),
+		Name:        name,
 		LocationIDs: []string{},
 		Status:      StatusActive,
 		MerchantID:  merchantID,
@@ -42,21 +43,26 @@ type TaxStorage interface {
 
 func (svc *CatalogService) PutTax(ctx context.Context, tax Tax) (Tax, error) {
 	const op = errors.Op("controller.Tax.Create")
+
 	if err := svc.TaxStorage.Put(ctx, tax); err != nil {
 		return Tax{}, err
 	}
+
 	tax, err := svc.TaxStorage.Get(ctx, tax.ID, tax.MerchantID, nil)
 	if err != nil {
 		return Tax{}, err
 	}
+
 	return tax, nil
 }
 
 func (svc *CatalogService) PutTaxes(ctx context.Context, taxes []Tax) ([]Tax, error) {
 	const op = errors.Op("controller.Tax.Create")
+
 	if err := svc.TaxStorage.PutBatch(ctx, taxes); err != nil {
 		return nil, err
 	}
+
 	ids := make([]string, len(taxes))
 	for i, t := range taxes {
 		ids[i] = t.ID
@@ -68,20 +74,24 @@ func (svc *CatalogService) PutTaxes(ctx context.Context, taxes []Tax) ([]Tax, er
 	if err != nil {
 		return nil, err
 	}
+
 	return taxes, nil
 }
 
 func (svc *CatalogService) GetTax(ctx context.Context, id, merchantID string, locationIDs []string) (Tax, error) {
 	const op = errors.Op("controller.Tax.Retrieve")
-	it, err := svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
+
+	tax, err := svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
-	return it, nil
+
+	return tax, nil
 }
 
 func (svc *CatalogService) ListTax(ctx context.Context, f TaxFilter) ([]Tax, error) {
 	const op = errors.Op("controller.Tax.ListAll")
+
 	taxes, err := svc.TaxStorage.List(ctx, TaxFilter{
 		MerchantID: f.MerchantID,
 		Limit:      f.Limit,
@@ -90,11 +100,13 @@ func (svc *CatalogService) ListTax(ctx context.Context, f TaxFilter) ([]Tax, err
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return taxes, nil
 }
 
 func (svc *CatalogService) DeleteTax(ctx context.Context, id, merchantID string, locationIDs []string) (Tax, error) {
 	const op = errors.Op("controller.Tax.Delete")
+
 	tax, err := svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
@@ -104,10 +116,12 @@ func (svc *CatalogService) DeleteTax(ctx context.Context, id, merchantID string,
 	if err := svc.TaxStorage.Put(ctx, tax); err != nil {
 		return Tax{}, errors.E(op, err)
 	}
+
 	tax, err = svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
+
 	return tax, nil
 }
 
