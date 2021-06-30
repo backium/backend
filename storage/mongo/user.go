@@ -2,10 +2,13 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/backium/backend/core"
+	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const (
@@ -13,43 +16,52 @@ const (
 	userCollectionName = "users"
 )
 
-type userRepository struct {
+type userStorage struct {
 	collection *mongo.Collection
 	driver     *mongoDriver
 }
 
-func NewUserRepository(db DB) core.UserRepository {
+func NewUserRepository(db DB) core.UserStorage {
 	coll := db.Collection(userCollectionName)
-	return &userRepository{
+	return &userStorage{
 		collection: coll,
 		driver:     &mongoDriver{Collection: coll},
 	}
 }
 
-func (r *userRepository) Create(ctx context.Context, u core.User) (string, error) {
-	u.ID = generateID(userIDPrefix)
-	res, err := r.collection.InsertOne(ctx, u)
+func (s *userStorage) Put(ctx context.Context, user core.User) error {
+	const op = errors.Op("mongo/userStorage.Put")
+	filter := bson.M{
+		"_id":         user.ID,
+		"merchant_id": user.MerchantID,
+	}
+	query := bson.M{"$set": user}
+	opts := options.Update().SetUpsert(true)
+	_, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
-		return "", err
+		return errors.E(op, errors.KindUnexpected, err)
 	}
-	id := res.InsertedID.(string)
-	return id, nil
+	return nil
 }
 
-func (r *userRepository) Retrieve(ctx context.Context, id string) (core.User, error) {
-	ur := core.User{}
-	fil := bson.M{"_id": id}
-	if err := r.driver.findOneAndDecode(ctx, &ur, fil); err != nil {
-		return core.User{}, err
+func (s *userStorage) Get(ctx context.Context, id string) (core.User, error) {
+	const op = errors.Op("mongo/userStorage/Get")
+	user := core.User{}
+	filter := bson.M{"_id": id}
+	if err := s.driver.findOneAndDecode(ctx, &user, filter); err != nil {
+		return core.User{}, errors.E(op, err)
 	}
-	return ur, nil
+	return user, nil
 }
 
-func (r *userRepository) RetrieveByEmail(ctx context.Context, email string) (core.User, error) {
-	ur := core.User{}
-	fil := bson.M{"email": email}
-	if err := r.driver.findOneAndDecode(ctx, &ur, fil); err != nil {
-		return core.User{}, err
+func (s *userStorage) GetByEmail(ctx context.Context, email string) (core.User, error) {
+	const op = errors.Op("mongo/userStorage/Get")
+	user := core.User{}
+	filter := bson.M{"email": email}
+	fmt.Println("filter", filter)
+	if err := s.driver.findOneAndDecode(ctx, &user, filter); err != nil {
+		fmt.Println("err", err)
+		return core.User{}, errors.E(op, err)
 	}
-	return ur, nil
+	return user, nil
 }

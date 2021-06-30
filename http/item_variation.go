@@ -14,11 +14,6 @@ const (
 	ItemVariationListMaxSize     = 50
 )
 
-type Money struct {
-	Value    *int64 `json:"value" validate:"required"`
-	Currency string `json:"currency" validate:"required"`
-}
-
 func (h *Handler) CreateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Create")
 	ac, ok := c.(*AuthContext)
