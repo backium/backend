@@ -28,9 +28,11 @@ type Employee struct {
 	MerchantID  string      `bson:"merchant_id"`
 }
 
-func NewEmployee(merchantID string) Employee {
+func NewEmployee(firstName, lastName, merchantID string) Employee {
 	return Employee{
 		ID:          NewID("empl"),
+		FirstName:   firstName,
+		LastName:    lastName,
 		LocationIDs: []string{},
 		MerchantID:  merchantID,
 		IsOwner:     false,
@@ -65,28 +67,34 @@ type EmployeeService struct {
 
 func (svc *EmployeeService) Put(ctx context.Context, employee Employee) (Employee, error) {
 	const op = errors.Op("core/EmployeeService.Put")
+
 	if err := svc.EmployeeStorage.Put(ctx, employee); err != nil {
 		return Employee{}, errors.E(op, err)
 	}
+
 	employee, err := svc.EmployeeStorage.Get(ctx, employee.ID, employee.MerchantID)
 	if err != nil {
 		return Employee{}, errors.E(op, err)
 	}
+
 	return employee, nil
 }
 
 func (svc *EmployeeService) Get(ctx context.Context, id, merchantID string) (Employee, error) {
 	const op = errors.Op("core/EmployeeService.Get")
+
 	employee, err := svc.EmployeeStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Employee{}, errors.E(op, err)
 	}
+
 	return employee, nil
 
 }
 
 func (svc *EmployeeService) ListEmployee(ctx context.Context, f EmployeeFilter) ([]Employee, error) {
 	const op = errors.Op("core/EmployeeService.ListEmployee")
+
 	employees, err := svc.EmployeeStorage.List(ctx, EmployeeFilter{
 		LocationIDs: f.LocationIDs,
 		MerchantID:  f.MerchantID,
@@ -96,11 +104,13 @@ func (svc *EmployeeService) ListEmployee(ctx context.Context, f EmployeeFilter) 
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+
 	return employees, nil
 }
 
 func (svc *EmployeeService) DeleteEmployee(ctx context.Context, id, merchantID string) (Employee, error) {
 	const op = errors.Op("core/CatalogService.DeleteItem")
+
 	employee, err := svc.EmployeeStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Employee{}, errors.E(op, err)
@@ -110,9 +120,11 @@ func (svc *EmployeeService) DeleteEmployee(ctx context.Context, id, merchantID s
 	if err := svc.EmployeeStorage.Put(ctx, employee); err != nil {
 		return Employee{}, errors.E(op, err)
 	}
+
 	employee, err = svc.EmployeeStorage.Get(ctx, id, merchantID)
 	if err != nil {
 		return Employee{}, errors.E(op, err)
 	}
+
 	return employee, nil
 }

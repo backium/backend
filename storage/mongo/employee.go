@@ -32,6 +32,7 @@ func NewEmployeeStorage(db DB) core.EmployeeStorage {
 
 func (s *employeeStorage) Put(ctx context.Context, employee core.Employee) error {
 	const op = errors.Op("mongo/employeeStorage.Put")
+
 	now := time.Now().Unix()
 	employee.UpdatedAt = now
 	filter := bson.M{
@@ -40,10 +41,12 @@ func (s *employeeStorage) Put(ctx context.Context, employee core.Employee) error
 	}
 	query := bson.M{"$set": employee}
 	opts := options.Update().SetUpsert(true)
+
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		employee.CreatedAt = now
@@ -53,24 +56,29 @@ func (s *employeeStorage) Put(ctx context.Context, employee core.Employee) error
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *employeeStorage) Get(ctx context.Context, id, merchantID string) (core.Employee, error) {
 	const op = errors.Op("mongo/employeeStorage/Get")
+
 	employee := core.Employee{}
 	filter := bson.M{
 		"_id":         id,
 		"merchant_id": merchantID,
 	}
+
 	if err := s.driver.findOneAndDecode(ctx, &employee, filter); err != nil {
 		return core.Employee{}, errors.E(op, err)
 	}
+
 	return employee, nil
 }
 
 func (s *employeeStorage) List(ctx context.Context, f core.EmployeeFilter) ([]core.Employee, error) {
 	const op = errors.Op("mongo/employeeStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -87,9 +95,11 @@ func (s *employeeStorage) List(ctx context.Context, f core.EmployeeFilter) ([]co
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var employees []core.Employee
 	if err := res.All(ctx, &employees); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return employees, nil
 }

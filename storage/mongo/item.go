@@ -32,6 +32,7 @@ func NewItemRepository(db DB) core.ItemStorage {
 
 func (s *itemStorage) Put(ctx context.Context, item core.Item) error {
 	const op = errors.Op("mongo/itemStorage.Put")
+
 	now := time.Now().Unix()
 	item.UpdatedAt = now
 	filter := bson.M{
@@ -40,10 +41,12 @@ func (s *itemStorage) Put(ctx context.Context, item core.Item) error {
 	}
 	query := bson.M{"$set": item}
 	opts := options.Update().SetUpsert(true)
+
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		item.CreatedAt = now
@@ -53,11 +56,13 @@ func (s *itemStorage) Put(ctx context.Context, item core.Item) error {
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *itemStorage) PutBatch(ctx context.Context, batch []core.Item) error {
 	const op = errors.Op("mongo/itemStorage.PutBatch")
+
 	session, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
@@ -74,11 +79,13 @@ func (s *itemStorage) PutBatch(ctx context.Context, batch []core.Item) error {
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
 func (s *itemStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Item, error) {
 	const op = errors.Op("mongo/itemStorage/Get")
+
 	item := core.Item{}
 	filter := bson.M{
 		"_id":         id,
@@ -87,14 +94,17 @@ func (s *itemStorage) Get(ctx context.Context, id, merchantID string, locationID
 	if len(locationIDs) != 0 {
 		filter["location_ids"] = bson.M{"$in": locationIDs}
 	}
+
 	if err := s.driver.findOneAndDecode(ctx, &item, filter); err != nil {
 		return core.Item{}, errors.E(op, err)
 	}
+
 	return item, nil
 }
 
 func (s *itemStorage) List(ctx context.Context, f core.ItemFilter) ([]core.Item, error) {
 	const op = errors.Op("mongo/itemStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -114,9 +124,11 @@ func (s *itemStorage) List(ctx context.Context, f core.ItemFilter) ([]core.Item,
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var items []core.Item
 	if err := res.All(ctx, &items); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return items, nil
 }

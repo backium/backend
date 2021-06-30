@@ -38,45 +38,53 @@ func NewInventoryStorage(db DB) core.InventoryStorage {
 
 func (s *inventoryStorage) PutCount(ctx context.Context, count core.InventoryCount) error {
 	const op = errors.Op("mongo/inventoryStorage.Put")
+
 	count.CalculatedAt = time.Now().Unix()
-	f := bson.M{
+	filter := bson.M{
 		"_id":         count.ID,
 		"merchant_id": count.MerchantID,
 	}
-	u := bson.M{"$set": count}
+	query := bson.M{"$set": count}
 	opts := options.Update().SetUpsert(true)
-	_, err := s.countCollection.UpdateOne(ctx, f, u, opts)
+
+	_, err := s.countCollection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
 func (s *inventoryStorage) PutAdj(ctx context.Context, adj core.InventoryAdjustment) error {
 	const op = errors.Op("mongo/inventoryStorage.Put")
+
 	now := time.Now().Unix()
-	f := bson.M{
+	filter := bson.M{
 		"_id":         adj.ID,
 		"merchant_id": adj.MerchantID,
 	}
-	u := bson.M{"$set": adj}
+	query := bson.M{"$set": adj}
 	opts := options.Update().SetUpsert(true)
-	res, err := s.adjCollection.UpdateOne(ctx, f, u, opts)
+
+	res, err := s.adjCollection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	if res.UpsertedCount == 1 {
 		query := bson.M{"$set": bson.M{"created_at": now}}
-		_, err := s.adjCollection.UpdateOne(ctx, f, query, opts)
+		_, err := s.adjCollection.UpdateOne(ctx, filter, query, opts)
 		if err != nil {
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *inventoryStorage) PutBatchCount(ctx context.Context, batch []core.InventoryCount) error {
 	const op = errors.Op("mongo/inventoryStorage.PutBatch")
+
 	sess, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
@@ -93,11 +101,13 @@ func (s *inventoryStorage) PutBatchCount(ctx context.Context, batch []core.Inven
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
 func (s *inventoryStorage) PutBatchAdj(ctx context.Context, batch []core.InventoryAdjustment) error {
 	const op = errors.Op("mongo/inventoryStorage.PutBatch")
+
 	sess, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
@@ -114,11 +124,13 @@ func (s *inventoryStorage) PutBatchAdj(ctx context.Context, batch []core.Invento
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
 func (s *inventoryStorage) ListCount(ctx context.Context, f core.InventoryFilter) ([]core.InventoryCount, error) {
 	const op = errors.Op("mongo/inventoryStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -141,9 +153,11 @@ func (s *inventoryStorage) ListCount(ctx context.Context, f core.InventoryFilter
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var counts []core.InventoryCount
 	if err := res.All(ctx, &counts); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return counts, nil
 }

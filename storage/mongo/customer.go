@@ -32,6 +32,7 @@ func NewCustomerStorage(db DB) core.CustomerStorage {
 
 func (s *customerStorage) Put(ctx context.Context, customer core.Customer) error {
 	const op = errors.Op("mongo/customerStorage.Put")
+
 	now := time.Now().Unix()
 	customer.UpdatedAt = now
 	filter := bson.M{
@@ -40,10 +41,12 @@ func (s *customerStorage) Put(ctx context.Context, customer core.Customer) error
 	}
 	query := bson.M{"$set": customer}
 	opts := options.Update().SetUpsert(true)
+
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		customer.CreatedAt = now
@@ -53,11 +56,13 @@ func (s *customerStorage) Put(ctx context.Context, customer core.Customer) error
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *customerStorage) PutBatch(ctx context.Context, batch []core.Customer) error {
 	const op = errors.Op("mongo/customerStorage.PutBatch")
+
 	session, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
@@ -71,27 +76,33 @@ func (s *customerStorage) PutBatch(ctx context.Context, batch []core.Customer) e
 		}
 		return nil, nil
 	})
+
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
 func (s *customerStorage) Get(ctx context.Context, id, merchantID string) (core.Customer, error) {
 	const op = errors.Op("mongo/customerStorage/Get")
+
 	customer := core.Customer{}
 	filter := bson.M{
 		"_id":         id,
 		"merchant_id": merchantID,
 	}
+
 	if err := s.driver.findOneAndDecode(ctx, &customer, filter); err != nil {
 		return core.Customer{}, errors.E(op, err)
 	}
+
 	return customer, nil
 }
 
 func (s *customerStorage) List(ctx context.Context, f core.CustomerFilter) ([]core.Customer, error) {
 	const op = errors.Op("mongo/customerStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -108,9 +119,11 @@ func (s *customerStorage) List(ctx context.Context, f core.CustomerFilter) ([]co
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var customers []core.Customer
 	if err := res.All(ctx, &customers); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return customers, nil
 }

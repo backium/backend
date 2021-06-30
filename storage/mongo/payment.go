@@ -32,6 +32,7 @@ func NewPaymentStorage(db DB) core.PaymentStorage {
 
 func (s *paymentStorage) Put(ctx context.Context, payment core.Payment) error {
 	const op = errors.Op("mongo/paymentStorage.Put")
+
 	now := time.Now().Unix()
 	payment.UpdatedAt = now
 	filter := bson.M{
@@ -40,10 +41,12 @@ func (s *paymentStorage) Put(ctx context.Context, payment core.Payment) error {
 	}
 	query := bson.M{"$set": payment}
 	opts := options.Update().SetUpsert(true)
+
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		payment.CreatedAt = now
@@ -53,11 +56,13 @@ func (s *paymentStorage) Put(ctx context.Context, payment core.Payment) error {
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *paymentStorage) Get(ctx context.Context, id string) (core.Payment, error) {
 	const op = errors.Op("mongo/paymentStorage/Get")
+
 	payment := core.Payment{}
 	filter := bson.M{
 		"_id": id,
@@ -65,11 +70,13 @@ func (s *paymentStorage) Get(ctx context.Context, id string) (core.Payment, erro
 	if err := s.driver.findOneAndDecode(ctx, &payment, filter); err != nil {
 		return core.Payment{}, errors.E(op, err)
 	}
+
 	return payment, nil
 }
 
 func (s *paymentStorage) List(ctx context.Context, f core.PaymentFilter) ([]core.Payment, error) {
 	const op = errors.Op("mongo/paymentStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -92,9 +99,11 @@ func (s *paymentStorage) List(ctx context.Context, f core.PaymentFilter) ([]core
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var payments []core.Payment
 	if err := res.All(ctx, &payments); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return payments, nil
 }
