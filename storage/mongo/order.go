@@ -91,6 +91,12 @@ func (s *orderStorage) List(ctx context.Context, f core.OrderFilter) ([]core.Ord
 	if len(f.LocationIDs) != 0 {
 		filter["location_id"] = bson.M{"$in": f.LocationIDs}
 	}
+	if f.BeginTime != 0 {
+		filter["created_at"] = bson.M{"$gte": f.BeginTime}
+	}
+	if f.EndTime != 0 {
+		filter["created_at"] = bson.M{"$gte": f.BeginTime, "$lte": f.EndTime}
+	}
 
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {

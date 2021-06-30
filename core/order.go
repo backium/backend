@@ -92,6 +92,8 @@ type OrderFilter struct {
 	Offset      int64
 	LocationIDs []string
 	MerchantID  string
+	BeginTime   int64
+	EndTime     int64
 }
 
 type OrderStorage interface {

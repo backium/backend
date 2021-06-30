@@ -24,6 +24,8 @@ func (s *OrderingService) ListOrder(ctx context.Context, f OrderFilter) ([]Order
 	const op = errors.Op("core/OrderingService.ListOrder")
 
 	orders, err := s.OrderStorage.List(ctx, OrderFilter{
+		BeginTime:   f.BeginTime,
+		EndTime:     f.EndTime,
 		LocationIDs: f.LocationIDs,
 		MerchantID:  f.MerchantID,
 		Limit:       f.Limit,

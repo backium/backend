@@ -21,6 +21,8 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 		LocationIDs []string `json:"location_ids" validate:"omitempty,dive,required"`
 		Limit       int64    `json:"limit" validate:"gte=0"`
 		Offset      int64    `json:"offset" validate:"gte=0"`
+		BeginTime   int64    `json:"begin_time"`
+		EndTime     int64    `json:"end_time"`
 	}
 
 	type response struct {
@@ -47,6 +49,8 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 	}
 
 	orders, err := h.OrderingService.ListOrder(ctx, core.OrderFilter{
+		BeginTime:   req.BeginTime,
+		EndTime:     req.EndTime,
 		Limit:       limit,
 		Offset:      offset,
 		LocationIDs: req.LocationIDs,
