@@ -10,12 +10,14 @@ import (
 )
 
 type OrderingTestCase struct {
-	Name      string
-	Items     []ItemVariation
-	Taxes     []Tax
-	Discounts []Discount
-	Schema    OrderSchema
-	Order     Order
+	Name           string
+	Categories     []Category
+	Items          []Item
+	ItemVariations []ItemVariation
+	Taxes          []Tax
+	Discounts      []Discount
+	Schema         OrderSchema
+	Order          Order
 }
 
 func TestCreateOrder(t *testing.T) {
@@ -35,16 +37,26 @@ func TestCreateOrder(t *testing.T) {
 			variationStorage := NewMockItemVariationStorage()
 			taxStorage := NewMockTaxStorage()
 			discountStorage := NewMockDiscountStorage()
+			categoryStorage := NewMockCategoryStorage()
+			itemStorage := NewMockItemStorage()
 
 			svc := OrderingService{
 				OrderStorage:         orderStorage,
 				ItemVariationStorage: variationStorage,
 				TaxStorage:           taxStorage,
 				DiscountStorage:      discountStorage,
+				CategoryStorage:      categoryStorage,
+				ItemStorage:          itemStorage,
 			}
 
-			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
+			categoryStorage.ListFn = func(ctx context.Context, fil CategoryFilter) ([]Category, error) {
+				return tc.Categories, nil
+			}
+			itemStorage.ListFn = func(ctx context.Context, fil ItemFilter) ([]Item, error) {
 				return tc.Items, nil
+			}
+			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
+				return tc.ItemVariations, nil
 			}
 			taxStorage.ListFn = func(ctx context.Context, fil TaxFilter) ([]Tax, error) {
 				return tc.Taxes, nil
@@ -68,7 +80,7 @@ func TestCreateOrder(t *testing.T) {
 
 			assert.Equal(t, tc.Order.TotalAmount, order.TotalAmount, "incorrect order total")
 			assert.Equal(t, tc.Order.TotalTaxAmount, order.TotalTaxAmount, "incorrect order total tax")
-			assert.Equal(t, tc.Order.Items, order.Items, "incorrect order items")
+			assert.Equal(t, tc.Order.ItemVariations, order.ItemVariations, "incorrect order items")
 			assert.Equal(t, tc.Order.Taxes, order.Taxes, "incorrect order taxes")
 			assert.Equal(t, tc.Order.Discounts, order.Discounts, "incorrect order discounts")
 		})
@@ -78,7 +90,7 @@ func TestCreateOrder(t *testing.T) {
 var testcases = []OrderingTestCase{
 	{
 		Name: "OnlyItems",
-		Items: []ItemVariation{
+		ItemVariations: []ItemVariation{
 			{
 				ID:   "variation1_id",
 				Name: "variation1",
@@ -99,28 +111,28 @@ var testcases = []OrderingTestCase{
 		Schema: OrderSchema{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
-			Items: []OrderSchemaItem{
+			ItemVariations: []OrderSchemaItemVariation{
 				{
-					UID:         "variation1_uid",
-					VariationID: "variation1_id",
-					Quantity:    2,
+					UID:      "variation1_uid",
+					ID:       "variation1_id",
+					Quantity: 2,
 				},
 				{
-					UID:         "variation2_uid",
-					VariationID: "variation2_id",
-					Quantity:    2,
+					UID:      "variation2_uid",
+					ID:       "variation2_id",
+					Quantity: 2,
 				},
 			},
 		},
 		Order: Order{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
-			Items: []OrderItem{
+			ItemVariations: []OrderItemVariation{
 				{
-					UID:         "variation1_uid",
-					VariationID: "variation1_id",
-					Name:        "variation1",
-					Quantity:    2,
+					UID:      "variation1_uid",
+					ID:       "variation1_id",
+					Name:     "variation1",
+					Quantity: 2,
 					BasePrice: Money{
 						Value:    500,
 						Currency: "PEN",
@@ -143,10 +155,10 @@ var testcases = []OrderingTestCase{
 					},
 				},
 				{
-					UID:         "variation2_uid",
-					VariationID: "variation2_id",
-					Name:        "variation2",
-					Quantity:    2,
+					UID:      "variation2_uid",
+					ID:       "variation2_id",
+					Name:     "variation2",
+					Quantity: 2,
 					BasePrice: Money{
 						Value:    1000,
 						Currency: "PEN",
@@ -185,7 +197,7 @@ var testcases = []OrderingTestCase{
 	},
 	{
 		Name: "OneItemWithDiscounts",
-		Items: []ItemVariation{
+		ItemVariations: []ItemVariation{
 			{
 				ID:   "variation1_id",
 				Name: "variation1",
@@ -206,11 +218,11 @@ var testcases = []OrderingTestCase{
 		Schema: OrderSchema{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
-			Items: []OrderSchemaItem{
+			ItemVariations: []OrderSchemaItemVariation{
 				{
-					UID:         "variation1_uid",
-					VariationID: "variation1_id",
-					Quantity:    2,
+					UID:      "variation1_uid",
+					ID:       "variation1_id",
+					Quantity: 2,
 				},
 			},
 			Discounts: []OrderSchemaDiscount{
@@ -223,12 +235,12 @@ var testcases = []OrderingTestCase{
 		Order: Order{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
-			Items: []OrderItem{
+			ItemVariations: []OrderItemVariation{
 				{
-					UID:         "variation1_uid",
-					VariationID: "variation1_id",
-					Name:        "variation1",
-					Quantity:    2,
+					UID:      "variation1_uid",
+					ID:       "variation1_id",
+					Name:     "variation1",
+					Quantity: 2,
 					AppliedDiscounts: []OrderItemAppliedDiscount{
 						{
 							DiscountUID: "discount1_uid",
@@ -287,7 +299,7 @@ var testcases = []OrderingTestCase{
 	},
 	{
 		Name: "OneItemWithTaxes",
-		Items: []ItemVariation{
+		ItemVariations: []ItemVariation{
 			{
 				ID:   "variation1_id",
 				Name: "variation1",
@@ -307,11 +319,11 @@ var testcases = []OrderingTestCase{
 		Schema: OrderSchema{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
-			Items: []OrderSchemaItem{
+			ItemVariations: []OrderSchemaItemVariation{
 				{
-					UID:         "variation1_uid",
-					VariationID: "variation1_id",
-					Quantity:    2,
+					UID:      "variation1_uid",
+					ID:       "variation1_id",
+					Quantity: 2,
 				},
 			},
 			Taxes: []OrderSchemaTax{
@@ -325,12 +337,12 @@ var testcases = []OrderingTestCase{
 		Order: Order{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
-			Items: []OrderItem{
+			ItemVariations: []OrderItemVariation{
 				{
-					UID:         "variation1_uid",
-					VariationID: "variation1_id",
-					Name:        "variation1",
-					Quantity:    2,
+					UID:      "variation1_uid",
+					ID:       "variation1_id",
+					Name:     "variation1",
+					Quantity: 2,
 					BasePrice: Money{
 						Value:    500,
 						Currency: "PEN",
@@ -390,7 +402,7 @@ var testcases = []OrderingTestCase{
 	},
 	{
 		Name: "MultipleItemWithTaxes",
-		Items: []ItemVariation{
+		ItemVariations: []ItemVariation{
 			{
 				ID:   "variation1_id",
 				Name: "variation1",
@@ -426,21 +438,21 @@ var testcases = []OrderingTestCase{
 		Schema: OrderSchema{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
-			Items: []OrderSchemaItem{
+			ItemVariations: []OrderSchemaItemVariation{
 				{
-					UID:         "variation1_uid",
-					VariationID: "variation1_id",
-					Quantity:    1,
+					UID:      "variation1_uid",
+					ID:       "variation1_id",
+					Quantity: 1,
 				},
 				{
-					UID:         "variation2_uid",
-					VariationID: "variation2_id",
-					Quantity:    1,
+					UID:      "variation2_uid",
+					ID:       "variation2_id",
+					Quantity: 1,
 				},
 				{
-					UID:         "variation3_uid",
-					VariationID: "variation3_id",
-					Quantity:    1,
+					UID:      "variation3_uid",
+					ID:       "variation3_id",
+					Quantity: 1,
 				},
 			},
 			Taxes: []OrderSchemaTax{
@@ -454,12 +466,12 @@ var testcases = []OrderingTestCase{
 		Order: Order{
 			LocationID: "location_id",
 			MerchantID: "merchant_id",
-			Items: []OrderItem{
+			ItemVariations: []OrderItemVariation{
 				{
-					UID:         "variation1_uid",
-					VariationID: "variation1_id",
-					Name:        "variation1",
-					Quantity:    1,
+					UID:      "variation1_uid",
+					ID:       "variation1_id",
+					Name:     "variation1",
+					Quantity: 1,
 					BasePrice: Money{
 						Value:    350,
 						Currency: "PEN",
@@ -491,10 +503,10 @@ var testcases = []OrderingTestCase{
 					},
 				},
 				{
-					UID:         "variation2_uid",
-					VariationID: "variation2_id",
-					Name:        "variation2",
-					Quantity:    1,
+					UID:      "variation2_uid",
+					ID:       "variation2_id",
+					Name:     "variation2",
+					Quantity: 1,
 					BasePrice: Money{
 						Value:    350,
 						Currency: "PEN",
@@ -526,10 +538,10 @@ var testcases = []OrderingTestCase{
 					},
 				},
 				{
-					UID:         "variation3_uid",
-					VariationID: "variation3_id",
-					Name:        "variation3",
-					Quantity:    1,
+					UID:      "variation3_uid",
+					ID:       "variation3_id",
+					Name:     "variation3",
+					Quantity: 1,
 					BasePrice: Money{
 						Value:    350,
 						Currency: "PEN",

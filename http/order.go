@@ -112,10 +112,10 @@ func (h *Handler) HandleCreateOrder(c echo.Context) error {
 		MerchantID: merchant.ID,
 	}
 	for _, item := range req.Items {
-		schema.Items = append(schema.Items, core.OrderSchemaItem{
-			UID:         item.UID,
-			VariationID: item.VariationID,
-			Quantity:    item.Quantity,
+		schema.ItemVariations = append(schema.ItemVariations, core.OrderSchemaItemVariation{
+			UID:      item.UID,
+			ID:       item.VariationID,
+			Quantity: item.Quantity,
 		})
 	}
 	for _, tax := range req.Taxes {
@@ -184,8 +184,8 @@ type Order struct {
 }
 
 func NewOrder(order core.Order) Order {
-	items := make([]OrderItem, len(order.Items))
-	for i, orderItem := range order.Items {
+	items := make([]OrderItem, len(order.ItemVariations))
+	for i, orderItem := range order.ItemVariations {
 		items[i] = NewOrderItem(orderItem)
 	}
 	taxes := make([]OrderTax, len(order.Taxes))
@@ -235,7 +235,7 @@ type OrderItem struct {
 	TotalAmount         Money                      `json:"total_amount"`
 }
 
-func NewOrderItem(item core.OrderItem) OrderItem {
+func NewOrderItem(item core.OrderItemVariation) OrderItem {
 	taxes := make([]OrderItemAppliedTax, len(item.AppliedTaxes))
 	for i, tax := range item.AppliedTaxes {
 		taxes[i] = OrderItemAppliedTax{
@@ -258,7 +258,7 @@ func NewOrderItem(item core.OrderItem) OrderItem {
 	}
 	return OrderItem{
 		UID:         item.UID,
-		VariationID: item.VariationID,
+		VariationID: item.ID,
 		Name:        item.Name,
 		Quantity:    item.Quantity,
 		BasePrice: Money{

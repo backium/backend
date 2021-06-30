@@ -1,9 +1,28 @@
 [
   {
     "Name": "OnlyItems",
+    "Categories": [
+        {
+            "ID": "category1_id",
+            "Name": "category1"
+        }
+    ],
     "Items": [
+        {
+            "ID": "item1_id",
+            "CategoryID": "category1_id",
+            "Name": "item1"
+        },
+        {
+            "ID": "item2_id",
+            "CategoryID": "category1_id",
+            "Name": "item2"
+        }
+    ],
+    "ItemVariations": [
       {
         "ID": "variation1_id",
+        "ItemID": "item1_id",
         "Name": "variation1",
         "Price": {
           "Value": 500,
@@ -12,6 +31,7 @@
       },
       {
         "ID": "variation2_id",
+        "ItemID": "item2_id",
         "Name": "variation2",
         "Price": {
           "Value": 1000,
@@ -20,15 +40,15 @@
       }
     ],
     "Schema": {
-      "Items": [
+      "ItemVariations": [
         {
           "UID": "variation1_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
           "Quantity": 2
         },
         {
           "UID": "variation2_uid",
-          "VariationID": "variation2_id",
+          "ID": "variation2_id",
           "Quantity": 2
         }
       ],
@@ -36,11 +56,13 @@
       "MerchantID": "merchant_id"
     },
     "Order": {
-      "Items": [
+      "ItemVariations": [
         {
           "UID": "variation1_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
           "Name": "variation1",
+          "ItemName": "item1",
+          "CategoryName": "category1",
           "Quantity": 2,
           "GrossSales": {
             "Value": 1000,
@@ -65,8 +87,10 @@
         },
         {
           "UID": "variation2_uid",
-          "VariationID": "variation2_id",
+          "ID": "variation2_id",
           "Name": "variation2",
+          "ItemName": "item2",
+          "CategoryName": "category1",
           "Quantity": 2,
           "GrossSales": {
             "Value": 2000,
@@ -108,9 +132,23 @@
   },
   {
     "Name": "OneItemWithDiscounts",
+    "Categories": [
+        {
+            "ID": "category1_id",
+            "Name": "category1"
+        }
+    ],
     "Items": [
+        {
+            "ID": "item1_id",
+            "CategoryID": "category1_id",
+            "Name": "item1"
+        }
+    ],
+    "ItemVariations": [
       {
         "ID": "variation1_id",
+        "ItemID": "item1_id",
         "Name": "variation1",
         "Price": {
           "Value": 500,
@@ -136,10 +174,10 @@
       }
     ],
     "Schema": {
-      "Items": [
+      "ItemVariations": [
         {
           "UID": "variation1_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
           "Quantity": 2
         }
       ],
@@ -157,10 +195,12 @@
       "MerchantID": "merchant_id"
     },
     "Order": {
-      "Items": [
+      "ItemVariations": [
         {
           "UID": "variation1_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
+          "CategoryName": "category1",
+          "ItemName": "item1",
           "Name": "variation1",
           "Quantity": 2,
           "GrossSales": {
@@ -246,9 +286,23 @@
   },
   {
     "Name": "MultipleItemWithTaxes",
+    "Categories": [
+        {
+            "ID": "category1_id",
+            "Name": "category1"
+        }
+    ],
     "Items": [
+        {
+            "ID": "item1_id",
+            "CategoryID": "category1_id",
+            "Name": "item1"
+        }
+    ],
+    "ItemVariations": [
       {
         "ID": "variation1_id",
+        "ItemID": "item1_id",
         "Name": "variation1",
         "Price": {
           "Value": 350,
@@ -257,6 +311,7 @@
       },
       {
         "ID": "variation2_id",
+        "ItemID": "item1_id",
         "Name": "variation2",
         "Price": {
           "Value": 350,
@@ -265,6 +320,7 @@
       },
       {
         "ID": "variation3_id",
+        "ItemID": "item1_id",
         "Name": "variation3",
         "Price": {
           "Value": 350,
@@ -280,20 +336,20 @@
       }
     ],
     "Schema": {
-      "Items": [
+      "ItemVariations": [
         {
           "UID": "variation1_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
           "Quantity": 1
         },
         {
           "UID": "variation2_uid",
-          "VariationID": "variation2_id",
+          "ID": "variation2_id",
           "Quantity": 1
         },
         {
           "UID": "variation3_uid",
-          "VariationID": "variation3_id",
+          "ID": "variation3_id",
           "Quantity": 1
         }
       ],
@@ -308,10 +364,12 @@
       "MerchantID": "merchant_id"
     },
     "Order": {
-      "Items": [
+      "ItemVariations": [
         {
           "UID": "variation1_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
+          "CategoryName":"category1",
+          "ItemName":"item1",
           "Name": "variation1",
           "Quantity": 1,
           "GrossSales": {
@@ -346,7 +404,9 @@
         },
         {
           "UID": "variation2_uid",
-          "VariationID": "variation2_id",
+          "ID": "variation2_id",
+          "CategoryName":"category1",
+          "ItemName":"item1",
           "Name": "variation2",
           "Quantity": 1,
           "GrossSales": {
@@ -381,7 +441,9 @@
         },
         {
           "UID": "variation3_uid",
-          "VariationID": "variation3_id",
+          "ID": "variation3_id",
+          "CategoryName":"category1",
+          "ItemName":"item1",
           "Name": "variation3",
           "Quantity": 1,
           "GrossSales": {
@@ -446,9 +508,23 @@
   },
   {
     "Name": "MultipleItemWithTaxesDiscounts",
+    "Categories": [
+        {
+            "ID": "category1_id",
+            "Name": "category1"
+        }
+    ],
     "Items": [
+        {
+            "ID": "item1_id",
+            "CategoryID": "category1_id",
+            "Name": "item1"
+        }
+    ],
+    "ItemVariations": [
       {
         "ID": "variation1_id",
+        "ItemID": "item1_id",
         "Name": "variation1",
         "Price": {
           "Value": 5150,
@@ -481,20 +557,20 @@
         }
     ],
     "Schema": {
-      "Items": [
+      "ItemVariations": [
         {
           "UID": "variation1_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
           "Quantity": 2
         },
         {
           "UID": "variation2_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
           "Quantity": 1
         },
         {
           "UID": "variation3_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
           "Quantity": 1
         }
       ],
@@ -519,10 +595,12 @@
       "MerchantID": "merchant_id"
     },
     "Order": {
-      "Items": [
+      "ItemVariations": [
         {
           "UID": "variation1_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
+          "CategoryName":"category1",
+          "ItemName":"item1",
           "Name": "variation1",
           "Quantity": 2,
           "GrossSales": {
@@ -573,7 +651,9 @@
         },
         {
           "UID": "variation2_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
+          "CategoryName":"category1",
+          "ItemName":"item1",
           "Name": "variation1",
           "Quantity": 1,
           "GrossSales": {
@@ -624,7 +704,9 @@
         },
         {
           "UID": "variation3_uid",
-          "VariationID": "variation1_id",
+          "ID": "variation1_id",
+          "CategoryName":"category1",
+          "ItemName":"item1",
           "Name": "variation1",
           "Quantity": 1,
           "GrossSales": {
