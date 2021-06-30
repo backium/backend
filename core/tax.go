@@ -14,14 +14,15 @@ const (
 )
 
 type Tax struct {
-	ID          string   `bson:"_id"`
-	Name        string   `bson:"name,omitempty"`
-	Percentage  float64  `bson:"percentage"`
-	LocationIDs []string `bson:"location_ids"`
-	MerchantID  string   `bson:"merchant_id,omitempty"`
-	CreatedAt   int64    `bson:"created_at"`
-	UpdatedAt   int64    `bson:"updated_at"`
-	Status      Status   `bson:"status,omitempty"`
+	ID           string   `bson:"_id"`
+	Name         string   `bson:"name,omitempty"`
+	Percentage   float64  `bson:"percentage"`
+	LocationIDs  []string `bson:"location_ids"`
+	MerchantID   string   `bson:"merchant_id,omitempty"`
+	EnabledInPOS bool     `bson:"enabled_in_pos"`
+	CreatedAt    int64    `bson:"created_at"`
+	UpdatedAt    int64    `bson:"updated_at"`
+	Status       Status   `bson:"status,omitempty"`
 }
 
 func NewTax(name, merchantID string) Tax {

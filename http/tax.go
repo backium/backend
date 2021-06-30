@@ -19,6 +19,7 @@ func (h *Handler) HandleCreateTax(c echo.Context) error {
 	type request struct {
 		Name        string    `json:"name" validate:"required"`
 		Percentage  *float64  `json:"percentage" validate:"required,min=0,max=100"`
+		Enabled     bool      `json:"enabled"`
 		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
@@ -36,6 +37,7 @@ func (h *Handler) HandleCreateTax(c echo.Context) error {
 
 	tax := core.NewTax(req.Name, merchant.ID)
 	tax.Percentage = *req.Percentage
+	tax.EnabledInPOS = req.Enabled
 	if req.LocationIDs != nil {
 		tax.LocationIDs = *req.LocationIDs
 	}
@@ -55,6 +57,7 @@ func (h *Handler) HandleUpdateTax(c echo.Context) error {
 		ID          string    `param:"id" validate:"required"`
 		Name        *string   `json:"name" validate:"omitempty,min=1"`
 		Percentage  *float64  `json:"percentage" validate:"omitempty,min=0,max=100"`
+		Enabled     *bool     `json:"enabled"`
 		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
@@ -79,6 +82,9 @@ func (h *Handler) HandleUpdateTax(c echo.Context) error {
 	}
 	if req.Percentage != nil {
 		tax.Percentage = *req.Percentage
+	}
+	if req.Enabled != nil {
+		tax.EnabledInPOS = *req.Enabled
 	}
 	if req.LocationIDs != nil {
 		tax.LocationIDs = *req.LocationIDs
@@ -228,25 +234,27 @@ func (h *Handler) HandleDeleteTax(c echo.Context) error {
 }
 
 type Tax struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Percentage  float64     `json:"percentage"`
-	LocationIDs []string    `json:"location_ids"`
-	MerchantID  string      `json:"merchant_id"`
-	CreatedAt   int64       `json:"created_at"`
-	UpdatedAt   int64       `json:"updated_at"`
-	Status      core.Status `json:"status"`
+	ID           string      `json:"id"`
+	Name         string      `json:"name"`
+	Percentage   float64     `json:"percentage"`
+	EnabledInPOS bool        `json:"enabled"`
+	LocationIDs  []string    `json:"location_ids"`
+	MerchantID   string      `json:"merchant_id"`
+	CreatedAt    int64       `json:"created_at"`
+	UpdatedAt    int64       `json:"updated_at"`
+	Status       core.Status `json:"status"`
 }
 
 func NewTax(tax core.Tax) Tax {
 	return Tax{
-		ID:          tax.ID,
-		Name:        tax.Name,
-		Percentage:  tax.Percentage,
-		LocationIDs: tax.LocationIDs,
-		MerchantID:  tax.MerchantID,
-		CreatedAt:   tax.CreatedAt,
-		UpdatedAt:   tax.UpdatedAt,
-		Status:      tax.Status,
+		ID:           tax.ID,
+		Name:         tax.Name,
+		Percentage:   tax.Percentage,
+		EnabledInPOS: tax.EnabledInPOS,
+		LocationIDs:  tax.LocationIDs,
+		MerchantID:   tax.MerchantID,
+		CreatedAt:    tax.CreatedAt,
+		UpdatedAt:    tax.UpdatedAt,
+		Status:       tax.Status,
 	}
 }
