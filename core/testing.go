@@ -106,3 +106,57 @@ func (m *mockDiscountStorage) Get(ctx context.Context, id, merchantID string, lo
 func (m *mockDiscountStorage) List(ctx context.Context, fil DiscountFilter) ([]Discount, error) {
 	return m.ListFn(ctx, fil)
 }
+
+type mockCategoryStorage struct {
+	PutFn      func(context.Context, Category) error
+	PutBatchFn func(context.Context, []Category) error
+	GetFn      func(context.Context, string, string, []string) (Category, error)
+	ListFn     func(context.Context, CategoryFilter) ([]Category, error)
+}
+
+func NewMockCategoryStorage() *mockCategoryStorage {
+	return &mockCategoryStorage{}
+}
+
+func (m *mockCategoryStorage) Put(ctx context.Context, t Category) error {
+	return m.PutFn(ctx, t)
+}
+
+func (m *mockCategoryStorage) PutBatch(ctx context.Context, batch []Category) error {
+	return m.PutBatchFn(ctx, batch)
+}
+
+func (m *mockCategoryStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (Category, error) {
+	return m.GetFn(ctx, id, merchantID, locationIDs)
+}
+
+func (m *mockCategoryStorage) List(ctx context.Context, fil CategoryFilter) ([]Category, error) {
+	return m.ListFn(ctx, fil)
+}
+
+type mockItemStorage struct {
+	PutFn      func(context.Context, Item) error
+	PutBatchFn func(context.Context, []Item) error
+	GetFn      func(context.Context, string, string, []string) (Item, error)
+	ListFn     func(context.Context, ItemFilter) ([]Item, error)
+}
+
+func NewMockItemStorage() *mockItemStorage {
+	return &mockItemStorage{}
+}
+
+func (m *mockItemStorage) Put(ctx context.Context, t Item) error {
+	return m.PutFn(ctx, t)
+}
+
+func (m *mockItemStorage) PutBatch(ctx context.Context, batch []Item) error {
+	return m.PutBatchFn(ctx, batch)
+}
+
+func (m *mockItemStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (Item, error) {
+	return m.GetFn(ctx, id, merchantID, locationIDs)
+}
+
+func (m *mockItemStorage) List(ctx context.Context, fil ItemFilter) ([]Item, error) {
+	return m.ListFn(ctx, fil)
+}

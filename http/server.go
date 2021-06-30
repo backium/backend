@@ -68,6 +68,8 @@ func (s *Server) setupHandlers() {
 	orderingService := core.OrderingService{
 		OrderStorage:         s.OrderStorage,
 		PaymentStorage:       s.PaymentStorage,
+		ItemStorage:          s.ItemStorage,
+		CategoryStorage:      s.CategoryStorage,
 		ItemVariationStorage: s.ItemVariationStorage,
 		TaxStorage:           s.TaxStorage,
 		DiscountStorage:      s.DiscountStorage,

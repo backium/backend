@@ -18,35 +18,35 @@ const (
 )
 
 type Order struct {
-	ID                  string          `bson:"_id"`
-	Items               []OrderItem     `bson:"items"`
-	Taxes               []OrderTax      `bson:"taxes"`
-	Discounts           []OrderDiscount `bson:"discounts"`
-	TotalDiscountAmount Money           `bson:"total_discount_amount"`
-	TotalTaxAmount      Money           `bson:"total_tax_amount"`
-	TotalTipAmount      Money           `bson:"total_tip_amount"`
-	TotalAmount         Money           `bson:"total_amount"`
-	State               OrderState      `bson:"state"`
-	LocationID          string          `bson:"location_id"`
-	MerchantID          string          `bson:"merchant_id"`
-	CreatedAt           int64           `bson:"created_at"`
-	UpdatedAt           int64           `bson:"updated_at"`
-	Schema              OrderSchema     `bson:"schema"`
+	ID                  string               `bson:"_id"`
+	ItemVariations      []OrderItemVariation `bson:"item_variations"`
+	Taxes               []OrderTax           `bson:"taxes"`
+	Discounts           []OrderDiscount      `bson:"discounts"`
+	TotalDiscountAmount Money                `bson:"total_discount_amount"`
+	TotalTaxAmount      Money                `bson:"total_tax_amount"`
+	TotalTipAmount      Money                `bson:"total_tip_amount"`
+	TotalAmount         Money                `bson:"total_amount"`
+	State               OrderState           `bson:"state"`
+	LocationID          string               `bson:"location_id"`
+	MerchantID          string               `bson:"merchant_id"`
+	CreatedAt           int64                `bson:"created_at"`
+	UpdatedAt           int64                `bson:"updated_at"`
+	Schema              OrderSchema          `bson:"schema"`
 }
 
 func NewOrder(locationID, merchantID string) Order {
 	return Order{
-		ID:         NewID("order"),
-		Items:      []OrderItem{},
-		State:      OrderStateOpen,
-		LocationID: locationID,
-		MerchantID: merchantID,
+		ID:             NewID("order"),
+		ItemVariations: []OrderItemVariation{},
+		State:          OrderStateOpen,
+		LocationID:     locationID,
+		MerchantID:     merchantID,
 	}
 }
 
-type OrderItem struct {
+type OrderItemVariation struct {
 	UID                 string                     `bson:"uid"`
-	VariationID         string                     `bson:"variation_id"`
+	ID                  string                     `bson:"variation_id"`
 	Name                string                     `bson:"name"`
 	Quantity            int64                      `bson:"quantity"`
 	GrossSales          Money                      `bson:"gross_sales"`
@@ -56,6 +56,9 @@ type OrderItem struct {
 	BasePrice           Money                      `bson:"base_price"`
 	AppliedTaxes        []OrderItemAppliedTax      `bson:"applied_taxes"`
 	AppliedDiscounts    []OrderItemAppliedDiscount `bson:"applied_discounts"`
+
+	CategoryName string `bson:"category_name"`
+	ItemName     string `bson:"item_name"`
 }
 
 type OrderItemAppliedTax struct {
@@ -92,6 +95,8 @@ type OrderFilter struct {
 	Offset      int64
 	LocationIDs []string
 	MerchantID  string
+	BeginTime   int64
+	EndTime     int64
 }
 
 type OrderStorage interface {
@@ -102,18 +107,31 @@ type OrderStorage interface {
 
 // OrderSchema represents a potential order to be created.
 type OrderSchema struct {
-	Items      []OrderSchemaItem     `bson:"items"`
-	Taxes      []OrderSchemaTax      `bson:"taxes"`
-	Discounts  []OrderSchemaDiscount `bson:"discounts"`
-	LocationID string                `bson:"location_id"`
-	MerchantID string                `bson:"merchant_id"`
-	Currency   string                `bson:"currency"`
+	ItemVariations []OrderSchemaItemVariation `bson:"item_variations"`
+	Taxes          []OrderSchemaTax           `bson:"taxes"`
+	Discounts      []OrderSchemaDiscount      `bson:"discounts"`
+	LocationID     string                     `bson:"location_id"`
+	MerchantID     string                     `bson:"merchant_id"`
+	Currency       string                     `bson:"currency"`
+}
+
+// Validate iterates the schema to validate the uniqueness of the uids
+func (sch *OrderSchema) Validate() bool {
+	usedUIDs := map[string]struct{}{}
+	for _, variation := range sch.ItemVariations {
+		uid := variation.UID
+		if _, ok := usedUIDs[uid]; ok {
+			return false
+		}
+		usedUIDs[uid] = struct{}{}
+	}
+	return true
 }
 
 func (sch *OrderSchema) itemVariationIDs() []string {
-	ids := make([]string, len(sch.Items))
-	for i, it := range sch.Items {
-		ids[i] = it.VariationID
+	ids := make([]string, len(sch.ItemVariations))
+	for i, it := range sch.ItemVariations {
+		ids[i] = it.ID
 	}
 	return ids
 }
@@ -134,10 +152,10 @@ func (sch *OrderSchema) discountIDs() []string {
 	return ids
 }
 
-type OrderSchemaItem struct {
-	UID         string `bson:"uid"`
-	VariationID string `bson:"variation_id"`
-	Quantity    int64  `bson:"quantity"`
+type OrderSchemaItemVariation struct {
+	UID      string `bson:"uid"`
+	ID       string `bson:"variation_id"`
+	Quantity int64  `bson:"quantity"`
 }
 
 type OrderSchemaTax struct {

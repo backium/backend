@@ -21,6 +21,8 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 		LocationIDs []string `json:"location_ids" validate:"omitempty,dive,required"`
 		Limit       int64    `json:"limit" validate:"gte=0"`
 		Offset      int64    `json:"offset" validate:"gte=0"`
+		BeginTime   int64    `json:"begin_time"`
+		EndTime     int64    `json:"end_time"`
 	}
 
 	type response struct {
@@ -47,6 +49,8 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 	}
 
 	orders, err := h.OrderingService.ListOrder(ctx, core.OrderFilter{
+		BeginTime:   req.BeginTime,
+		EndTime:     req.EndTime,
 		Limit:       limit,
 		Offset:      offset,
 		LocationIDs: req.LocationIDs,
@@ -108,10 +112,10 @@ func (h *Handler) HandleCreateOrder(c echo.Context) error {
 		MerchantID: merchant.ID,
 	}
 	for _, item := range req.Items {
-		schema.Items = append(schema.Items, core.OrderSchemaItem{
-			UID:         item.UID,
-			VariationID: item.VariationID,
-			Quantity:    item.Quantity,
+		schema.ItemVariations = append(schema.ItemVariations, core.OrderSchemaItemVariation{
+			UID:      item.UID,
+			ID:       item.VariationID,
+			Quantity: item.Quantity,
 		})
 	}
 	for _, tax := range req.Taxes {
@@ -180,8 +184,8 @@ type Order struct {
 }
 
 func NewOrder(order core.Order) Order {
-	items := make([]OrderItem, len(order.Items))
-	for i, orderItem := range order.Items {
+	items := make([]OrderItem, len(order.ItemVariations))
+	for i, orderItem := range order.ItemVariations {
 		items[i] = NewOrderItem(orderItem)
 	}
 	taxes := make([]OrderTax, len(order.Taxes))
@@ -231,7 +235,7 @@ type OrderItem struct {
 	TotalAmount         Money                      `json:"total_amount"`
 }
 
-func NewOrderItem(item core.OrderItem) OrderItem {
+func NewOrderItem(item core.OrderItemVariation) OrderItem {
 	taxes := make([]OrderItemAppliedTax, len(item.AppliedTaxes))
 	for i, tax := range item.AppliedTaxes {
 		taxes[i] = OrderItemAppliedTax{
@@ -254,7 +258,7 @@ func NewOrderItem(item core.OrderItem) OrderItem {
 	}
 	return OrderItem{
 		UID:         item.UID,
-		VariationID: item.VariationID,
+		VariationID: item.ID,
 		Name:        item.Name,
 		Quantity:    item.Quantity,
 		BasePrice: Money{
