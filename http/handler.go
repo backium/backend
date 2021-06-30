@@ -12,6 +12,7 @@ import (
 
 type Handler struct {
 	UserService       core.UserService
+	EmployeeService   core.EmployeeService
 	CatalogService    core.CatalogService
 	MerchantService   core.MerchantService
 	LocationService   core.LocationService

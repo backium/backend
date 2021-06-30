@@ -17,11 +17,18 @@ func (s *Server) setupRoutes() {
 	userGroup.POST("/merchants", s.Handler.CreateMerchant)
 	userGroup.POST("/keys", s.Handler.CreateAPIKey)
 
-	pubGroup.POST("/signup", s.Handler.Signup)
+	pubGroup.POST("/signup", s.Handler.RegisterOwner)
 	pubGroup.POST("/login", s.Handler.Login)
-	pubGroup.POST("/auth/signin", s.Handler.UniversalSignin)
+	pubGroup.POST("/auth/signin", s.Handler.UniversalLogin)
 	pubGroup.GET("/auth/session", s.Handler.UniversalGetSession)
-	userGroup.POST("/signout", s.Handler.Signout)
+	userGroup.POST("/signup/employee", s.Handler.RegisterEmployee)
+	userGroup.POST("/signout", s.Handler.Logout)
+
+	userGroup.GET("/employees/:id", s.Handler.RetrieveEmployee)
+	userGroup.POST("/employees/search", s.Handler.SearchEmployee)
+	userGroup.POST("/employees", s.Handler.CreateEmployee)
+	userGroup.PUT("/employees/:id", s.Handler.UpdateEmployee)
+	userGroup.DELETE("/employees/:id", s.Handler.DeleteEmployee)
 
 	userGroup.GET("/locations/:id", s.Handler.RetrieveLocation)
 	userGroup.GET("/locations", s.Handler.ListLocations)

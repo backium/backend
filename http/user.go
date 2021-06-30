@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/backium/backend/core"
@@ -8,66 +9,93 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (h *Handler) Signup(c echo.Context) error {
-	const op = errors.Op("authHandler.Signup")
-	req := UserCreateRequest{}
+func (h *Handler) RegisterOwner(c echo.Context) error {
+	const op = errors.Op("http/Handler.RegisterOwner")
+	req := RegisterRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
 	}
-	u, err := h.UserService.Create(c.Request().Context(), core.UserCreateRequest{
-		Email:    req.Email,
-		Password: req.Password,
-		IsOwner:  true,
-	})
+	ctx := c.Request().Context()
+	user := core.NewUserOwner()
+	user.Email = req.Email
+
+	user, err := h.UserService.Create(ctx, user, req.Password)
 	if errors.Is(err, errors.KindUserExist) {
-		return c.JSON(http.StatusOK, SignupResponse{
+		return c.JSON(http.StatusOK, RegisterResponse{
 			ExistingUser: true,
 		})
 	}
 	if err != nil {
 		return errors.E(op, err)
 	}
-	return c.JSON(http.StatusOK, SignupResponse{
-		UserID:       u.ID,
-		MerchantID:   u.MerchantID,
+	return c.JSON(http.StatusOK, RegisterResponse{
+		UserID:       user.ID,
+		MerchantID:   user.MerchantID,
+		ExistingUser: false,
+	})
+}
+
+func (h *Handler) RegisterEmployee(c echo.Context) error {
+	const op = errors.Op("http/Handler.RegisterEmployee")
+	ac, ok := c.(*AuthContext)
+	if !ok {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+	req := RegisterEmployeeRequest{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+	ctx := c.Request().Context()
+	user := core.NewUserEmployee(ac.MerchantID, req.EmployeeID)
+	user.Email = req.Email
+
+	fmt.Println(user, req.Password)
+	user, err := h.UserService.Create(ctx, user, req.Password)
+	if errors.Is(err, errors.KindUserExist) {
+		return c.JSON(http.StatusOK, RegisterResponse{
+			ExistingUser: true,
+		})
+	}
+	if err != nil {
+		return errors.E(op, err)
+	}
+	return c.JSON(http.StatusOK, RegisterResponse{
+		UserID:       user.ID,
+		MerchantID:   user.MerchantID,
+		EmployeeID:   user.EmployeeID,
 		ExistingUser: false,
 	})
 }
 
 func (h *Handler) Login(c echo.Context) error {
 	const op = errors.Op("authHandler.Login")
-	req := UserLoginRequest{}
-	if err := bindAndValidate(c, &req); err != nil {
-		return errors.E(op, err)
-	}
-	u, err := h.UserService.Login(c.Request().Context(), core.UserLoginRequest{
-		Email:    req.Email,
-		Password: req.Password,
-	})
-	if err != nil {
-		return errors.E(op, err)
-	}
-	if err := h.setSession(c, u); err != nil {
-		return errors.E(op, err)
-	}
-	return c.JSON(http.StatusOK, NewUser(u))
-}
-
-func (h *Handler) UniversalSignin(c echo.Context) error {
-	const op = errors.Op("http/Handler.UniversalSignin")
-	req := UserLoginRequest{}
+	req := LoginRequest{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return errors.E(op, err)
 	}
 	ctx := c.Request().Context()
-	u, err := h.UserService.Login(ctx, core.UserLoginRequest{
-		Email:    req.Email,
-		Password: req.Password,
-	})
+	user, err := h.UserService.Login(ctx, req.Email, req.Password)
 	if err != nil {
 		return errors.E(op, err)
 	}
-	s := newSession(u)
+	if err := h.setSession(c, user); err != nil {
+		return errors.E(op, err)
+	}
+	return c.JSON(http.StatusOK, NewUser(user))
+}
+
+func (h *Handler) UniversalLogin(c echo.Context) error {
+	const op = errors.Op("http/Handler.UniversalSignin")
+	req := LoginRequest{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return errors.E(op, err)
+	}
+	ctx := c.Request().Context()
+	user, err := h.UserService.Login(ctx, req.Email, req.Password)
+	if err != nil {
+		return errors.E(op, err)
+	}
+	s := newSession(user)
 	if err := h.SessionRepository.Set(ctx, s); err != nil {
 		return errors.E(op, err)
 	}
@@ -92,7 +120,7 @@ func (h *Handler) UniversalGetSession(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
-func (h *Handler) Signout(c echo.Context) error {
+func (h *Handler) Logout(c echo.Context) error {
 	ac := c.(*AuthContext)
 	h.SessionRepository.Delete(c.Request().Context(), ac.Session.ID)
 	return c.JSONBlob(http.StatusOK, []byte("{}"))
@@ -119,30 +147,39 @@ type User struct {
 	ID         string `json:"id"`
 	Email      string `json:"email"`
 	IsOwner    bool   `json:"is_owner"`
+	EmployeeID string `json:"employee_id"`
 	MerchantID string `json:"merchant_id"`
 }
 
-func NewUser(u core.User) User {
+func NewUser(user core.User) User {
 	return User{
-		ID:         u.ID,
-		Email:      u.Email,
-		IsOwner:    u.Kind == core.UserKindOwner,
-		MerchantID: u.MerchantID,
+		ID:         user.ID,
+		Email:      user.Email,
+		IsOwner:    user.Kind == core.UserKindOwner,
+		EmployeeID: user.EmployeeID,
+		MerchantID: user.MerchantID,
 	}
 }
 
-type UserCreateRequest struct {
+type RegisterRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required,password"`
 }
 
-type UserLoginRequest struct {
+type RegisterEmployeeRequest struct {
+	Email      string `json:"email" validate:"required,email"`
+	Password   string `json:"password" validate:"required,password"`
+	EmployeeID string `json:"employee_id" validate:"required"`
+}
+
+type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
 }
 
-type SignupResponse struct {
+type RegisterResponse struct {
 	UserID       string `json:"user_id,omitempty"`
+	EmployeeID   string `json:"employee_id,omitempty"`
 	MerchantID   string `json:"merchant_id,omitempty"`
 	ExistingUser bool   `json:"existing_user"`
 }

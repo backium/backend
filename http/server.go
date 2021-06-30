@@ -11,7 +11,7 @@ type Server struct {
 	Echo                 *echo.Echo
 	DB                   mongo.DB
 	Handler              Handler
-	UserRepository       core.UserRepository
+	UserRepository       core.UserStorage
 	MerchantStorage      core.MerchantStorage
 	LocationStorage      core.LocationStorage
 	CustomerStorage      core.CustomerStorage
@@ -23,6 +23,7 @@ type Server struct {
 	OrderStorage         core.OrderStorage
 	PaymentStorage       core.PaymentStorage
 	InventoryStorage     core.InventoryStorage
+	EmployeeStorage      core.EmployeeStorage
 	SessionRepository    SessionRepository
 }
 
@@ -47,9 +48,13 @@ func (s *Server) setupHandlers() {
 	customerService := core.CustomerService{CustomerStorage: s.CustomerStorage}
 	merchantService := core.MerchantService{MerchantStorage: s.MerchantStorage}
 	userService := core.UserService{
-		UserRepository:  s.UserRepository,
+		UserStorage:     s.UserRepository,
+		EmployeeStorage: s.EmployeeStorage,
 		MerchantStorage: s.MerchantStorage,
 		LocationStorage: s.LocationStorage,
+	}
+	employeeService := core.EmployeeService{
+		EmployeeStorage: s.EmployeeStorage,
 	}
 	catalogService := core.CatalogService{
 		CategoryStorage:      s.CategoryStorage,
@@ -77,6 +82,7 @@ func (s *Server) setupHandlers() {
 		CustomerService:   customerService,
 		MerchantService:   merchantService,
 		UserService:       userService,
+		EmployeeService:   employeeService,
 		CatalogService:    catalogService,
 		OrderingService:   orderingService,
 		PaymentService:    paymentService,

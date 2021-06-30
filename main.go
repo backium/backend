@@ -20,6 +20,7 @@ func main() {
 		panic(err)
 	}
 	userRepository := mongo.NewUserRepository(db)
+	employeeStorage := mongo.NewEmployeeStorage(db)
 	merchantStorage := mongo.NewMerchantStorage(db)
 	locationStorage := mongo.NewLocationStorage(db)
 	customerStorage := mongo.NewCustomerStorage(db)
@@ -37,6 +38,7 @@ func main() {
 		Echo:                 echo.New(),
 		DB:                   db,
 		UserRepository:       userRepository,
+		EmployeeStorage:      employeeStorage,
 		MerchantStorage:      merchantStorage,
 		LocationStorage:      locationStorage,
 		CustomerStorage:      customerStorage,
