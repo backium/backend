@@ -18,12 +18,12 @@ func (h *Handler) HandleCreateEmployee(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateEmployee")
 
 	type request struct {
-		FirstName   string   `json:"first_name" validate:"required"`
-		LastName    string   `json:"last_name" validate:"required"`
-		Email       string   `json:"email" validate:"omitempty,email"`
-		Phone       string   `json:"phone" validate:"omitempty,e164"`
-		Rate        *Money   `json:"rate" validate:"omitempty"`
-		LocationIDs []string `json:"location_ids" validate:"omitempty,dive,required"`
+		FirstName   string        `json:"first_name" validate:"required"`
+		LastName    string        `json:"last_name" validate:"required"`
+		Email       string        `json:"email" validate:"omitempty,email"`
+		Phone       string        `json:"phone" validate:"omitempty,e164"`
+		Rate        *MoneyRequest `json:"rate" validate:"omitempty"`
+		LocationIDs []string      `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -61,13 +61,13 @@ func (h *Handler) HandleUpdateEmployee(c echo.Context) error {
 	const op = errors.Op("http/Handler.UpdateEmployee")
 
 	type request struct {
-		ID          string    `param:"id" validate:"required"`
-		FirstName   *string   `json:"first_name" validate:"omitempty,min=1"`
-		LastName    *string   `json:"last_name" validate:"omitempty,min=1"`
-		Email       *string   `json:"email" validate:"omitempty,email"`
-		Phone       *string   `json:"phone" validate:"omitempty,e164"`
-		Rate        *Money    `json:"rate" validate:"omitempty"`
-		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+		ID          string        `param:"id" validate:"required"`
+		FirstName   *string       `json:"first_name" validate:"omitempty,min=1"`
+		LastName    *string       `json:"last_name" validate:"omitempty,min=1"`
+		Email       *string       `json:"email" validate:"omitempty,email"`
+		Phone       *string       `json:"phone" validate:"omitempty,e164"`
+		Rate        *MoneyRequest `json:"rate" validate:"omitempty"`
+		LocationIDs *[]string     `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -201,31 +201,31 @@ func (h *Handler) HandleDeleteEmployee(c echo.Context) error {
 }
 
 type RateEntry struct {
-	Rate      Money `json:"rate"`
-	CreatedAt int64 `json:"created_at"`
+	Rate      MoneyRequest `json:"rate"`
+	CreatedAt int64        `json:"created_at"`
 }
 
 type Employee struct {
-	ID          string      `json:"id"`
-	FirstName   string      `json:"first_name"`
-	LastName    string      `json:"last_name"`
-	Email       string      `json:"email,omitempty"`
-	Phone       string      `json:"phone,omitempty"`
-	IsOwner     bool        `json:"is_owner"`
-	Rate        *Money      `json:"rate,omitempty"`
-	RateHistory []RateEntry `json:"rate_history"`
-	LocationIDs []string    `json:"location_ids"`
-	MerchantID  string      `json:"merchant_id"`
-	CreatedAt   int64       `json:"created_at"`
-	UpdatedAt   int64       `json:"updated_at"`
-	Status      core.Status `json:"status"`
+	ID          string        `json:"id"`
+	FirstName   string        `json:"first_name"`
+	LastName    string        `json:"last_name"`
+	Email       string        `json:"email,omitempty"`
+	Phone       string        `json:"phone,omitempty"`
+	IsOwner     bool          `json:"is_owner"`
+	Rate        *MoneyRequest `json:"rate,omitempty"`
+	RateHistory []RateEntry   `json:"rate_history"`
+	LocationIDs []string      `json:"location_ids"`
+	MerchantID  string        `json:"merchant_id"`
+	CreatedAt   int64         `json:"created_at"`
+	UpdatedAt   int64         `json:"updated_at"`
+	Status      core.Status   `json:"status"`
 }
 
 func NewEmployee(employee core.Employee) Employee {
 	history := make([]RateEntry, len(employee.RateHistory))
 	for i, rate := range employee.RateHistory {
 		history[i] = RateEntry{
-			Rate: Money{
+			Rate: MoneyRequest{
 				Value:    ptr.Int64(rate.Rate.Value),
 				Currency: rate.Rate.Currency,
 			},
@@ -233,9 +233,9 @@ func NewEmployee(employee core.Employee) Employee {
 		}
 	}
 
-	var rate *Money
+	var rate *MoneyRequest
 	if employee.Rate != nil {
-		rate = &Money{
+		rate = &MoneyRequest{
 			Value:    &employee.Rate.Value,
 			Currency: employee.Rate.Currency,
 		}

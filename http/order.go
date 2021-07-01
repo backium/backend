@@ -171,9 +171,9 @@ func (h *Handler) HandlePayOrder(c echo.Context) error {
 type Order struct {
 	ID                  string          `json:"id"`
 	Items               []OrderItem     `json:"items"`
-	TotalAmount         Money           `json:"total_amount"`
-	TotalDiscountAmount Money           `json:"total_discount_amount"`
-	TotalTaxAmount      Money           `json:"total_tax_amount"`
+	TotalAmount         MoneyRequest    `json:"total_amount"`
+	TotalDiscountAmount MoneyRequest    `json:"total_discount_amount"`
+	TotalTaxAmount      MoneyRequest    `json:"total_tax_amount"`
 	Taxes               []OrderTax      `json:"taxes"`
 	Discounts           []OrderDiscount `json:"discounts"`
 	State               core.OrderState `json:"state"`
@@ -202,15 +202,15 @@ func NewOrder(order core.Order) Order {
 		Taxes:     taxes,
 		Discounts: discounts,
 		State:     order.State,
-		TotalDiscountAmount: Money{
+		TotalDiscountAmount: MoneyRequest{
 			Value:    ptr.Int64(order.TotalDiscountAmount.Value),
 			Currency: order.TotalTaxAmount.Currency,
 		},
-		TotalTaxAmount: Money{
+		TotalTaxAmount: MoneyRequest{
 			Value:    ptr.Int64(order.TotalTaxAmount.Value),
 			Currency: order.TotalTaxAmount.Currency,
 		},
-		TotalAmount: Money{
+		TotalAmount: MoneyRequest{
 			Value:    ptr.Int64(order.TotalAmount.Value),
 			Currency: order.TotalAmount.Currency,
 		},
@@ -228,11 +228,11 @@ type OrderItem struct {
 	Quantity            int64                      `json:"quantity"`
 	AppliedTaxes        []OrderItemAppliedTax      `json:"applied_taxes"`
 	AppliedDiscounts    []OrderItemAppliedDiscount `json:"applied_discounts"`
-	BasePrice           Money                      `json:"base_price"`
-	GrossSales          Money                      `json:"gross_sales"`
-	TotalDiscountAmount Money                      `json:"total_discount_amount"`
-	TotalTaxAmount      Money                      `json:"total_tax_amount"`
-	TotalAmount         Money                      `json:"total_amount"`
+	BasePrice           MoneyRequest               `json:"base_price"`
+	GrossSales          MoneyRequest               `json:"gross_sales"`
+	TotalDiscountAmount MoneyRequest               `json:"total_discount_amount"`
+	TotalTaxAmount      MoneyRequest               `json:"total_tax_amount"`
+	TotalAmount         MoneyRequest               `json:"total_amount"`
 }
 
 func NewOrderItem(item core.OrderItemVariation) OrderItem {
@@ -240,7 +240,7 @@ func NewOrderItem(item core.OrderItemVariation) OrderItem {
 	for i, tax := range item.AppliedTaxes {
 		taxes[i] = OrderItemAppliedTax{
 			TaxUID: tax.TaxUID,
-			AppliedAmount: Money{
+			AppliedAmount: MoneyRequest{
 				Value:    ptr.Int64(tax.AppliedAmount.Value),
 				Currency: tax.AppliedAmount.Currency,
 			},
@@ -250,7 +250,7 @@ func NewOrderItem(item core.OrderItemVariation) OrderItem {
 	for i, discount := range item.AppliedDiscounts {
 		discounts[i] = OrderItemAppliedDiscount{
 			DiscountUID: discount.DiscountUID,
-			AppliedAmount: Money{
+			AppliedAmount: MoneyRequest{
 				Value:    ptr.Int64(discount.AppliedAmount.Value),
 				Currency: discount.AppliedAmount.Currency,
 			},
@@ -261,23 +261,23 @@ func NewOrderItem(item core.OrderItemVariation) OrderItem {
 		VariationID: item.ID,
 		Name:        item.Name,
 		Quantity:    item.Quantity,
-		BasePrice: Money{
+		BasePrice: MoneyRequest{
 			Value:    ptr.Int64(item.BasePrice.Value),
 			Currency: item.BasePrice.Currency,
 		},
-		GrossSales: Money{
+		GrossSales: MoneyRequest{
 			Value:    ptr.Int64(item.GrossSales.Value),
 			Currency: item.GrossSales.Currency,
 		},
-		TotalDiscountAmount: Money{
+		TotalDiscountAmount: MoneyRequest{
 			Value:    ptr.Int64(item.TotalDiscountAmount.Value),
 			Currency: item.TotalDiscountAmount.Currency,
 		},
-		TotalTaxAmount: Money{
+		TotalTaxAmount: MoneyRequest{
 			Value:    ptr.Int64(item.TotalTaxAmount.Value),
 			Currency: item.TotalTaxAmount.Currency,
 		},
-		TotalAmount: Money{
+		TotalAmount: MoneyRequest{
 			Value:    ptr.Int64(item.TotalAmount.Value),
 			Currency: item.TotalAmount.Currency,
 		},
@@ -287,13 +287,13 @@ func NewOrderItem(item core.OrderItemVariation) OrderItem {
 }
 
 type OrderItemAppliedTax struct {
-	TaxUID        string `json:"tax_uid"`
-	AppliedAmount Money  `json:"applied_amount"`
+	TaxUID        string       `json:"tax_uid"`
+	AppliedAmount MoneyRequest `json:"applied_amount"`
 }
 
 type OrderItemAppliedDiscount struct {
-	DiscountUID   string `json:"discount_uid"`
-	AppliedAmount Money  `json:"applied_amount"`
+	DiscountUID   string       `json:"discount_uid"`
+	AppliedAmount MoneyRequest `json:"applied_amount"`
 }
 
 type OrderTax struct {
@@ -302,7 +302,7 @@ type OrderTax struct {
 	Scope         core.TaxScope `json:"scope"`
 	Name          string        `json:"name"`
 	Percentage    float64       `json:"percentage"`
-	AppliedAmount Money         `json:"applied_amount"`
+	AppliedAmount MoneyRequest  `json:"applied_amount"`
 }
 
 func NewOrderTax(tax core.OrderTax) OrderTax {
@@ -312,7 +312,7 @@ func NewOrderTax(tax core.OrderTax) OrderTax {
 		Scope:      tax.Scope,
 		Name:       tax.Name,
 		Percentage: tax.Percentage,
-		AppliedAmount: Money{
+		AppliedAmount: MoneyRequest{
 			Value:    ptr.Int64(tax.AppliedAmount.Value),
 			Currency: tax.AppliedAmount.Currency,
 		},
@@ -324,9 +324,9 @@ type OrderDiscount struct {
 	ID            string            `json:"id"`
 	Name          string            `json:"name"`
 	Type          core.DiscountType `json:"type"`
-	Amount        *Money            `json:"amount,omitempty"`
+	Amount        *MoneyRequest     `json:"amount,omitempty"`
 	Percentage    *float64          `json:"percentage,omitempty"`
-	AppliedAmount Money             `json:"applied_amount"`
+	AppliedAmount MoneyRequest      `json:"applied_amount"`
 }
 
 func NewOrderDiscount(discount core.OrderDiscount) OrderDiscount {
@@ -335,13 +335,13 @@ func NewOrderDiscount(discount core.OrderDiscount) OrderDiscount {
 		ID:   discount.ID,
 		Name: discount.Name,
 		Type: discount.Type,
-		AppliedAmount: Money{
+		AppliedAmount: MoneyRequest{
 			Value:    ptr.Int64(discount.AppliedAmount.Value),
 			Currency: discount.AppliedAmount.Currency,
 		},
 	}
 	if discount.Type == core.DiscountFixed {
-		orderDiscount.Amount = &Money{
+		orderDiscount.Amount = &MoneyRequest{
 			Value:    ptr.Int64(discount.Amount.Value),
 			Currency: discount.Amount.Currency,
 		}

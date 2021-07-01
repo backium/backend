@@ -18,12 +18,12 @@ func (h *Handler) HandleCreateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Create")
 
 	type request struct {
-		Name        string    `json:"name" validate:"required"`
-		SKU         string    `json:"sku"`
-		ItemID      string    `json:"item_id" validate:"required"`
-		Price       *Money    `json:"price" validate:"required"`
-		Image       string    `json:"image"`
-		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+		Name        string        `json:"name" validate:"required"`
+		SKU         string        `json:"sku"`
+		ItemID      string        `json:"item_id" validate:"required"`
+		Price       *MoneyRequest `json:"price" validate:"required"`
+		Image       string        `json:"image"`
+		LocationIDs *[]string     `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -61,12 +61,12 @@ func (h *Handler) HandleUpdateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Update")
 
 	type request struct {
-		ID          string    `param:"id" validate:"required"`
-		Name        *string   `json:"name" validate:"omitempty,min=1"`
-		SKU         *string   `json:"sku"`
-		Price       *Money    `json:"price"`
-		Image       *string   `json:"image"`
-		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+		ID          string        `param:"id" validate:"required"`
+		Name        *string       `json:"name" validate:"omitempty,min=1"`
+		SKU         *string       `json:"sku"`
+		Price       *MoneyRequest `json:"price"`
+		Image       *string       `json:"image"`
+		LocationIDs *[]string     `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -194,17 +194,17 @@ func (h *Handler) HandleDeleteItemVariation(c echo.Context) error {
 }
 
 type ItemVariation struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	SKU         string      `json:"sku,omitempty"`
-	ItemID      string      `json:"item_id"`
-	Price       Money       `json:"price"`
-	Image       string      `json:"image,omitempty"`
-	LocationIDs []string    `json:"location_ids"`
-	MerchantID  string      `json:"merchant_id"`
-	CreatedAt   int64       `json:"created_at"`
-	UpdatedAt   int64       `json:"updated_at"`
-	Status      core.Status `json:"status"`
+	ID          string       `json:"id"`
+	Name        string       `json:"name"`
+	SKU         string       `json:"sku,omitempty"`
+	ItemID      string       `json:"item_id"`
+	Price       MoneyRequest `json:"price"`
+	Image       string       `json:"image,omitempty"`
+	LocationIDs []string     `json:"location_ids"`
+	MerchantID  string       `json:"merchant_id"`
+	CreatedAt   int64        `json:"created_at"`
+	UpdatedAt   int64        `json:"updated_at"`
+	Status      core.Status  `json:"status"`
 }
 
 func NewItemVariation(itvar core.ItemVariation) ItemVariation {
@@ -213,7 +213,7 @@ func NewItemVariation(itvar core.ItemVariation) ItemVariation {
 		Name:   itvar.Name,
 		SKU:    itvar.SKU,
 		ItemID: itvar.ItemID,
-		Price: Money{
+		Price: MoneyRequest{
 			Value:    &itvar.Price.Value,
 			Currency: itvar.Price.Currency,
 		},
