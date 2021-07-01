@@ -77,6 +77,12 @@ func (s *Server) setupHandlers() {
 	paymentService := core.PaymentService{
 		PaymentStorage: s.PaymentStorage,
 	}
+	reportService := core.ReportService{
+		OrderStorage:         s.OrderStorage,
+		ItemStorage:          s.ItemStorage,
+		ItemVariationStorage: s.ItemVariationStorage,
+		CategoryStorage:      s.CategoryStorage,
+	}
 
 	// setup handlers
 	s.Handler = Handler{
@@ -88,6 +94,7 @@ func (s *Server) setupHandlers() {
 		CatalogService:    catalogService,
 		OrderingService:   orderingService,
 		PaymentService:    paymentService,
+		ReportService:     reportService,
 		SessionRepository: s.SessionRepository,
 	}
 }

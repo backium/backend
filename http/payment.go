@@ -15,8 +15,8 @@ func (h *Handler) HandleCreatePayment(c echo.Context) error {
 	type request struct {
 		OrderID    string           `json:"order_id" validate:"required"`
 		Type       core.PaymentType `json:"type" validate:"required"`
-		Amount     *Money           `json:"amount" validate:"required,dive"`
-		TipAmount  *Money           `json:"tip_amount" validate:"omitempty,dive"`
+		Amount     *MoneyRequest    `json:"amount" validate:"required,dive"`
+		TipAmount  *MoneyRequest    `json:"tip_amount" validate:"omitempty,dive"`
 		LocationID string           `json:"location_id" validate:"required"`
 	}
 
@@ -51,8 +51,8 @@ type Payment struct {
 	ID         string           `json:"id"`
 	OrderID    string           `json:"order_id"`
 	Type       core.PaymentType `json:"type"`
-	Amount     Money            `json:"amount"`
-	TipAmount  Money            `json:"tip_amount"`
+	Amount     MoneyRequest     `json:"amount"`
+	TipAmount  MoneyRequest     `json:"tip_amount"`
 	LocationID string           `json:"location_id"`
 	CreatedAt  int64            `json:"created_at"`
 	UpdatedAt  int64            `json:"updated_at"`
@@ -63,11 +63,11 @@ func NewPayment(payment core.Payment) Payment {
 		ID:      payment.ID,
 		OrderID: payment.OrderID,
 		Type:    payment.Type,
-		Amount: Money{
+		Amount: MoneyRequest{
 			Value:    ptr.Int64(payment.Amount.Value),
 			Currency: payment.Amount.Currency,
 		},
-		TipAmount: Money{
+		TipAmount: MoneyRequest{
 			Value:    ptr.Int64(payment.TipAmount.Value),
 			Currency: payment.TipAmount.Currency,
 		},

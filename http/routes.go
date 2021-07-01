@@ -81,6 +81,8 @@ func (s *Server) setupRoutes() {
 	userGroup.POST("/orders/:order_id/pay", h.HandlePayOrder)
 
 	userGroup.POST("/payments", h.HandleCreatePayment)
+
+	userGroup.POST("/reports/custom", h.HandleGenerateCustomReport)
 }
 
 func (s *Server) loggerMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
