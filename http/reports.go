@@ -15,6 +15,7 @@ func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 	type request struct {
 		LocationIDs []string            `json:"location_ids" validate:"omitempty,dive,required"`
 		GroupByType []core.GroupingType `json:"group_by_type" validate:"required"`
+		Timezone    string              `json:"timezone" validate:"required"`
 		BeginTime   int64               `json:"begin_time" validate:"required"`
 		EndTime     int64               `json:"end_time" validate:"required"`
 	}
@@ -44,11 +45,15 @@ func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 		}
 	}
 
-	reports, err := h.ReportService.GenerateCustom(ctx, req.GroupByType, core.ReportFilter{
-		LocationIDs: req.LocationIDs,
-		MerchantID:  merchant.ID,
-		BeginTime:   req.BeginTime,
-		EndTime:     req.EndTime,
+	reports, err := h.ReportService.GenerateCustom(ctx, core.CustomReportRequest{
+		GroupType: req.GroupByType,
+		Timezone:  req.Timezone,
+		Filter: core.ReportFilter{
+			MerchantID:  merchant.ID,
+			LocationIDs: req.LocationIDs,
+			BeginTime:   req.BeginTime,
+			EndTime:     req.EndTime,
+		},
 	})
 	if err != nil {
 		return errors.E(op, err)

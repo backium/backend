@@ -2,7 +2,10 @@ package core
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/backium/backend/errors"
 )
@@ -12,10 +15,9 @@ const (
 	GroupingItemCategory  GroupingType = "item_category"
 	GroupingItem          GroupingType = "item"
 	GroupingItemVariation GroupingType = "item_variation"
-
-	//TODO: Finish remaining groupings
-	GroupingDay     GroupingType = "day"
-	GroupingWeekDay GroupingType = "week_day"
+	GroupingDay           GroupingType = "day"
+	GroupingWeekday       GroupingType = "weekday"
+	GroupingHourOfDay     GroupingType = "hour_of_day"
 )
 
 type GroupingType string
@@ -25,7 +27,10 @@ func (g *GroupingType) Validate() bool {
 	case GroupingNone,
 		GroupingItem,
 		GroupingItemCategory,
-		GroupingItemVariation:
+		GroupingItemVariation,
+		GroupingDay,
+		GroupingWeekday,
+		GroupingHourOfDay:
 		return true
 	default:
 		return false
@@ -38,6 +43,9 @@ func GroupingTypes() string {
 		string(GroupingItem),
 		string(GroupingItemCategory),
 		string(GroupingItemVariation),
+		string(GroupingDay),
+		string(GroupingWeekday),
+		string(GroupingHourOfDay),
 	}, ",")
 }
 
@@ -74,14 +82,20 @@ type CustomReport struct {
 	Aggregations Aggregations
 }
 
-func (svc *ReportService) GenerateCustom(ctx context.Context, groupType []GroupingType, filter ReportFilter) ([]CustomReport, error) {
+type CustomReportRequest struct {
+	GroupType []GroupingType
+	Timezone  string
+	Filter    ReportFilter
+}
+
+func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRequest) ([]CustomReport, error) {
 	const op = errors.Op("core/ReportService.GenerateCustom")
 
 	orders, err := svc.OrderStorage.List(ctx, OrderFilter{
-		LocationIDs: filter.LocationIDs,
-		MerchantID:  filter.MerchantID,
-		BeginTime:   filter.BeginTime,
-		EndTime:     filter.EndTime,
+		LocationIDs: req.Filter.LocationIDs,
+		MerchantID:  req.Filter.MerchantID,
+		BeginTime:   req.Filter.BeginTime,
+		EndTime:     req.Filter.EndTime,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
@@ -92,9 +106,9 @@ func (svc *ReportService) GenerateCustom(ctx context.Context, groupType []Groupi
 		wrappedOrders[i] = NewWrappedOrder(&orders[i])
 	}
 
-	reports, err := svc.generateCustom(wrappedOrders, groupType)
+	reports, err := svc.generateCustom(wrappedOrders, req.GroupType, req.Timezone)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, errors.E(op, errors.KindValidation, err)
 	}
 
 	return reports, nil
@@ -148,7 +162,7 @@ func (w *WrappedOrder) Remove(uid string) {
 	w.included[uid] = false
 }
 
-func (svc *ReportService) generateCustom(orders []WrappedOrder, groupBy []GroupingType) ([]CustomReport, error) {
+func (svc *ReportService) generateCustom(orders []WrappedOrder, groupBy []GroupingType, timezone string) ([]CustomReport, error) {
 	var reports []CustomReport
 	if len(groupBy) == 0 {
 		return reports, nil
@@ -160,20 +174,20 @@ func (svc *ReportService) generateCustom(orders []WrappedOrder, groupBy []Groupi
 	currentGroupType := groupBy[0]
 	remainingGroupTypes := groupBy[1:]
 
-	groupOrders, err := groupOrders(orders, currentGroupType)
+	orderGroups, err := groupOrders(orders, currentGroupType, timezone)
 	if err != nil {
 		return nil, err
 	}
 
-	for groupValue, orders := range groupOrders {
-		subreports, err := svc.generateCustom(orders, remainingGroupTypes)
+	for groupName, orders := range orderGroups {
+		subreports, err := svc.generateCustom(orders, remainingGroupTypes, timezone)
 		if err != nil {
 			return nil, err
 		}
 
 		report := CustomReport{
 			GroupType:    currentGroupType,
-			GroupValue:   groupValue,
+			GroupValue:   groupName,
 			SubReport:    subreports,
 			Aggregations: calculateAggregations(orders, "PEN"),
 		}
@@ -223,81 +237,169 @@ func calculateAggregations(orders []WrappedOrder, currency string) Aggregations 
 	}
 }
 
-func groupOrders(orders []WrappedOrder, groupType GroupingType) (map[string][]WrappedOrder, error) {
-	groupOrders := make(map[string][]WrappedOrder)
+func groupOrders(orders []WrappedOrder, groupType GroupingType, timezone string) (map[string][]WrappedOrder, error) {
+	orderGroups := make(map[string][]WrappedOrder)
 
 	switch groupType {
 	case GroupingNone:
-		groupOrders["all"] = orders
+		orderGroups["all"] = orders
 	case GroupingItemCategory:
-		groupOrders = groupOrdersByCategory(orders)
+		orderGroups = groupOrdersByCategory(orders)
 	case GroupingItem:
-		groupOrders = groupOrdersByItem(orders)
+		orderGroups = groupOrdersByItem(orders)
 	case GroupingItemVariation:
-		groupOrders = groupOrdersByItemVariation(orders)
+		orderGroups = groupOrdersByItemVariation(orders)
+	case GroupingDay:
+		orderGroups = groupOrdersByDay(orders, timezone)
+	case GroupingWeekday:
+		orderGroups = groupOrdersByWeekday(orders, timezone)
+	case GroupingHourOfDay:
+		orderGroups = groupOrdersByHourOfDay(orders, timezone)
 	default:
 		return nil, errors.E("Unsupported groupType")
 	}
 
-	return groupOrders, nil
+	return orderGroups, nil
 }
 
 func groupOrdersByCategory(orders []WrappedOrder) map[string][]WrappedOrder {
-	groupOrders := make(map[string][]WrappedOrder)
+	orderGroups := make(map[string][]WrappedOrder)
 
 	for _, order := range orders {
-		uidsByGroup := map[string][]string{}
+		uidGroups := map[string][]string{}
 		for _, variation := range order.Order.ItemVariations {
 			name := variation.CategoryName
 			if order.Contains(variation.UID) {
-				uidsByGroup[name] = append(uidsByGroup[name], variation.UID)
+				uidGroups[name] = append(uidGroups[name], variation.UID)
 			}
 		}
 
-		for name, uids := range uidsByGroup {
-			groupOrders[name] = append(groupOrders[name], order.CloneWith(uids))
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
 		}
 	}
 
-	return groupOrders
+	return orderGroups
 }
 
 func groupOrdersByItem(orders []WrappedOrder) map[string][]WrappedOrder {
-	groupOrders := make(map[string][]WrappedOrder)
+	orderGroups := make(map[string][]WrappedOrder)
 
 	for _, order := range orders {
-		groupUIDs := map[string][]string{}
+		uidGroups := map[string][]string{}
 		for _, variation := range order.Order.ItemVariations {
 			name := variation.ItemName
 			if order.Contains(variation.UID) {
-				groupUIDs[name] = append(groupUIDs[name], variation.UID)
+				uidGroups[name] = append(uidGroups[name], variation.UID)
 			}
 		}
 
-		for name, uids := range groupUIDs {
-			groupOrders[name] = append(groupOrders[name], order.CloneWith(uids))
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
 		}
 	}
 
-	return groupOrders
+	return orderGroups
 }
 
 func groupOrdersByItemVariation(orders []WrappedOrder) map[string][]WrappedOrder {
-	groupOrders := make(map[string][]WrappedOrder)
+	orderGroups := make(map[string][]WrappedOrder)
 
 	for _, order := range orders {
-		groupUIDs := map[string][]string{}
+		uidGroups := map[string][]string{}
 		for _, variation := range order.Order.ItemVariations {
 			name := variation.Name
 			if order.Contains(variation.UID) {
-				groupUIDs[name] = append(groupUIDs[name], variation.UID)
+				uidGroups[name] = append(uidGroups[name], variation.UID)
 			}
 		}
 
-		for name, uids := range groupUIDs {
-			groupOrders[name] = append(groupOrders[name], order.CloneWith(uids))
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
 		}
 	}
 
-	return groupOrders
+	return orderGroups
+}
+
+func groupOrdersByDay(orders []WrappedOrder, timezone string) map[string][]WrappedOrder {
+	orderGroups := make(map[string][]WrappedOrder)
+	location, _ := time.LoadLocation(timezone)
+
+	for _, order := range orders {
+		uidGroups := map[string][]string{}
+
+		creationTime := time.Unix(order.Order.CreatedAt, 0).In(location)
+		startOfDay := startOfDay(creationTime)
+		endOfDay := endOfDay(creationTime)
+
+		name := fmt.Sprintf("%v-%v", startOfDay.Unix(), endOfDay.Unix())
+		for _, variation := range order.Order.ItemVariations {
+			if order.Contains(variation.UID) {
+				uidGroups[name] = append(uidGroups[name], variation.UID)
+			}
+		}
+
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
+		}
+	}
+
+	return orderGroups
+}
+
+func groupOrdersByWeekday(orders []WrappedOrder, timezone string) map[string][]WrappedOrder {
+	orderGroups := make(map[string][]WrappedOrder)
+	location, _ := time.LoadLocation(timezone)
+
+	for _, order := range orders {
+		uidGroups := map[string][]string{}
+
+		creationTime := time.Unix(order.Order.CreatedAt, 0).In(location)
+		name := strings.ToLower(creationTime.Weekday().String())
+		for _, variation := range order.Order.ItemVariations {
+			if order.Contains(variation.UID) {
+				uidGroups[name] = append(uidGroups[name], variation.UID)
+			}
+		}
+
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
+		}
+	}
+
+	return orderGroups
+}
+
+func groupOrdersByHourOfDay(orders []WrappedOrder, timezone string) map[string][]WrappedOrder {
+	orderGroups := make(map[string][]WrappedOrder)
+	location, _ := time.LoadLocation(timezone)
+
+	for _, order := range orders {
+		uidGroups := map[string][]string{}
+
+		creationTime := time.Unix(order.Order.CreatedAt, 0).In(location)
+		name := strconv.Itoa(creationTime.Hour())
+		for _, variation := range order.Order.ItemVariations {
+			if order.Contains(variation.UID) {
+				uidGroups[name] = append(uidGroups[name], variation.UID)
+			}
+		}
+
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
+		}
+	}
+
+	return orderGroups
+}
+
+// startOfDay returns a time.Time set to the start of the day of a given time
+func startOfDay(t time.Time) time.Time {
+	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+}
+
+// endOfDay returns a time.Time set to the end of the day of a given time
+func endOfDay(t time.Time) time.Time {
+	return startOfDay(t.Add(24 * time.Hour))
 }
