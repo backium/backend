@@ -13,6 +13,7 @@ type ItemVariation struct {
 	SKU         string   `bson:"sku"`
 	ItemID      string   `bson:"item_id"`
 	Price       Money    `bson:"price"`
+	Cost        *Money   `bson:"cost"`
 	Image       string   `bson:"image"`
 	LocationIDs []string `bson:"location_ids"`
 	MerchantID  string   `bson:"merchant_id"`

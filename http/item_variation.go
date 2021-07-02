@@ -22,6 +22,7 @@ func (h *Handler) HandleCreateItemVariation(c echo.Context) error {
 		SKU         string        `json:"sku"`
 		ItemID      string        `json:"item_id" validate:"required"`
 		Price       *MoneyRequest `json:"price" validate:"required"`
+		Cost        *MoneyRequest `json:"cost" validate:"omitempty"`
 		Image       string        `json:"image"`
 		LocationIDs *[]string     `json:"location_ids" validate:"omitempty,dive,required"`
 	}
@@ -45,6 +46,12 @@ func (h *Handler) HandleCreateItemVariation(c echo.Context) error {
 		Value:    ptr.GetInt64(req.Price.Value),
 		Currency: req.Price.Currency,
 	}
+	if req.Cost != nil {
+		variation.Cost = &core.Money{
+			Value:    ptr.GetInt64(req.Cost.Value),
+			Currency: req.Cost.Currency,
+		}
+	}
 	if req.LocationIDs != nil {
 		variation.LocationIDs = *req.LocationIDs
 	}
@@ -65,6 +72,7 @@ func (h *Handler) HandleUpdateItemVariation(c echo.Context) error {
 		Name        *string       `json:"name" validate:"omitempty,min=1"`
 		SKU         *string       `json:"sku"`
 		Price       *MoneyRequest `json:"price"`
+		Cost        *MoneyRequest `json:"cost"`
 		Image       *string       `json:"image"`
 		LocationIDs *[]string     `json:"location_ids" validate:"omitempty,dive,required"`
 	}
@@ -86,6 +94,12 @@ func (h *Handler) HandleUpdateItemVariation(c echo.Context) error {
 		variation.Price = core.Money{
 			Value:    ptr.GetInt64(req.Price.Value),
 			Currency: req.Price.Currency,
+		}
+	}
+	if req.Cost != nil {
+		variation.Cost = &core.Money{
+			Value:    ptr.GetInt64(req.Cost.Value),
+			Currency: req.Cost.Currency,
 		}
 	}
 	if req.Name != nil {
@@ -194,42 +208,45 @@ func (h *Handler) HandleDeleteItemVariation(c echo.Context) error {
 }
 
 type ItemVariation struct {
-	ID          string       `json:"id"`
-	Name        string       `json:"name"`
-	SKU         string       `json:"sku,omitempty"`
-	ItemID      string       `json:"item_id"`
-	Price       MoneyRequest `json:"price"`
-	Image       string       `json:"image,omitempty"`
-	LocationIDs []string     `json:"location_ids"`
-	MerchantID  string       `json:"merchant_id"`
-	CreatedAt   int64        `json:"created_at"`
-	UpdatedAt   int64        `json:"updated_at"`
-	Status      core.Status  `json:"status"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	SKU         string      `json:"sku,omitempty"`
+	ItemID      string      `json:"item_id"`
+	Price       Money       `json:"price"`
+	Cost        *Money      `json:"cost,omitempty"`
+	Image       string      `json:"image,omitempty"`
+	LocationIDs []string    `json:"location_ids"`
+	MerchantID  string      `json:"merchant_id"`
+	CreatedAt   int64       `json:"created_at"`
+	UpdatedAt   int64       `json:"updated_at"`
+	Status      core.Status `json:"status"`
 }
 
-func NewItemVariation(itvar core.ItemVariation) ItemVariation {
+func NewItemVariation(variation core.ItemVariation) ItemVariation {
+	var cost *Money
+	if variation.Cost != nil {
+		cost = &Money{variation.Cost.Value, variation.Cost.Currency}
+	}
 	return ItemVariation{
-		ID:     itvar.ID,
-		Name:   itvar.Name,
-		SKU:    itvar.SKU,
-		ItemID: itvar.ItemID,
-		Price: MoneyRequest{
-			Value:    &itvar.Price.Value,
-			Currency: itvar.Price.Currency,
-		},
-		Image:       itvar.Image,
-		LocationIDs: itvar.LocationIDs,
-		MerchantID:  itvar.MerchantID,
-		CreatedAt:   itvar.CreatedAt,
-		UpdatedAt:   itvar.UpdatedAt,
-		Status:      itvar.Status,
+		ID:          variation.ID,
+		Name:        variation.Name,
+		SKU:         variation.SKU,
+		ItemID:      variation.ItemID,
+		Price:       NewMoney(variation.Price),
+		Cost:        cost,
+		Image:       variation.Image,
+		LocationIDs: variation.LocationIDs,
+		MerchantID:  variation.MerchantID,
+		CreatedAt:   variation.CreatedAt,
+		UpdatedAt:   variation.UpdatedAt,
+		Status:      variation.Status,
 	}
 }
 
-func NewItemVariations(itvars []core.ItemVariation) []ItemVariation {
-	vars := make([]ItemVariation, len(itvars))
-	for i, itvar := range itvars {
-		vars[i] = NewItemVariation(itvar)
+func NewItemVariations(variations []core.ItemVariation) []ItemVariation {
+	resp := make([]ItemVariation, len(variations))
+	for i, v := range variations {
+		resp[i] = NewItemVariation(v)
 	}
-	return vars
+	return resp
 }
