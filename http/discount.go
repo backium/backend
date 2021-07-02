@@ -22,7 +22,7 @@ func (h *Handler) HandleCreateDiscount(c echo.Context) error {
 		Type        core.DiscountType `json:"type" validate:"required"`
 		Amount      *MoneyRequest     `json:"amount" validate:"omitempty"`
 		Percentage  *float64          `json:"percentage" validate:"omitempty,min=0,max=100"`
-		LocationIDs *[]string         `json:"location_ids" validate:"omitempty,dive,required"`
+		LocationIDs *[]core.ID        `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -63,12 +63,12 @@ func (h *Handler) HandleUpdateDiscount(c echo.Context) error {
 	const op = errors.Op("http/Handler.UpdateDiscount")
 
 	type request struct {
-		ID          string             `param:"id" validate:"required"`
+		ID          core.ID            `param:"id" validate:"required"`
 		Name        *string            `json:"name" validate:"omitempty,min=1"`
 		Type        *core.DiscountType `json:"type"`
 		Amount      *MoneyRequest      `json:"amount" validate:"omitempty"`
 		Percentage  *float64           `json:"percentage" validate:"omitempty,min=0,max=100"`
-		LocationIDs *[]string          `json:"location_ids" validate:"omitempty,dive,required"`
+		LocationIDs *[]core.ID         `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -83,7 +83,7 @@ func (h *Handler) HandleUpdateDiscount(c echo.Context) error {
 		return err
 	}
 
-	discount, err := h.CatalogService.GetDiscount(ctx, req.ID, merchant.ID, nil)
+	discount, err := h.CatalogService.GetDiscount(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -118,14 +118,23 @@ func (h *Handler) HandleUpdateDiscount(c echo.Context) error {
 func (h *Handler) HandleRetrieveDiscount(c echo.Context) error {
 	const op = errors.Op("http/Handler.RetrieveDiscount")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	discount, err := h.CatalogService.GetDiscount(ctx, c.Param("id"), merchant.ID, nil)
+	discount, err := h.CatalogService.GetDiscount(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -184,14 +193,23 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 func (h *Handler) HandleDeleteDiscount(c echo.Context) error {
 	const op = errors.Op("http/Handler.DeleteDiscount")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	discount, err := h.CatalogService.DeleteDiscount(ctx, c.Param("id"), merchant.ID, nil)
+	discount, err := h.CatalogService.DeleteDiscount(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -200,13 +218,13 @@ func (h *Handler) HandleDeleteDiscount(c echo.Context) error {
 }
 
 type Discount struct {
-	ID          string            `json:"id"`
+	ID          core.ID           `json:"id"`
 	Name        string            `json:"name"`
 	Type        core.DiscountType `json:"type"`
 	Amount      *MoneyRequest     `json:"amount,omitempty"`
 	Percentage  *float64          `json:"percentage,omitempty"`
-	LocationIDs []string          `json:"location_ids"`
-	MerchantID  string            `json:"merchant_id"`
+	LocationIDs []core.ID         `json:"location_ids"`
+	MerchantID  core.ID           `json:"merchant_id"`
 	CreatedAt   int64             `json:"created_at"`
 	UpdatedAt   int64             `json:"updated_at"`
 	Status      core.Status       `json:"status"`

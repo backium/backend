@@ -24,7 +24,7 @@ type Server struct {
 	PaymentStorage       core.PaymentStorage
 	InventoryStorage     core.InventoryStorage
 	EmployeeStorage      core.EmployeeStorage
-	SessionRepository    core.SessionRepository
+	SessionRepository    core.SessionStorage
 }
 
 func (s *Server) Setup() error {

@@ -40,10 +40,7 @@ func (s *inventoryStorage) PutCount(ctx context.Context, count core.InventoryCou
 	const op = errors.Op("mongo/inventoryStorage.Put")
 
 	count.CalculatedAt = time.Now().Unix()
-	filter := bson.M{
-		"_id":         count.ID,
-		"merchant_id": count.MerchantID,
-	}
+	filter := bson.M{"_id": count.ID}
 	query := bson.M{"$set": count}
 	opts := options.Update().SetUpsert(true)
 
@@ -59,10 +56,7 @@ func (s *inventoryStorage) PutAdj(ctx context.Context, adj core.InventoryAdjustm
 	const op = errors.Op("mongo/inventoryStorage.Put")
 
 	now := time.Now().Unix()
-	filter := bson.M{
-		"_id":         adj.ID,
-		"merchant_id": adj.MerchantID,
-	}
+	filter := bson.M{"_id": adj.ID}
 	query := bson.M{"$set": adj}
 	opts := options.Update().SetUpsert(true)
 

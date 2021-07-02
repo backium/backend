@@ -12,10 +12,10 @@ import (
 type AuthContext struct {
 	echo.Context
 	Session    core.Session
-	MerchantID string
+	MerchantID core.ID
 }
 
-func RequireAPIKey(merchantStorage core.MerchantStorage, sessionStorage core.SessionRepository) echo.MiddlewareFunc {
+func RequireAPIKey(merchantStorage core.MerchantStorage, sessionStorage core.SessionStorage) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			const op = errors.Op("http/RequireAPIKey")
@@ -41,7 +41,7 @@ func RequireAPIKey(merchantStorage core.MerchantStorage, sessionStorage core.Ses
 	}
 }
 
-func RequireSession(merchantStorage core.MerchantStorage, sessionStorage core.SessionRepository) echo.MiddlewareFunc {
+func RequireSession(merchantStorage core.MerchantStorage, sessionStorage core.SessionStorage) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			const op = errors.Op("handler.Auth.Authenticate")

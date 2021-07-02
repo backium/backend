@@ -36,10 +36,7 @@ func (s *categoryStorage) Put(ctx context.Context, category core.Category) error
 
 	now := time.Now().Unix()
 	category.UpdatedAt = now
-	filter := bson.M{
-		"_id":         category.ID,
-		"merchant_id": category.MerchantID,
-	}
+	filter := bson.M{"_id": category.ID}
 	query := bson.M{"$set": category}
 	opts := options.Update().SetUpsert(true)
 
@@ -84,17 +81,11 @@ func (s *categoryStorage) PutBatch(ctx context.Context, batch []core.Category) e
 	return nil
 }
 
-func (s *categoryStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Category, error) {
+func (s *categoryStorage) Get(ctx context.Context, id core.ID) (core.Category, error) {
 	const op = errors.Op("mongo/categoryStorage/Get")
 
 	category := core.Category{}
-	filter := bson.M{
-		"_id":         id,
-		"merchant_id": merchantID,
-	}
-	if len(locationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": locationIDs}
-	}
+	filter := bson.M{"_id": id}
 
 	if err := s.driver.findOneAndDecode(ctx, &category, filter); err != nil {
 		return core.Category{}, errors.E(op, err)

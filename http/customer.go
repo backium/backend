@@ -61,7 +61,7 @@ func (h *Handler) HandleUpdateCustomer(c echo.Context) error {
 	const op = errors.Op("handler.Customer.Update")
 
 	type request struct {
-		ID      string   `param:"id"`
+		ID      core.ID  `param:"id"`
 		Name    *string  `json:"name" validate:"omitempty,min=1"`
 		Email   *string  `json:"email" validate:"omitempty,email"`
 		Phone   *string  `json:"phone"`
@@ -81,7 +81,7 @@ func (h *Handler) HandleUpdateCustomer(c echo.Context) error {
 		return err
 	}
 
-	customer, err := h.CustomerService.GetCustomer(ctx, req.ID, merchant.ID)
+	customer, err := h.CustomerService.GetCustomer(ctx, req.ID)
 	if req.Address != nil {
 		customer.Address = &core.Address{
 			Line1:      req.Address.Line1,
@@ -115,14 +115,23 @@ func (h *Handler) HandleUpdateCustomer(c echo.Context) error {
 func (h *Handler) HandleRetrieveCustomer(c echo.Context) error {
 	const op = errors.Op("handler.Customer.Retrieve")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	customer, err := h.CustomerService.GetCustomer(ctx, c.Param("id"), merchant.ID)
+	customer, err := h.CustomerService.GetCustomer(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -181,14 +190,23 @@ func (h *Handler) HandleListCustomers(c echo.Context) error {
 func (h *Handler) HandleDeleteCustomer(c echo.Context) error {
 	const op = errors.Op("http/Handle.Handle.DeleteCustomer")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	customer, err := h.CustomerService.DeleteCustomer(ctx, c.Param("id"), merchant.ID)
+	customer, err := h.CustomerService.DeleteCustomer(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -197,13 +215,13 @@ func (h *Handler) HandleDeleteCustomer(c echo.Context) error {
 }
 
 type Customer struct {
-	ID         string      `json:"id"`
+	ID         core.ID     `json:"id"`
 	Name       string      `json:"name"`
 	Email      string      `json:"email"`
 	Phone      string      `json:"phone"`
 	Address    *Address    `json:"address,omitempty"`
 	Image      string      `json:"image,omitempty"`
-	MerchantID string      `json:"merchant_id"`
+	MerchantID core.ID     `json:"merchant_id"`
 	CreatedAt  int64       `json:"created_at"`
 	UpdatedAt  int64       `json:"updated_at"`
 	Status     core.Status `json:"status"`

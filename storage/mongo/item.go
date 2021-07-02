@@ -35,10 +35,7 @@ func (s *itemStorage) Put(ctx context.Context, item core.Item) error {
 
 	now := time.Now().Unix()
 	item.UpdatedAt = now
-	filter := bson.M{
-		"_id":         item.ID,
-		"merchant_id": item.MerchantID,
-	}
+	filter := bson.M{"_id": item.ID}
 	query := bson.M{"$set": item}
 	opts := options.Update().SetUpsert(true)
 
@@ -83,17 +80,11 @@ func (s *itemStorage) PutBatch(ctx context.Context, batch []core.Item) error {
 	return nil
 }
 
-func (s *itemStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Item, error) {
+func (s *itemStorage) Get(ctx context.Context, id core.ID) (core.Item, error) {
 	const op = errors.Op("mongo/itemStorage/Get")
 
 	item := core.Item{}
-	filter := bson.M{
-		"_id":         id,
-		"merchant_id": merchantID,
-	}
-	if len(locationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": locationIDs}
-	}
+	filter := bson.M{"_id": id}
 
 	if err := s.driver.findOneAndDecode(ctx, &item, filter); err != nil {
 		return core.Item{}, errors.E(op, err)

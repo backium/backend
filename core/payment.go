@@ -16,19 +16,19 @@ const (
 )
 
 type Payment struct {
-	ID      string      `bson:"_id"`
-	OrderID string      `bson:"order_id"`
+	ID      ID          `bson:"_id"`
+	OrderID ID          `bson:"order_id"`
 	Type    PaymentType `bson:"type"`
 	// The Payment amount without tips
-	Amount     Money  `bson:"amount"`
-	TipAmount  Money  `bson:"tip_amount"`
-	LocationID string `bson:"location_id"`
-	MerchantID string `bson:"merchant_id"`
-	CreatedAt  int64  `bson:"created_at"`
-	UpdatedAt  int64  `bson:"updated_at"`
+	Amount     Money `bson:"amount"`
+	TipAmount  Money `bson:"tip_amount"`
+	LocationID ID    `bson:"location_id"`
+	MerchantID ID    `bson:"merchant_id"`
+	CreatedAt  int64 `bson:"created_at"`
+	UpdatedAt  int64 `bson:"updated_at"`
 }
 
-func NewPayment(ptype PaymentType, orderID, merchantID, locationID string) Payment {
+func NewPayment(ptype PaymentType, orderID, merchantID, locationID ID) Payment {
 	return Payment{
 		ID:         NewID("payment"),
 		OrderID:    orderID,
@@ -41,15 +41,15 @@ func NewPayment(ptype PaymentType, orderID, merchantID, locationID string) Payme
 type PaymentFilter struct {
 	Limit       int64
 	Offset      int64
-	IDs         []string
-	OrderIDs    []string
-	LocationIDs []string
-	MerchantID  string
+	IDs         []ID
+	OrderIDs    []ID
+	LocationIDs []ID
+	MerchantID  ID
 }
 
 type PaymentStorage interface {
 	Put(context.Context, Payment) error
-	Get(context.Context, string) (Payment, error)
+	Get(context.Context, ID) (Payment, error)
 	List(context.Context, PaymentFilter) ([]Payment, error)
 }
 

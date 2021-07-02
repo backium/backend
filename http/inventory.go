@@ -17,10 +17,10 @@ func (h *Handler) HandleChangeInventory(c echo.Context) error {
 	const op = errors.Op("http/Handler.ChangeInventory")
 
 	type adjustment struct {
-		ItemVariationID string           `json:"item_variation_id" validate:"required"`
+		ItemVariationID core.ID          `json:"item_variation_id" validate:"required"`
 		Op              core.InventoryOp `json:"op" validate:"required"`
 		Quantity        *int64           `json:"quantity" validate:"required"`
-		LocationID      string           `json:"location_id" validate:"required"`
+		LocationID      core.ID          `json:"location_id" validate:"required"`
 	}
 
 	type request struct {
@@ -66,10 +66,10 @@ func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 	const op = errors.Op("http/Handler.ListInventoryCounts")
 
 	type request struct {
-		ItemVariationIDs []string `json:"item_variation_ids"`
-		LocationIDs      []string `json:"location_ids"`
-		Limit            int64    `json:"limit" validate:"gte=0"`
-		Offset           int64    `json:"offset" validate:"gte=0"`
+		ItemVariationIDs []core.ID `json:"item_variation_ids"`
+		LocationIDs      []core.ID `json:"location_ids"`
+		Limit            int64     `json:"limit" validate:"gte=0"`
+		Offset           int64     `json:"offset" validate:"gte=0"`
 	}
 
 	type response struct {
@@ -112,10 +112,10 @@ func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 }
 
 type InventoryCount struct {
-	ItemVariationID string `json:"item_variation_id"`
-	Quantity        int64  `json:"quantity"`
-	CalculatedAt    int64  `json:"calculated_at"`
-	LocationID      string `json:"location_id"`
+	ItemVariationID core.ID `json:"item_variation_id"`
+	Quantity        int64   `json:"quantity"`
+	CalculatedAt    int64   `json:"calculated_at"`
+	LocationID      core.ID `json:"location_id"`
 }
 
 func NewInventoryCount(count core.InventoryCount) InventoryCount {

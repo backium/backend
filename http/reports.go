@@ -13,7 +13,7 @@ func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleGenerateCustomReport")
 
 	type request struct {
-		LocationIDs []string            `json:"location_ids" validate:"omitempty,dive,required"`
+		LocationIDs []core.ID           `json:"location_ids" validate:"omitempty,dive,required"`
 		GroupByType []core.GroupingType `json:"group_by_type" validate:"required"`
 		Timezone    string              `json:"timezone" validate:"required"`
 		BeginTime   int64               `json:"begin_time" validate:"required"`

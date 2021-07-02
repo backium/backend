@@ -50,7 +50,7 @@ func (h *Handler) HandleUpdateLocation(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleUpdateLocation")
 
 	type request struct {
-		ID           string  `json:"id" param:"id" validate:"required"`
+		ID           core.ID `json:"id" param:"id" validate:"required"`
 		Name         *string `json:"name" validate:"omitempty,min=1"`
 		BusinessName *string `json:"business_name" validate:"omitempty"`
 		Image        *string `json:"image"`
@@ -68,7 +68,7 @@ func (h *Handler) HandleUpdateLocation(c echo.Context) error {
 		return err
 	}
 
-	location, err := h.LocationService.GetLocation(ctx, req.ID, merchant.ID)
+	location, err := h.LocationService.GetLocation(ctx, req.ID)
 	if err != nil {
 		return err
 	}
@@ -93,14 +93,23 @@ func (h *Handler) HandleUpdateLocation(c echo.Context) error {
 func (h *Handler) HandleRetrieveLocation(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleRetrieveLocation")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	location, err := h.LocationService.GetLocation(ctx, c.Param("id"), merchant.ID)
+	location, err := h.LocationService.GetLocation(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -159,14 +168,23 @@ func (h *Handler) HandleListLocations(c echo.Context) error {
 func (h *Handler) HandleDeleteLocation(c echo.Context) error {
 	const op = errors.Op("handler.Location.Delete")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	location, err := h.LocationService.DeleteLocation(ctx, c.Param("id"), merchant.ID)
+	location, err := h.LocationService.DeleteLocation(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -175,11 +193,11 @@ func (h *Handler) HandleDeleteLocation(c echo.Context) error {
 }
 
 type Location struct {
-	ID           string      `json:"id"`
+	ID           core.ID     `json:"id"`
 	Name         string      `json:"name"`
 	BusinessName string      `json:"business_name,omitempty"`
 	Image        string      `json:"image,omitempty"`
-	MerchantID   string      `json:"merchant_id"`
+	MerchantID   core.ID     `json:"merchant_id"`
 	CreatedAt    int64       `json:"created_at"`
 	UpdatedAt    int64       `json:"updated_at"`
 	Status       core.Status `json:"status"`

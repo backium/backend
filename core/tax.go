@@ -14,22 +14,22 @@ const (
 )
 
 type Tax struct {
-	ID           string   `bson:"_id"`
-	Name         string   `bson:"name,omitempty"`
-	Percentage   float64  `bson:"percentage"`
-	LocationIDs  []string `bson:"location_ids"`
-	MerchantID   string   `bson:"merchant_id,omitempty"`
-	EnabledInPOS bool     `bson:"enabled_in_pos"`
-	CreatedAt    int64    `bson:"created_at"`
-	UpdatedAt    int64    `bson:"updated_at"`
-	Status       Status   `bson:"status,omitempty"`
+	ID           ID      `bson:"_id"`
+	Name         string  `bson:"name,omitempty"`
+	Percentage   float64 `bson:"percentage"`
+	LocationIDs  []ID    `bson:"location_ids"`
+	MerchantID   ID      `bson:"merchant_id,omitempty"`
+	EnabledInPOS bool    `bson:"enabled_in_pos"`
+	CreatedAt    int64   `bson:"created_at"`
+	UpdatedAt    int64   `bson:"updated_at"`
+	Status       Status  `bson:"status,omitempty"`
 }
 
-func NewTax(name, merchantID string) Tax {
+func NewTax(name string, merchantID ID) Tax {
 	return Tax{
 		ID:          NewID("tax"),
 		Name:        name,
-		LocationIDs: []string{},
+		LocationIDs: []ID{},
 		Status:      StatusActive,
 		MerchantID:  merchantID,
 	}
@@ -38,7 +38,7 @@ func NewTax(name, merchantID string) Tax {
 type TaxStorage interface {
 	Put(context.Context, Tax) error
 	PutBatch(context.Context, []Tax) error
-	Get(context.Context, string, string, []string) (Tax, error)
+	Get(context.Context, ID) (Tax, error)
 	List(context.Context, TaxFilter) ([]Tax, error)
 }
 
@@ -49,7 +49,7 @@ func (svc *CatalogService) PutTax(ctx context.Context, tax Tax) (Tax, error) {
 		return Tax{}, err
 	}
 
-	tax, err := svc.TaxStorage.Get(ctx, tax.ID, tax.MerchantID, nil)
+	tax, err := svc.TaxStorage.Get(ctx, tax.ID)
 	if err != nil {
 		return Tax{}, err
 	}
@@ -64,7 +64,7 @@ func (svc *CatalogService) PutTaxes(ctx context.Context, taxes []Tax) ([]Tax, er
 		return nil, err
 	}
 
-	ids := make([]string, len(taxes))
+	ids := make([]ID, len(taxes))
 	for i, t := range taxes {
 		ids[i] = t.ID
 	}
@@ -79,10 +79,10 @@ func (svc *CatalogService) PutTaxes(ctx context.Context, taxes []Tax) ([]Tax, er
 	return taxes, nil
 }
 
-func (svc *CatalogService) GetTax(ctx context.Context, id, merchantID string, locationIDs []string) (Tax, error) {
+func (svc *CatalogService) GetTax(ctx context.Context, id ID) (Tax, error) {
 	const op = errors.Op("controller.Tax.Retrieve")
 
-	tax, err := svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
+	tax, err := svc.TaxStorage.Get(ctx, id)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
@@ -105,10 +105,10 @@ func (svc *CatalogService) ListTax(ctx context.Context, f TaxFilter) ([]Tax, err
 	return taxes, nil
 }
 
-func (svc *CatalogService) DeleteTax(ctx context.Context, id, merchantID string, locationIDs []string) (Tax, error) {
+func (svc *CatalogService) DeleteTax(ctx context.Context, id ID) (Tax, error) {
 	const op = errors.Op("controller.Tax.Delete")
 
-	tax, err := svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
+	tax, err := svc.TaxStorage.Get(ctx, id)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
@@ -118,7 +118,7 @@ func (svc *CatalogService) DeleteTax(ctx context.Context, id, merchantID string,
 		return Tax{}, errors.E(op, err)
 	}
 
-	tax, err = svc.TaxStorage.Get(ctx, id, merchantID, locationIDs)
+	tax, err = svc.TaxStorage.Get(ctx, id)
 	if err != nil {
 		return Tax{}, errors.E(op, err)
 	}
@@ -129,7 +129,7 @@ func (svc *CatalogService) DeleteTax(ctx context.Context, id, merchantID string,
 type TaxFilter struct {
 	Limit       int64
 	Offset      int64
-	LocationIDs []string
-	MerchantID  string
-	IDs         []string
+	LocationIDs []ID
+	MerchantID  ID
+	IDs         []ID
 }

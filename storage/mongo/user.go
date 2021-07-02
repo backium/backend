@@ -32,10 +32,7 @@ func NewUserRepository(db DB) core.UserStorage {
 func (s *userStorage) Put(ctx context.Context, user core.User) error {
 	const op = errors.Op("mongo/userStorage.Put")
 
-	filter := bson.M{
-		"_id":         user.ID,
-		"merchant_id": user.MerchantID,
-	}
+	filter := bson.M{"_id": user.ID}
 	query := bson.M{"$set": user}
 	opts := options.Update().SetUpsert(true)
 
@@ -47,7 +44,7 @@ func (s *userStorage) Put(ctx context.Context, user core.User) error {
 	return nil
 }
 
-func (s *userStorage) Get(ctx context.Context, id string) (core.User, error) {
+func (s *userStorage) Get(ctx context.Context, id core.ID) (core.User, error) {
 	const op = errors.Op("mongo/userStorage/Get")
 
 	user := core.User{}

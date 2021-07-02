@@ -35,10 +35,7 @@ func (s *paymentStorage) Put(ctx context.Context, payment core.Payment) error {
 
 	now := time.Now().Unix()
 	payment.UpdatedAt = now
-	filter := bson.M{
-		"_id":         payment.ID,
-		"merchant_id": payment.MerchantID,
-	}
+	filter := bson.M{"_id": payment.ID}
 	query := bson.M{"$set": payment}
 	opts := options.Update().SetUpsert(true)
 
@@ -60,13 +57,11 @@ func (s *paymentStorage) Put(ctx context.Context, payment core.Payment) error {
 	return nil
 }
 
-func (s *paymentStorage) Get(ctx context.Context, id string) (core.Payment, error) {
+func (s *paymentStorage) Get(ctx context.Context, id core.ID) (core.Payment, error) {
 	const op = errors.Op("mongo/paymentStorage/Get")
 
 	payment := core.Payment{}
-	filter := bson.M{
-		"_id": id,
-	}
+	filter := bson.M{"_id": id}
 	if err := s.driver.findOneAndDecode(ctx, &payment, filter); err != nil {
 		return core.Payment{}, errors.E(op, err)
 	}

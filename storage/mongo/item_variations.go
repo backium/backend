@@ -33,18 +33,18 @@ func NewItemVariationStorage(db DB) core.ItemVariationStorage {
 
 func (s *itemVariationStorage) Put(ctx context.Context, variation core.ItemVariation) error {
 	const op = errors.Op("mongo/itemVariationStorage.Put")
+
 	now := time.Now().Unix()
 	variation.UpdatedAt = now
-	filter := bson.M{
-		"_id":         variation.ID,
-		"merchant_id": variation.MerchantID,
-	}
+
+	filter := bson.M{"_id": variation.ID}
 	query := bson.M{"$set": variation}
 	opts := options.Update().SetUpsert(true)
 	res, err := s.collection.UpdateOne(ctx, filter, query, opts)
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	// Update created_at field if upserted
 	if res.UpsertedCount == 1 {
 		variation.CreatedAt = now
@@ -54,11 +54,13 @@ func (s *itemVariationStorage) Put(ctx context.Context, variation core.ItemVaria
 			return errors.E(op, errors.KindUnexpected, err)
 		}
 	}
+
 	return nil
 }
 
 func (s *itemVariationStorage) PutBatch(ctx context.Context, batch []core.ItemVariation) error {
 	const op = errors.Op("mongo/itemVariationStorage.PutBatch")
+
 	session, err := s.client.StartSession()
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
@@ -75,27 +77,26 @@ func (s *itemVariationStorage) PutBatch(ctx context.Context, batch []core.ItemVa
 	if err != nil {
 		return errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return nil
 }
 
-func (s *itemVariationStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.ItemVariation, error) {
+func (s *itemVariationStorage) Get(ctx context.Context, id core.ID) (core.ItemVariation, error) {
 	const op = errors.Op("mongo/itemVariationStorage/Get")
+
 	variation := core.ItemVariation{}
-	filter := bson.M{
-		"_id":         id,
-		"merchant_id": merchantID,
-	}
-	if len(locationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": locationIDs}
-	}
+	filter := bson.M{"_id": id}
+
 	if err := s.driver.findOneAndDecode(ctx, &variation, filter); err != nil {
 		return core.ItemVariation{}, errors.E(op, err)
 	}
+
 	return variation, nil
 }
 
 func (s *itemVariationStorage) List(ctx context.Context, f core.ItemVariationFilter) ([]core.ItemVariation, error) {
 	const op = errors.Op("mongo/itemVariationStorage.List")
+
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
@@ -118,9 +119,11 @@ func (s *itemVariationStorage) List(ctx context.Context, f core.ItemVariationFil
 	if err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	var variations []core.ItemVariation
 	if err := res.All(ctx, &variations); err != nil {
 		return nil, errors.E(op, errors.KindUnexpected, err)
 	}
+
 	return variations, nil
 }

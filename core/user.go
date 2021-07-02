@@ -17,12 +17,12 @@ const (
 )
 
 type User struct {
-	ID           string   `bson:"_id"`
+	ID           ID       `bson:"_id"`
 	Email        string   `bson:"email"`
 	PasswordHash string   `bson:"password_hash,omitempty"`
 	Kind         UserKind `bson:"kind"`
-	EmployeeID   string   `bson:"employee_id"`
-	MerchantID   string   `bson:"merchant_id"`
+	EmployeeID   ID       `bson:"employee_id"`
+	MerchantID   ID       `bson:"merchant_id"`
 }
 
 func NewUserOwner() User {
@@ -32,7 +32,7 @@ func NewUserOwner() User {
 	}
 }
 
-func NewUserEmployee(merchantID, employeeID string) User {
+func NewUserEmployee(merchantID, employeeID ID) User {
 	return User{
 		ID:         NewID("user"),
 		Kind:       UserKindEmployee,
@@ -56,7 +56,7 @@ func (u *User) HashPassword(password string) error {
 
 type UserStorage interface {
 	Put(context.Context, User) error
-	Get(context.Context, string) (User, error)
+	Get(context.Context, ID) (User, error)
 	GetByEmail(context.Context, string) (User, error)
 }
 
@@ -95,7 +95,7 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 			return User{}, errors.E(op, errors.KindUnexpected, err)
 		}
 	case UserKindEmployee:
-		employee, err := svc.EmployeeStorage.Get(ctx, user.EmployeeID, user.MerchantID)
+		employee, err := svc.EmployeeStorage.Get(ctx, user.EmployeeID)
 		if err != nil {
 			return User{}, errors.E(op, errors.KindValidation, "Provided employee not found")
 		}

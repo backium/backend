@@ -57,7 +57,7 @@ func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (
 		return Order{}, errors.E(op, err)
 	}
 
-	newOrder, err := s.OrderStorage.Get(ctx, order.ID, order.MerchantID, nil)
+	newOrder, err := s.OrderStorage.Get(ctx, order.ID)
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}
@@ -65,11 +65,11 @@ func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (
 	return newOrder, nil
 }
 
-func (s *OrderingService) PayOrder(ctx context.Context, orderID, merchantID string,
-	paymentIDs []string) (Order, error) {
+func (s *OrderingService) PayOrder(ctx context.Context, orderID ID,
+	paymentIDs []ID) (Order, error) {
 	const op = errors.Op("core/OrderingService.CreateOrder")
 
-	order, err := s.OrderStorage.Get(ctx, orderID, merchantID, nil)
+	order, err := s.OrderStorage.Get(ctx, orderID)
 	if err != nil {
 		return Order{}, errors.E(op, err)
 	}
@@ -105,7 +105,7 @@ func (s *OrderingService) PayOrder(ctx context.Context, orderID, merchantID stri
 		return Order{}, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	order, err = s.OrderStorage.Get(ctx, order.ID, merchantID, nil)
+	order, err = s.OrderStorage.Get(ctx, order.ID)
 	if err != nil {
 		return Order{}, errors.E(op, errors.KindUnexpected, err)
 	}
@@ -492,14 +492,14 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 	}
 
 	categories, err := s.CategoryStorage.List(ctx, CategoryFilter{
-		LocationIDs: []string{sch.LocationID},
+		LocationIDs: []ID{sch.LocationID},
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
 
 	items, err := s.ItemStorage.List(ctx, ItemFilter{
-		LocationIDs: []string{sch.LocationID},
+		LocationIDs: []ID{sch.LocationID},
 	})
 	if err != nil {
 		return nil, errors.E(op, err)

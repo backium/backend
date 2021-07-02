@@ -33,10 +33,7 @@ func (s *orderStorage) Put(ctx context.Context, order core.Order) error {
 
 	now := time.Now().Unix()
 	order.UpdatedAt = now
-	filter := bson.M{
-		"_id":         order.ID,
-		"merchant_id": order.MerchantID,
-	}
+	filter := bson.M{"_id": order.ID}
 	query := bson.M{"$set": order}
 	opts := options.Update().SetUpsert(true)
 
@@ -58,17 +55,11 @@ func (s *orderStorage) Put(ctx context.Context, order core.Order) error {
 	return nil
 }
 
-func (r *orderStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Order, error) {
+func (r *orderStorage) Get(ctx context.Context, id core.ID) (core.Order, error) {
 	const op = errors.Op("mongo/orderStorage.Get")
 
 	order := core.Order{}
-	filter := bson.M{
-		"_id":         id,
-		"merchant_id": merchantID,
-	}
-	if len(locationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": locationIDs}
-	}
+	filter := bson.M{"_id": id}
 
 	if err := r.driver.findOneAndDecode(ctx, &order, filter); err != nil {
 		return core.Order{}, errors.E(op, err)

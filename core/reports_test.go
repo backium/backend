@@ -7,7 +7,7 @@ import (
 )
 
 func TestGenerateCustom(t *testing.T) {
-	currency := "PEN"
+	currency := PEN
 	orders := []Order{
 		{
 			ID: NewID("order"),

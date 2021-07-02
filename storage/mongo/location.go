@@ -35,10 +35,7 @@ func (s *locationStorage) Put(ctx context.Context, location core.Location) error
 
 	now := time.Now().Unix()
 	location.UpdatedAt = now
-	filter := bson.M{
-		"_id":         location.ID,
-		"merchant_id": location.MerchantID,
-	}
+	filter := bson.M{"_id": location.ID}
 	query := bson.M{"$set": location}
 	opts := options.Update().SetUpsert(true)
 
@@ -83,14 +80,11 @@ func (s *locationStorage) PutBatch(ctx context.Context, batch []core.Location) e
 	return nil
 }
 
-func (s *locationStorage) Get(ctx context.Context, id, merchantID string) (core.Location, error) {
+func (s *locationStorage) Get(ctx context.Context, id core.ID) (core.Location, error) {
 	const op = errors.Op("mongo/locationStorage/Get")
 
 	location := core.Location{}
-	filter := bson.M{
-		"_id":         id,
-		"merchant_id": merchantID,
-	}
+	filter := bson.M{"_id": id}
 
 	if err := s.driver.findOneAndDecode(ctx, &location, filter); err != nil {
 		return core.Location{}, errors.E(op, err)

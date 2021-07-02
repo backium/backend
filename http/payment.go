@@ -13,11 +13,11 @@ func (h *Handler) HandleCreatePayment(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreatePayment")
 
 	type request struct {
-		OrderID    string           `json:"order_id" validate:"required"`
+		OrderID    core.ID          `json:"order_id" validate:"required"`
 		Type       core.PaymentType `json:"type" validate:"required"`
 		Amount     *MoneyRequest    `json:"amount" validate:"required,dive"`
 		TipAmount  *MoneyRequest    `json:"tip_amount" validate:"omitempty,dive"`
-		LocationID string           `json:"location_id" validate:"required"`
+		LocationID core.ID          `json:"location_id" validate:"required"`
 	}
 
 	ctx := c.Request().Context()
@@ -48,12 +48,12 @@ func (h *Handler) HandleCreatePayment(c echo.Context) error {
 }
 
 type Payment struct {
-	ID         string           `json:"id"`
-	OrderID    string           `json:"order_id"`
+	ID         core.ID          `json:"id"`
+	OrderID    core.ID          `json:"order_id"`
 	Type       core.PaymentType `json:"type"`
 	Amount     MoneyRequest     `json:"amount"`
 	TipAmount  MoneyRequest     `json:"tip_amount"`
-	LocationID string           `json:"location_id"`
+	LocationID core.ID          `json:"location_id"`
 	CreatedAt  int64            `json:"created_at"`
 	UpdatedAt  int64            `json:"updated_at"`
 }

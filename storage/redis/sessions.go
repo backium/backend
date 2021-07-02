@@ -12,7 +12,7 @@ type redisRepository struct {
 	client *redis.Client
 }
 
-func NewSessionRepository(addr string, password string) *redisRepository {
+func NewSessionRepository(addr string, password string) core.SessionStorage {
 	return &redisRepository{
 		client: redis.NewClient(&redis.Options{
 			Addr:     addr,
@@ -27,15 +27,15 @@ func (r *redisRepository) Set(ctx context.Context, sess core.Session) error {
 	if err != nil {
 		return err
 	}
-	if err := r.client.Set(ctx, sess.ID, string(b), 0).Err(); err != nil {
+	if err := r.client.Set(ctx, string(sess.ID), string(b), 0).Err(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *redisRepository) Get(ctx context.Context, id string) (core.Session, error) {
+func (r *redisRepository) Get(ctx context.Context, id core.ID) (core.Session, error) {
 	sess := core.Session{}
-	bs, err := r.client.Get(ctx, id).Result()
+	bs, err := r.client.Get(ctx, string(id)).Result()
 	if err != nil {
 		return sess, err
 	}
@@ -45,6 +45,6 @@ func (r *redisRepository) Get(ctx context.Context, id string) (core.Session, err
 	return sess, err
 }
 
-func (r *redisRepository) Delete(ctx context.Context, id string) error {
-	return r.client.Del(ctx, id).Err()
+func (r *redisRepository) Delete(ctx context.Context, id core.ID) error {
+	return r.client.Del(ctx, string(id)).Err()
 }

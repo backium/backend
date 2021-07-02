@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/backium/backend/core"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -15,6 +16,9 @@ type Validator struct {
 func NewValidator() (*Validator, error) {
 	v := validator.New()
 	if err := v.RegisterValidation("password", validatePassword); err != nil {
+		return nil, err
+	}
+	if err := v.RegisterValidation("id", validateID); err != nil {
 		return nil, err
 	}
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
@@ -41,7 +45,7 @@ func validatePassword(fl validator.FieldLevel) bool {
 	if fl.Field().Kind() != reflect.String {
 		return false
 	}
-	v := fl.Field().String()
+
 	var (
 		hasMinLen  = false
 		hasUpper   = false
@@ -49,6 +53,8 @@ func validatePassword(fl validator.FieldLevel) bool {
 		hasNumber  = false
 		hasSpecial = false
 	)
+
+	v := fl.Field().String()
 	if len(v) >= 7 {
 		hasMinLen = true
 	}
@@ -64,6 +70,14 @@ func validatePassword(fl validator.FieldLevel) bool {
 			hasSpecial = true
 		}
 	}
-	return hasMinLen && hasUpper && hasLower && hasNumber && hasSpecial
 
+	return hasMinLen && hasUpper && hasLower && hasNumber && hasSpecial
+}
+
+func validateID(fl validator.FieldLevel) bool {
+	if fl.Field().Kind() != reflect.String {
+		return false
+	}
+	v := core.ID(fl.Field().String())
+	return v.Validate()
 }

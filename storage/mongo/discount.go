@@ -35,10 +35,7 @@ func (s *discountStorage) Put(ctx context.Context, discount core.Discount) error
 
 	now := time.Now().Unix()
 	discount.UpdatedAt = now
-	filter := bson.M{
-		"_id":         discount.ID,
-		"merchant_id": discount.MerchantID,
-	}
+	filter := bson.M{"_id": discount.ID}
 	query := bson.M{"$set": discount}
 	opts := options.Update().SetUpsert(true)
 
@@ -83,17 +80,11 @@ func (s *discountStorage) PutBatch(ctx context.Context, batch []core.Discount) e
 	return nil
 }
 
-func (s *discountStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Discount, error) {
+func (s *discountStorage) Get(ctx context.Context, id core.ID) (core.Discount, error) {
 	const op = errors.Op("mongo/discountStorage/Get")
 
 	discount := core.Discount{}
-	filter := bson.M{
-		"_id":         id,
-		"merchant_id": merchantID,
-	}
-	if len(locationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": locationIDs}
-	}
+	filter := bson.M{"_id": id}
 
 	if err := s.driver.findOneAndDecode(ctx, &discount, filter); err != nil {
 		return core.Discount{}, errors.E(op, err)

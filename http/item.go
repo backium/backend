@@ -18,10 +18,10 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateItem")
 
 	type request struct {
-		Name        string    `json:"name" validate:"required"`
-		Description string    `json:"description" validate:"omitempty,max=100"`
-		CategoryID  string    `json:"category_id" validate:"required"`
-		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+		Name        string     `json:"name" validate:"required"`
+		Description string     `json:"description" validate:"omitempty,max=100"`
+		CategoryID  core.ID    `json:"category_id" validate:"required"`
+		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -47,7 +47,7 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 		return errors.E(op, err)
 	}
 	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []string{item.ID},
+		ItemIDs: []core.ID{item.ID},
 	})
 	return c.JSON(http.StatusOK, NewItem(item, variations))
 }
@@ -56,11 +56,11 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 	const op = errors.Op("http/Handler.UpdateItem")
 
 	type request struct {
-		ID          string    `param:"id" validate:"required"`
-		Name        *string   `json:"name" validate:"omitempty,min=1"`
-		Description *string   `json:"description" validate:"omitempty,max=100"`
-		CategoryID  *string   `json:"category_id" validate:"omitempty,min=1"`
-		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+		ID          core.ID    `param:"id" validate:"required"`
+		Name        *string    `json:"name" validate:"omitempty,min=1"`
+		Description *string    `json:"description" validate:"omitempty,max=100"`
+		CategoryID  *core.ID   `json:"category_id" validate:"omitempty,min=1"`
+		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -75,7 +75,7 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 		return err
 	}
 
-	item, err := h.CatalogService.GetItem(ctx, req.ID, merchant.ID, nil)
+	item, err := h.CatalogService.GetItem(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -98,7 +98,7 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 	}
 
 	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []string{item.ID},
+		ItemIDs: []core.ID{item.ID},
 	})
 
 	return c.JSON(http.StatusOK, NewItem(item, variations))
@@ -107,20 +107,29 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 func (h *Handler) HandleRetrieveItem(c echo.Context) error {
 	const op = errors.Op("http/Handler.RetrieveItem")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	item, err := h.CatalogService.GetItem(ctx, c.Param("id"), merchant.ID, nil)
+	item, err := h.CatalogService.GetItem(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
 
 	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []string{item.ID},
+		ItemIDs: []core.ID{item.ID},
 	})
 	resp := NewItem(item, variations)
 
@@ -169,7 +178,7 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	itemIDs := make([]string, len(items))
+	itemIDs := make([]core.ID, len(items))
 	for i, item := range items {
 		itemIDs[i] = item.ID
 	}
@@ -188,32 +197,42 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 
 func (h *Handler) HandleDeleteItem(c echo.Context) error {
 	const op = errors.Op("http/Handler.DeleteItem")
+
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	item, err := h.CatalogService.DeleteItem(ctx, c.Param("id"), merchant.ID, nil)
+	item, err := h.CatalogService.DeleteItem(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
 	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []string{item.ID},
+		ItemIDs: []core.ID{item.ID},
 	})
 
 	return c.JSON(http.StatusOK, NewItem(item, variations))
 }
 
 type Item struct {
-	ID          string          `json:"id"`
+	ID          core.ID         `json:"id"`
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
-	CategoryID  string          `json:"category_id"`
+	CategoryID  core.ID         `json:"category_id"`
 	Variations  []ItemVariation `json:"variations"`
-	LocationIDs []string        `json:"location_ids"`
-	MerchantID  string          `json:"merchant_id"`
+	LocationIDs []core.ID       `json:"location_ids"`
+	MerchantID  core.ID         `json:"merchant_id"`
 	Status      core.Status     `json:"status"`
 }
 

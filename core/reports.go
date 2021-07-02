@@ -57,8 +57,8 @@ type ReportService struct {
 }
 
 type ReportFilter struct {
-	MerchantID  string
-	LocationIDs []string
+	MerchantID  ID
+	LocationIDs []ID
 	BeginTime   int64
 	EndTime     int64
 }
@@ -196,7 +196,7 @@ func (svc *ReportService) generateCustom(orders []WrappedOrder, groupBy []Groupi
 	return reports, nil
 }
 
-func calculateAggregations(orders []WrappedOrder, currency string) Aggregations {
+func calculateAggregations(orders []WrappedOrder, currency Currency) Aggregations {
 	var (
 		totalSales     int64
 		grossSales     int64

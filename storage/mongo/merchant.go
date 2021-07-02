@@ -58,7 +58,7 @@ func (s *merchantStorage) Put(ctx context.Context, merchant core.Merchant) error
 	return nil
 }
 
-func (s *merchantStorage) PutKey(ctx context.Context, merchantID string, key core.Key) error {
+func (s *merchantStorage) PutKey(ctx context.Context, merchantID core.ID, key core.Key) error {
 	const op = errors.Op("mongo/merchantStorage/PutKey")
 
 	merchant, err := s.Get(ctx, merchantID)
@@ -84,7 +84,7 @@ func (s *merchantStorage) PutKey(ctx context.Context, merchantID string, key cor
 	return nil
 }
 
-func (s *merchantStorage) Get(ctx context.Context, id string) (core.Merchant, error) {
+func (s *merchantStorage) Get(ctx context.Context, id core.ID) (core.Merchant, error) {
 	const op = errors.Op("mongo/merchantStorage/Get")
 
 	merchant := core.Merchant{}

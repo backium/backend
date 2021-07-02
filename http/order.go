@@ -18,11 +18,11 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 	const op = errors.Op("http/Handler.SearchOrders")
 
 	type request struct {
-		LocationIDs []string `json:"location_ids" validate:"omitempty,dive,required"`
-		Limit       int64    `json:"limit" validate:"gte=0"`
-		Offset      int64    `json:"offset" validate:"gte=0"`
-		BeginTime   int64    `json:"begin_time"`
-		EndTime     int64    `json:"end_time"`
+		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,required"`
+		Limit       int64     `json:"limit" validate:"gte=0"`
+		Offset      int64     `json:"offset" validate:"gte=0"`
+		BeginTime   int64     `json:"begin_time"`
+		EndTime     int64     `json:"end_time"`
 	}
 
 	type response struct {
@@ -72,25 +72,25 @@ func (h *Handler) HandleCreateOrder(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateOrder")
 
 	type item struct {
-		UID         string `json:"uid" validate:"required"`
-		VariationID string `json:"variation_id" validate:"required"`
-		Quantity    int64  `json:"quantity" validate:"required"`
+		UID         string  `json:"uid" validate:"required"`
+		VariationID core.ID `json:"variation_id" validate:"required"`
+		Quantity    int64   `json:"quantity" validate:"required"`
 	}
 
 	type tax struct {
 		UID   string        `json:"uid" validate:"required"`
-		ID    string        `json:"id" validate:"required"`
+		ID    core.ID       `json:"id" validate:"required"`
 		Scope core.TaxScope `json:"scope" validate:"required"`
 	}
 
 	type discount struct {
-		UID string `json:"uid" validate:"required"`
-		ID  string `json:"id" validate:"required"`
+		UID string  `json:"uid" validate:"required"`
+		ID  core.ID `json:"id" validate:"required"`
 	}
 
 	type request struct {
 		Items      []item     `json:"items" validate:"required,dive"`
-		LocationID string     `json:"location_id" validate:"required"`
+		LocationID core.ID    `json:"location_id" validate:"required"`
 		Taxes      []tax      `json:"taxes" validate:"omitempty,dive"`
 		Discounts  []discount `json:"discounts" validate:"omitempty,dive"`
 	}
@@ -144,8 +144,8 @@ func (h *Handler) HandlePayOrder(c echo.Context) error {
 	const op = errors.Op("http/Handler.PayOrder")
 
 	type request struct {
-		PaymentIDs []string `json:"payment_ids" validate:"omitempty,dive,required"`
-		OrderID    string   `param:"order_id" validate:"required"`
+		PaymentIDs []core.ID `json:"payment_ids" validate:"omitempty,dive,required"`
+		OrderID    core.ID   `param:"order_id" validate:"required"`
 	}
 
 	ctx := c.Request().Context()
@@ -160,7 +160,7 @@ func (h *Handler) HandlePayOrder(c echo.Context) error {
 		return err
 	}
 
-	order, err := h.OrderingService.PayOrder(ctx, req.OrderID, merchant.ID, req.PaymentIDs)
+	order, err := h.OrderingService.PayOrder(ctx, req.OrderID, req.PaymentIDs)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -169,7 +169,7 @@ func (h *Handler) HandlePayOrder(c echo.Context) error {
 }
 
 type Order struct {
-	ID                  string          `json:"id"`
+	ID                  core.ID         `json:"id"`
 	Items               []OrderItem     `json:"items"`
 	TotalAmount         MoneyRequest    `json:"total_amount"`
 	TotalDiscountAmount MoneyRequest    `json:"total_discount_amount"`
@@ -177,8 +177,8 @@ type Order struct {
 	Taxes               []OrderTax      `json:"taxes"`
 	Discounts           []OrderDiscount `json:"discounts"`
 	State               core.OrderState `json:"state"`
-	LocationID          string          `json:"location_id"`
-	MerchantID          string          `json:"merchant_id"`
+	LocationID          core.ID         `json:"location_id"`
+	MerchantID          core.ID         `json:"merchant_id"`
 	CreatedAt           int64           `json:"created_at"`
 	UpdatedAt           int64           `json:"updated_at"`
 }
@@ -223,7 +223,7 @@ func NewOrder(order core.Order) Order {
 
 type OrderItem struct {
 	UID                 string                     `json:"uid"`
-	VariationID         string                     `json:"variation_id"`
+	VariationID         core.ID                    `json:"variation_id"`
 	Name                string                     `json:"name"`
 	Quantity            int64                      `json:"quantity"`
 	AppliedTaxes        []OrderItemAppliedTax      `json:"applied_taxes"`
@@ -298,7 +298,7 @@ type OrderItemAppliedDiscount struct {
 
 type OrderTax struct {
 	UID           string        `json:"uid"`
-	ID            string        `json:"id"`
+	ID            core.ID       `json:"id"`
 	Scope         core.TaxScope `json:"scope"`
 	Name          string        `json:"name"`
 	Percentage    float64       `json:"percentage"`
@@ -321,7 +321,7 @@ func NewOrderTax(tax core.OrderTax) OrderTax {
 
 type OrderDiscount struct {
 	UID           string            `json:"uid"`
-	ID            string            `json:"id"`
+	ID            core.ID           `json:"id"`
 	Name          string            `json:"name"`
 	Type          core.DiscountType `json:"type"`
 	Amount        *MoneyRequest     `json:"amount,omitempty"`

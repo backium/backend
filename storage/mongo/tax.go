@@ -35,10 +35,7 @@ func (s *taxStorage) Put(ctx context.Context, tax core.Tax) error {
 
 	now := time.Now().Unix()
 	tax.UpdatedAt = now
-	filter := bson.M{
-		"_id":         tax.ID,
-		"merchant_id": tax.MerchantID,
-	}
+	filter := bson.M{"_id": tax.ID}
 	query := bson.M{"$set": tax}
 	opts := options.Update().SetUpsert(true)
 
@@ -83,17 +80,11 @@ func (s *taxStorage) PutBatch(ctx context.Context, batch []core.Tax) error {
 	return nil
 }
 
-func (s *taxStorage) Get(ctx context.Context, id, merchantID string, locationIDs []string) (core.Tax, error) {
+func (s *taxStorage) Get(ctx context.Context, id core.ID) (core.Tax, error) {
 	const op = errors.Op("mongo/taxStorage/Get")
 
 	tax := core.Tax{}
-	filter := bson.M{
-		"_id":         id,
-		"merchant_id": merchantID,
-	}
-	if len(locationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": locationIDs}
-	}
+	filter := bson.M{"_id": id}
 
 	if err := s.driver.findOneAndDecode(ctx, &tax, filter); err != nil {
 		return core.Tax{}, errors.E(op, err)

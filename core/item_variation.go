@@ -8,27 +8,27 @@ import (
 )
 
 type ItemVariation struct {
-	ID          string   `bson:"_id"`
-	Name        string   `bson:"name"`
-	SKU         string   `bson:"sku"`
-	ItemID      string   `bson:"item_id"`
-	Price       Money    `bson:"price"`
-	Cost        *Money   `bson:"cost"`
-	Image       string   `bson:"image"`
-	LocationIDs []string `bson:"location_ids"`
-	MerchantID  string   `bson:"merchant_id"`
-	CreatedAt   int64    `bson:"created_at"`
-	UpdatedAt   int64    `bson:"updated_at"`
-	Status      Status   `bson:"status"`
+	ID          ID     `bson:"_id"`
+	Name        string `bson:"name"`
+	SKU         string `bson:"sku"`
+	ItemID      ID     `bson:"item_id"`
+	Price       Money  `bson:"price"`
+	Cost        *Money `bson:"cost"`
+	Image       string `bson:"image"`
+	LocationIDs []ID   `bson:"location_ids"`
+	MerchantID  ID     `bson:"merchant_id"`
+	CreatedAt   int64  `bson:"created_at"`
+	UpdatedAt   int64  `bson:"updated_at"`
+	Status      Status `bson:"status"`
 }
 
 // Creates an ItemVariationVariation with default values
-func NewItemVariation(name, itemID, merchantID string) ItemVariation {
+func NewItemVariation(name string, itemID, merchantID ID) ItemVariation {
 	return ItemVariation{
 		ID:          NewID("itemvar"),
 		Name:        name,
 		ItemID:      itemID,
-		LocationIDs: []string{},
+		LocationIDs: []ID{},
 		Status:      StatusActive,
 		MerchantID:  merchantID,
 	}
@@ -37,7 +37,7 @@ func NewItemVariation(name, itemID, merchantID string) ItemVariation {
 type ItemVariationStorage interface {
 	Put(context.Context, ItemVariation) error
 	PutBatch(context.Context, []ItemVariation) error
-	Get(context.Context, string, string, []string) (ItemVariation, error)
+	Get(context.Context, ID) (ItemVariation, error)
 	List(context.Context, ItemVariationFilter) ([]ItemVariation, error)
 }
 
@@ -48,7 +48,7 @@ func (s *CatalogService) PutItemVariation(ctx context.Context, variation ItemVar
 		return ItemVariation{}, errors.E(op, err)
 	}
 
-	variation, err := s.ItemVariationStorage.Get(ctx, variation.ID, variation.MerchantID, nil)
+	variation, err := s.ItemVariationStorage.Get(ctx, variation.ID)
 	if err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
@@ -68,7 +68,7 @@ func (s *CatalogService) PutItemVariationVariations(ctx context.Context, variati
 		return nil, err
 	}
 
-	ids := make([]string, len(variations))
+	ids := make([]ID, len(variations))
 	for i, d := range variations {
 		ids[i] = d.ID
 	}
@@ -83,10 +83,10 @@ func (s *CatalogService) PutItemVariationVariations(ctx context.Context, variati
 	return variations, nil
 }
 
-func (s *CatalogService) GetItemVariation(ctx context.Context, id, merchantID string, locationIDs []string) (ItemVariation, error) {
+func (s *CatalogService) GetItemVariation(ctx context.Context, id ID) (ItemVariation, error) {
 	const op = errors.Op("core/CatalogService.GetItemVariation")
 
-	variation, err := s.ItemVariationStorage.Get(ctx, id, merchantID, locationIDs)
+	variation, err := s.ItemVariationStorage.Get(ctx, id)
 	if err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
@@ -110,10 +110,10 @@ func (s *CatalogService) ListItemVariation(ctx context.Context, f ItemVariationF
 	return variations, nil
 }
 
-func (s *CatalogService) DeleteItemVariation(ctx context.Context, id, merchantID string, locationIDs []string) (ItemVariation, error) {
+func (s *CatalogService) DeleteItemVariation(ctx context.Context, id ID) (ItemVariation, error) {
 	const op = errors.Op("core/CatalogService.DeleteItemVariation")
 
-	variation, err := s.ItemVariationStorage.Get(ctx, id, merchantID, locationIDs)
+	variation, err := s.ItemVariationStorage.Get(ctx, id)
 	if err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
@@ -123,7 +123,7 @@ func (s *CatalogService) DeleteItemVariation(ctx context.Context, id, merchantID
 		return ItemVariation{}, errors.E(op, err)
 	}
 
-	variation, err = s.ItemVariationStorage.Get(ctx, id, merchantID, locationIDs)
+	variation, err = s.ItemVariationStorage.Get(ctx, id)
 	if err != nil {
 		return ItemVariation{}, errors.E(op, err)
 	}
@@ -134,8 +134,8 @@ func (s *CatalogService) DeleteItemVariation(ctx context.Context, id, merchantID
 type ItemVariationFilter struct {
 	Limit       int64
 	Offset      int64
-	LocationIDs []string
-	MerchantID  string
-	ItemIDs     []string
-	IDs         []string
+	LocationIDs []ID
+	MerchantID  ID
+	ItemIDs     []ID
+	IDs         []ID
 }

@@ -47,9 +47,9 @@ func (h *Handler) HandleRegisterEmployee(c echo.Context) error {
 	const op = errors.Op("http/Handler.RegisterEmployee")
 
 	type request struct {
-		Email      string `json:"email" validate:"required,email"`
-		Password   string `json:"password" validate:"required,password"`
-		EmployeeID string `json:"employee_id" validate:"required"`
+		Email      string  `json:"email" validate:"required,email"`
+		Password   string  `json:"password" validate:"required,password"`
+		EmployeeID core.ID `json:"employee_id" validate:"required"`
 	}
 
 	ctx := c.Request().Context()
@@ -135,7 +135,7 @@ func (h *Handler) HandleUniversalLogin(c echo.Context) error {
 	if err := h.SessionRepository.Set(ctx, s); err != nil {
 		return errors.E(op, err)
 	}
-	c.Response().Header().Set("session-id", s.ID)
+	c.Response().Header().Set("session-id", string(s.ID))
 
 	return c.NoContent(http.StatusOK)
 }
@@ -145,7 +145,7 @@ func (h *Handler) HandleUniversalGetSession(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	sid := c.QueryParam("sid")
+	sid := core.ID(c.QueryParam("sid"))
 	s, err := h.SessionRepository.Get(ctx, sid)
 	if err != nil {
 		return errors.E(op, errors.KindInvalidCredentials, err)
@@ -199,11 +199,11 @@ func (h *Handler) setSession(c echo.Context, u core.User) error {
 }
 
 type User struct {
-	ID         string `json:"id"`
-	Email      string `json:"email"`
-	IsOwner    bool   `json:"is_owner"`
-	EmployeeID string `json:"employee_id"`
-	MerchantID string `json:"merchant_id"`
+	ID         core.ID `json:"id"`
+	Email      string  `json:"email"`
+	IsOwner    bool    `json:"is_owner"`
+	EmployeeID core.ID `json:"employee_id"`
+	MerchantID core.ID `json:"merchant_id"`
 }
 
 func NewUser(user core.User) User {
@@ -217,8 +217,8 @@ func NewUser(user core.User) User {
 }
 
 type RegisterResponse struct {
-	UserID       string `json:"user_id,omitempty"`
-	EmployeeID   string `json:"employee_id,omitempty"`
-	MerchantID   string `json:"merchant_id,omitempty"`
-	ExistingUser bool   `json:"existing_user"`
+	UserID       core.ID `json:"user_id,omitempty"`
+	EmployeeID   core.ID `json:"employee_id,omitempty"`
+	MerchantID   core.ID `json:"merchant_id,omitempty"`
+	ExistingUser bool    `json:"existing_user"`
 }

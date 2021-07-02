@@ -7,7 +7,7 @@ import (
 )
 
 type Merchant struct {
-	ID           string `bson:"_id"`
+	ID           ID     `bson:"_id"`
 	FirstName    string `bson:"first_name"`
 	LastName     string `bson:"last_name"`
 	BusinessName string `bson:"business_name"`
@@ -26,7 +26,7 @@ func NewMerchant() Merchant {
 
 type Key struct {
 	Name  string `bson:"name"`
-	Token string `bson:"token"`
+	Token ID     `bson:"token"`
 }
 
 func NewKey(name string) Key {
@@ -38,8 +38,8 @@ func NewKey(name string) Key {
 
 type MerchantStorage interface {
 	Put(context.Context, Merchant) error
-	PutKey(context.Context, string, Key) error
-	Get(context.Context, string) (Merchant, error)
+	PutKey(context.Context, ID, Key) error
+	Get(context.Context, ID) (Merchant, error)
 	GetByKey(context.Context, string) (Merchant, error)
 }
 
@@ -59,7 +59,7 @@ func (svc *MerchantService) PutMerchant(ctx context.Context, merchant Merchant) 
 	return merchant, nil
 }
 
-func (svc *MerchantService) GetMerchant(ctx context.Context, id string) (Merchant, error) {
+func (svc *MerchantService) GetMerchant(ctx context.Context, id ID) (Merchant, error) {
 	const op = errors.Op("core/MerchantService.GetMerchant")
 	merchant, err := svc.MerchantStorage.Get(ctx, id)
 	if err != nil {
@@ -68,7 +68,7 @@ func (svc *MerchantService) GetMerchant(ctx context.Context, id string) (Merchan
 	return merchant, nil
 }
 
-func (svc *MerchantService) CreateKey(ctx context.Context, keyName, merchantID string) (Key, error) {
+func (svc *MerchantService) CreateKey(ctx context.Context, keyName string, merchantID ID) (Key, error) {
 	const op = errors.Op("core/MerchantService.CreateKey")
 	key := NewKey(keyName)
 	if err := svc.MerchantStorage.PutKey(ctx, merchantID, key); err != nil {

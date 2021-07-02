@@ -7,23 +7,23 @@ import (
 )
 
 type Item struct {
-	ID          string   `bson:"_id"`
-	Name        string   `bson:"name,omitempty"`
-	Description string   `bson:"description,omitempty"`
-	CategoryID  string   `bson:"category_id,omitempty"`
-	LocationIDs []string `bson:"location_ids"`
-	MerchantID  string   `bson:"merchant_id,omitempty"`
-	CreatedAt   int64    `bson:"created_at"`
-	UpdatedAt   int64    `bson:"updated_at"`
-	Status      Status   `bson:"status,omitempty"`
+	ID          ID     `bson:"_id"`
+	Name        string `bson:"name,omitempty"`
+	Description string `bson:"description,omitempty"`
+	CategoryID  ID     `bson:"category_id,omitempty"`
+	LocationIDs []ID   `bson:"location_ids"`
+	MerchantID  ID     `bson:"merchant_id,omitempty"`
+	CreatedAt   int64  `bson:"created_at"`
+	UpdatedAt   int64  `bson:"updated_at"`
+	Status      Status `bson:"status,omitempty"`
 }
 
-func NewItem(name, categoryID, merchantID string) Item {
+func NewItem(name string, categoryID, merchantID ID) Item {
 	return Item{
 		ID:          NewID("item"),
 		Name:        name,
 		CategoryID:  categoryID,
-		LocationIDs: []string{},
+		LocationIDs: []ID{},
 		Status:      StatusActive,
 		MerchantID:  merchantID,
 	}
@@ -43,7 +43,7 @@ func (it *Item) ItemVariations(variations []ItemVariation) []ItemVariation {
 type ItemStorage interface {
 	Put(context.Context, Item) error
 	PutBatch(context.Context, []Item) error
-	Get(context.Context, string, string, []string) (Item, error)
+	Get(context.Context, ID) (Item, error)
 	List(context.Context, ItemFilter) ([]Item, error)
 }
 
@@ -54,7 +54,7 @@ func (s *CatalogService) PutItem(ctx context.Context, item Item) (Item, error) {
 		return Item{}, err
 	}
 
-	item, err := s.ItemStorage.Get(ctx, item.ID, item.MerchantID, nil)
+	item, err := s.ItemStorage.Get(ctx, item.ID)
 	if err != nil {
 		return Item{}, err
 	}
@@ -69,7 +69,7 @@ func (s *CatalogService) PutItems(ctx context.Context, items []Item) ([]Item, er
 		return nil, err
 	}
 
-	ids := make([]string, len(items))
+	ids := make([]ID, len(items))
 	for i, d := range items {
 		ids[i] = d.ID
 	}
@@ -84,10 +84,10 @@ func (s *CatalogService) PutItems(ctx context.Context, items []Item) ([]Item, er
 	return items, nil
 }
 
-func (s *CatalogService) GetItem(ctx context.Context, id, merchantID string, locationIDs []string) (Item, error) {
+func (s *CatalogService) GetItem(ctx context.Context, id ID) (Item, error) {
 	const op = errors.Op("core/CatalogService.GetItem")
 
-	item, err := s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
+	item, err := s.ItemStorage.Get(ctx, id)
 	if err != nil {
 		return Item{}, errors.E(op, err)
 	}
@@ -110,10 +110,10 @@ func (s *CatalogService) ListItem(ctx context.Context, f ItemFilter) ([]Item, er
 	return items, nil
 }
 
-func (s *CatalogService) DeleteItem(ctx context.Context, id, merchantID string, locationIDs []string) (Item, error) {
+func (s *CatalogService) DeleteItem(ctx context.Context, id ID) (Item, error) {
 	const op = errors.Op("core/CatalogService.DeleteItem")
 
-	item, err := s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
+	item, err := s.ItemStorage.Get(ctx, id)
 	if err != nil {
 		return Item{}, errors.E(op, err)
 	}
@@ -123,7 +123,7 @@ func (s *CatalogService) DeleteItem(ctx context.Context, id, merchantID string, 
 		return Item{}, errors.E(op, err)
 	}
 
-	item, err = s.ItemStorage.Get(ctx, id, merchantID, locationIDs)
+	item, err = s.ItemStorage.Get(ctx, id)
 	if err != nil {
 		return Item{}, errors.E(op, err)
 	}
@@ -134,7 +134,7 @@ func (s *CatalogService) DeleteItem(ctx context.Context, id, merchantID string, 
 type ItemFilter struct {
 	Limit       int64
 	Offset      int64
-	LocationIDs []string
-	MerchantID  string
-	IDs         []string
+	LocationIDs []ID
+	MerchantID  ID
+	IDs         []ID
 }

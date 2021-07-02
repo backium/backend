@@ -20,11 +20,11 @@ func (h *Handler) HandleCreateItemVariation(c echo.Context) error {
 	type request struct {
 		Name        string        `json:"name" validate:"required"`
 		SKU         string        `json:"sku"`
-		ItemID      string        `json:"item_id" validate:"required"`
+		ItemID      core.ID       `json:"item_id" validate:"required"`
 		Price       *MoneyRequest `json:"price" validate:"required"`
 		Cost        *MoneyRequest `json:"cost" validate:"omitempty"`
 		Image       string        `json:"image"`
-		LocationIDs *[]string     `json:"location_ids" validate:"omitempty,dive,required"`
+		LocationIDs *[]core.ID    `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -68,13 +68,13 @@ func (h *Handler) HandleUpdateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Update")
 
 	type request struct {
-		ID          string        `param:"id" validate:"required"`
+		ID          core.ID       `param:"id" validate:"required"`
 		Name        *string       `json:"name" validate:"omitempty,min=1"`
 		SKU         *string       `json:"sku"`
 		Price       *MoneyRequest `json:"price"`
 		Cost        *MoneyRequest `json:"cost"`
 		Image       *string       `json:"image"`
-		LocationIDs *[]string     `json:"location_ids" validate:"omitempty,dive,required"`
+		LocationIDs *[]core.ID    `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -89,7 +89,7 @@ func (h *Handler) HandleUpdateItemVariation(c echo.Context) error {
 		return err
 	}
 
-	variation, err := h.CatalogService.GetItemVariation(ctx, req.ID, merchant.ID, nil)
+	variation, err := h.CatalogService.GetItemVariation(ctx, req.ID)
 	if req.Price != nil {
 		variation.Price = core.Money{
 			Value:    ptr.GetInt64(req.Price.Value),
@@ -126,14 +126,23 @@ func (h *Handler) HandleUpdateItemVariation(c echo.Context) error {
 func (h *Handler) HandleRetrieveItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Retrieve")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	variation, err := h.CatalogService.GetItemVariation(ctx, c.Param("id"), merchant.ID, nil)
+	variation, err := h.CatalogService.GetItemVariation(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -192,14 +201,23 @@ func (h *Handler) HandleListItemVariations(c echo.Context) error {
 func (h *Handler) HandleDeleteItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Delete")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	variation, err := h.CatalogService.DeleteItemVariation(ctx, c.Param("id"), merchant.ID, nil)
+	variation, err := h.CatalogService.DeleteItemVariation(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -208,15 +226,15 @@ func (h *Handler) HandleDeleteItemVariation(c echo.Context) error {
 }
 
 type ItemVariation struct {
-	ID          string      `json:"id"`
+	ID          core.ID     `json:"id"`
 	Name        string      `json:"name"`
 	SKU         string      `json:"sku,omitempty"`
-	ItemID      string      `json:"item_id"`
+	ItemID      core.ID     `json:"item_id"`
 	Price       Money       `json:"price"`
 	Cost        *Money      `json:"cost,omitempty"`
 	Image       string      `json:"image,omitempty"`
-	LocationIDs []string    `json:"location_ids"`
-	MerchantID  string      `json:"merchant_id"`
+	LocationIDs []core.ID   `json:"location_ids"`
+	MerchantID  core.ID     `json:"merchant_id"`
 	CreatedAt   int64       `json:"created_at"`
 	UpdatedAt   int64       `json:"updated_at"`
 	Status      core.Status `json:"status"`

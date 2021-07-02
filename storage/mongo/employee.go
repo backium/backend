@@ -35,10 +35,7 @@ func (s *employeeStorage) Put(ctx context.Context, employee core.Employee) error
 
 	now := time.Now().Unix()
 	employee.UpdatedAt = now
-	filter := bson.M{
-		"_id":         employee.ID,
-		"merchant_id": employee.MerchantID,
-	}
+	filter := bson.M{"_id": employee.ID}
 	query := bson.M{"$set": employee}
 	opts := options.Update().SetUpsert(true)
 
@@ -60,14 +57,11 @@ func (s *employeeStorage) Put(ctx context.Context, employee core.Employee) error
 	return nil
 }
 
-func (s *employeeStorage) Get(ctx context.Context, id, merchantID string) (core.Employee, error) {
+func (s *employeeStorage) Get(ctx context.Context, id core.ID) (core.Employee, error) {
 	const op = errors.Op("mongo/employeeStorage/Get")
 
 	employee := core.Employee{}
-	filter := bson.M{
-		"_id":         id,
-		"merchant_id": merchantID,
-	}
+	filter := bson.M{"_id": id}
 
 	if err := s.driver.findOneAndDecode(ctx, &employee, filter); err != nil {
 		return core.Employee{}, errors.E(op, err)

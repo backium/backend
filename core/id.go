@@ -1,24 +1,37 @@
 package core
 
-import gonanoid "github.com/matoous/go-nanoid/v2"
+import (
+	"strings"
+
+	gonanoid "github.com/matoous/go-nanoid/v2"
+)
 
 const (
 	alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	idSize   = 14
 )
 
-func NewID(prefix string) string {
-	id, err := gonanoid.Generate(alphabet, idSize)
-	if err != nil {
-		panic(err)
-	}
-	return prefix + "_" + id
+type ID string
+
+func NewID(prefix string) ID {
+	return NewIDWithSize(prefix, idSize)
 }
 
-func NewIDWithSize(prefix string, size int) string {
+func NewIDWithSize(prefix string, size int) ID {
 	id, err := gonanoid.Generate(alphabet, size)
 	if err != nil {
 		panic(err)
 	}
-	return prefix + "_" + id
+	return ID(prefix + "_" + id)
+}
+
+func (id *ID) Validate() bool {
+	p := strings.Split(string(*id), "_")
+	if len(p) != 2 {
+		return false
+	}
+	if len(p[1]) != idSize {
+		return false
+	}
+	return true
 }

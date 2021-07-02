@@ -22,16 +22,16 @@ const (
 )
 
 type InventoryAdjustment struct {
-	ID              string      `bson:"_id"`
-	ItemVariationID string      `bson:"item_variation_id"`
+	ID              ID          `bson:"_id"`
+	ItemVariationID ID          `bson:"item_variation_id"`
 	Quantity        int64       `bson:"quantity"`
 	Op              InventoryOp `bson:"operation"`
-	LocationID      string      `bson:"location_id"`
-	MerchantID      string      `bson:"merchant_id"`
+	LocationID      ID          `bson:"location_id"`
+	MerchantID      ID          `bson:"merchant_id"`
 	CreatedAt       int64       `bson:"created_at"`
 }
 
-func NewInventoryAdjustment(variationID, locationID, merchantID string) InventoryAdjustment {
+func NewInventoryAdjustment(variationID, locationID, merchantID ID) InventoryAdjustment {
 	return InventoryAdjustment{
 		ID:              NewID("invadj"),
 		ItemVariationID: variationID,
@@ -41,16 +41,16 @@ func NewInventoryAdjustment(variationID, locationID, merchantID string) Inventor
 }
 
 type InventoryCount struct {
-	ID              string         `bson:"_id"`
-	ItemVariationID string         `bson:"item_variation_id"`
+	ID              ID             `bson:"_id"`
+	ItemVariationID ID             `bson:"item_variation_id"`
 	Quantity        int64          `bson:"quantity"`
 	State           InventoryState `bson:"state"`
 	CalculatedAt    int64          `bson:"calculated_at"`
-	LocationID      string         `bson:"location_id"`
-	MerchantID      string         `bson:"merchant_id"`
+	LocationID      ID             `bson:"location_id"`
+	MerchantID      ID             `bson:"merchant_id"`
 }
 
-func NewInventoryCount(variationID, locationID, merchantID string) InventoryCount {
+func NewInventoryCount(variationID, locationID, merchantID ID) InventoryCount {
 	return InventoryCount{
 		ID:              NewID("invcount"),
 		ItemVariationID: variationID,
@@ -90,10 +90,10 @@ func (count *InventoryCount) applyAdjustments(adjs []InventoryAdjustment) (bool,
 type InventoryFilter struct {
 	Limit            int64
 	Offset           int64
-	IDs              []string
-	ItemVariationIDs []string
-	LocationIDs      []string
-	MerchantID       string
+	IDs              []ID
+	ItemVariationIDs []ID
+	LocationIDs      []ID
+	MerchantID       ID
 }
 
 type InventoryStorage interface {
@@ -125,7 +125,7 @@ func (s *CatalogService) initializeInventory(ctx context.Context, variation Item
 func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []InventoryAdjustment) ([]InventoryCount, error) {
 	const op = errors.Op("core/CatalogService.PutInventoryAdjusments")
 
-	variations := make([]string, len(adjs))
+	variations := make([]ID, len(adjs))
 	for i, adj := range adjs {
 		variations[i] = adj.ItemVariationID
 	}
@@ -140,7 +140,7 @@ func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []I
 	}
 
 	var countsToUpdate []InventoryCount
-	var countIDs []string
+	var countIDs []ID
 	for _, count := range counts {
 		changed, err := count.applyAdjustments(adjs)
 		if err != nil {

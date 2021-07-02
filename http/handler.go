@@ -20,7 +20,7 @@ type Handler struct {
 	OrderingService   core.OrderingService
 	PaymentService    core.PaymentService
 	ReportService     core.ReportService
-	SessionRepository core.SessionRepository
+	SessionRepository core.SessionStorage
 }
 
 func bindAndValidate(c echo.Context, req interface{}) error {

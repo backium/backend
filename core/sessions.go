@@ -5,27 +5,23 @@ import (
 
 	"github.com/backium/backend/errors"
 	"github.com/dgrijalva/jwt-go"
-	gonanoid "github.com/matoous/go-nanoid/v2"
 )
 
-type SessionRepository interface {
+type SessionStorage interface {
 	Set(context.Context, Session) error
-	Get(context.Context, string) (Session, error)
-	Delete(context.Context, string) error
+	Get(context.Context, ID) (Session, error)
+	Delete(context.Context, ID) error
 }
 
 type Session struct {
-	ID         string
-	UserID     string
-	MerchantID string
+	ID         ID
+	UserID     ID
+	MerchantID ID
 	Kind       UserKind
 }
 
 func NewSession(u User) Session {
-	id, err := gonanoid.New()
-	if err != nil {
-		panic(err)
-	}
+	id := NewID("sess")
 	return Session{
 		ID:         id,
 		UserID:     u.ID,
@@ -63,9 +59,9 @@ func DecodeSession(encodedSession string) (Session, error) {
 	}
 
 	return Session{
-		ID:         id,
-		UserID:     userID,
-		MerchantID: merchantID,
+		ID:         ID(id),
+		UserID:     ID(userID),
+		MerchantID: ID(merchantID),
 		Kind:       UserKind(kind),
 	}, nil
 }

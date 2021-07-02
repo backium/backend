@@ -69,7 +69,7 @@ func TestCreateOrder(t *testing.T) {
 				orderInMem = order
 				return nil
 			}
-			orderStorage.GetFn = func(ctx context.Context, id, merchantID string, locationIDs []string) (Order, error) {
+			orderStorage.GetFn = func(ctx context.Context, id ID) (Order, error) {
 				return orderInMem, nil
 			}
 

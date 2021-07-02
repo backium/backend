@@ -17,10 +17,10 @@ func (h *Handler) HandleCreateTax(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleCreateTax")
 
 	type request struct {
-		Name        string    `json:"name" validate:"required"`
-		Percentage  *float64  `json:"percentage" validate:"required,min=0,max=100"`
-		Enabled     bool      `json:"enabled"`
-		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+		Name        string     `json:"name" validate:"required"`
+		Percentage  *float64   `json:"percentage" validate:"required,min=0,max=100"`
+		Enabled     bool       `json:"enabled"`
+		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required,id"`
 	}
 
 	ctx := c.Request().Context()
@@ -54,11 +54,11 @@ func (h *Handler) HandleUpdateTax(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleUpdateTax")
 
 	type request struct {
-		ID          string    `param:"id" validate:"required"`
-		Name        *string   `json:"name" validate:"omitempty,min=1"`
-		Percentage  *float64  `json:"percentage" validate:"omitempty,min=0,max=100"`
-		Enabled     *bool     `json:"enabled"`
-		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+		ID          core.ID    `param:"id" validate:"required"`
+		Name        *string    `json:"name" validate:"omitempty,min=1"`
+		Percentage  *float64   `json:"percentage" validate:"omitempty,min=0,max=100"`
+		Enabled     *bool      `json:"enabled"`
+		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -73,7 +73,7 @@ func (h *Handler) HandleUpdateTax(c echo.Context) error {
 		return err
 	}
 
-	tax, err := h.CatalogService.GetTax(ctx, req.ID, merchant.ID, nil)
+	tax, err := h.CatalogService.GetTax(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -102,9 +102,9 @@ func (h *Handler) HandleBatchCreateTax(c echo.Context) error {
 	const op = errors.Op("http/Handler.BatchCreateTax")
 
 	type tax struct {
-		Name        string    `json:"name" validate:"required"`
-		Percentage  *float64  `json:"percentage" validate:"required,min=0,max=100"`
-		LocationIDs *[]string `json:"location_ids" validate:"omitempty,dive,required"`
+		Name        string     `json:"name" validate:"required"`
+		Percentage  *float64   `json:"percentage" validate:"required,min=0,max=100"`
+		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	type request struct {
@@ -152,14 +152,23 @@ func (h *Handler) HandleBatchCreateTax(c echo.Context) error {
 func (h *Handler) HandleRetrieveTax(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleRetrieveTax")
 
+	type request struct {
+		ID core.ID `param:"id" validate:"required,id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	tax, err := h.CatalogService.GetTax(ctx, c.Param("id"), merchant.ID, nil)
+	tax, err := h.CatalogService.GetTax(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -218,14 +227,23 @@ func (h *Handler) HandleListTaxes(c echo.Context) error {
 func (h *Handler) HandleDeleteTax(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleDeleteTax")
 
+	type request struct {
+		ID core.ID `param:"id"`
+	}
+
 	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
 
 	merchant := core.MerchantFromContext(ctx)
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
-	tax, err := h.CatalogService.DeleteTax(ctx, c.Param("id"), merchant.ID, nil)
+	tax, err := h.CatalogService.DeleteTax(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -234,12 +252,12 @@ func (h *Handler) HandleDeleteTax(c echo.Context) error {
 }
 
 type Tax struct {
-	ID           string      `json:"id"`
+	ID           core.ID     `json:"id"`
 	Name         string      `json:"name"`
 	Percentage   float64     `json:"percentage"`
 	EnabledInPOS bool        `json:"enabled"`
-	LocationIDs  []string    `json:"location_ids"`
-	MerchantID   string      `json:"merchant_id"`
+	LocationIDs  []core.ID   `json:"location_ids"`
+	MerchantID   core.ID     `json:"merchant_id"`
 	CreatedAt    int64       `json:"created_at"`
 	UpdatedAt    int64       `json:"updated_at"`
 	Status       core.Status `json:"status"`
