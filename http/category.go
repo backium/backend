@@ -119,6 +119,60 @@ func (h *Handler) HandleRetrieveCategory(c echo.Context) error {
 	return c.JSON(http.StatusOK, NewCategory(category))
 }
 
+func (h *Handler) HandleSearchCategory(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleSearchCategory")
+
+	type request struct {
+		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
+		Name        string    `json:"name"`
+		Limit       int64     `json:"limit" validate:"gte=0"`
+		Offset      int64     `json:"offset" validate:"gte=0"`
+	}
+
+	type response struct {
+		Categories []Category `json:"categories"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit, offset int64 = CategoryListDefaultSize, req.Offset
+	if req.Limit <= CategoryListMaxSize {
+		limit = req.Limit
+	} else {
+		limit = CategoryListMaxSize
+	}
+
+	categories, err := h.CatalogService.ListCategory(ctx, core.CategoryFilter{
+		Name:        req.Name,
+		IDs:         req.IDs,
+		LocationIDs: req.LocationIDs,
+		MerchantID:  merchant.ID,
+		Limit:       limit,
+		Offset:      offset,
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{Categories: make([]Category, len(categories))}
+	for i, category := range categories {
+		resp.Categories[i] = NewCategory(category)
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (h *Handler) HandleListCategories(c echo.Context) error {
 	const op = errors.Op("handler.Category.ListAll")
 

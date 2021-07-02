@@ -86,9 +86,12 @@ func (svc *CatalogService) ListCategory(ctx context.Context, f CategoryFilter) (
 	const op = errors.Op("core/CatalogService.ListCategory")
 
 	categories, err := svc.CategoryStorage.List(ctx, CategoryFilter{
-		MerchantID: f.MerchantID,
-		Limit:      f.Limit,
-		Offset:     f.Offset,
+		Limit:       f.Limit,
+		Offset:      f.Offset,
+		IDs:         f.IDs,
+		Name:        f.Name,
+		LocationIDs: f.LocationIDs,
+		MerchantID:  f.MerchantID,
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
@@ -121,6 +124,7 @@ func (svc *CatalogService) DeleteCategory(ctx context.Context, id ID) (Category,
 type CategoryFilter struct {
 	Limit       int64
 	Offset      int64
+	Name        string
 	LocationIDs []ID
 	MerchantID  ID
 	IDs         []ID

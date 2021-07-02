@@ -7,6 +7,7 @@ import (
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -110,6 +111,9 @@ func (s *categoryStorage) List(ctx context.Context, f core.CategoryFilter) ([]co
 	}
 	if len(f.LocationIDs) != 0 {
 		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
+	}
+	if f.Name != "" {
+		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: f.Name, Options: "i"}}
 	}
 
 	res, err := s.collection.Find(ctx, filter, opts)

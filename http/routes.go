@@ -47,6 +47,7 @@ func (s *Server) setupRoutes() {
 
 	userGroup.GET("/categories/:id", h.HandleRetrieveCategory)
 	userGroup.GET("/categories", h.HandleListCategories)
+	userGroup.POST("/categories/search", h.HandleSearchCategory)
 	userGroup.POST("/categories", h.HandleCreateCategory)
 	userGroup.PUT("/categories/:id", h.HandleUpdateCategory)
 	userGroup.DELETE("/categories/:id", h.HandleDeleteCategory)
