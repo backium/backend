@@ -56,6 +56,7 @@ type Merchant struct {
 	FirstName    string `json:"first_name"`
 	LastName     string `json:"last_name"`
 	BusinessName string `json:"business_name"`
+	Currency     string `json:"currency"`
 }
 
 func NewMerchant(m core.Merchant) Merchant {
@@ -64,6 +65,7 @@ func NewMerchant(m core.Merchant) Merchant {
 		FirstName:    m.FirstName,
 		LastName:     m.LastName,
 		BusinessName: m.BusinessName,
+		Currency:     m.Currency,
 	}
 }
 

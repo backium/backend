@@ -82,6 +82,7 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 	case UserKindOwner:
 		merchant := NewMerchant()
 		merchant.BusinessName = "My Business"
+		merchant.Currency = "PEN"
 		if err := svc.MerchantStorage.Put(ctx, merchant); err != nil {
 			return User{}, errors.E(op, errors.KindUnexpected, err)
 
