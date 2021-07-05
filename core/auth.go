@@ -9,8 +9,8 @@ type Authorizer struct {
 func (auth *Authorizer) canChangeInventory(ctx context.Context, variationIDs []ID) bool {
 	merchant := MerchantFromContext(ctx)
 
-	variations, err := auth.ItemVariationStorage.List(ctx, ItemVariationFilter{
-		IDs: variationIDs,
+	variations, err := auth.ItemVariationStorage.List(ctx, ItemVariationQuery{
+		Filter: ItemVariationFilter{IDs: variationIDs},
 	})
 	if err != nil {
 		return false

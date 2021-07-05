@@ -17,12 +17,26 @@ const (
 func (h *Handler) HandleSearchOrders(c echo.Context) error {
 	const op = errors.Op("http/Handler.SearchOrders")
 
+	type dateFilter struct {
+		Gte int64 `json:"gte" validate:"gte=0"`
+		Lte int64 `json:"lte" validate:"gte=0"`
+	}
+
+	type filter struct {
+		IDs         []core.ID  `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID  `json:"location_ids" validate:"omitempty,dive,id"`
+		CreatedAt   dateFilter `json:"created_at"`
+	}
+
+	type sort struct {
+		CreatedAt core.SortOrder `json:"created_at"`
+	}
+
 	type request struct {
-		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,required"`
-		Limit       int64     `json:"limit" validate:"gte=0"`
-		Offset      int64     `json:"offset" validate:"gte=0"`
-		BeginTime   int64     `json:"begin_time"`
-		EndTime     int64     `json:"end_time"`
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
 	}
 
 	type response struct {
@@ -48,13 +62,20 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 		limit = OrderListMaxSize
 	}
 
-	orders, err := h.OrderingService.ListOrder(ctx, core.OrderFilter{
-		BeginTime:   req.BeginTime,
-		EndTime:     req.EndTime,
-		Limit:       limit,
-		Offset:      offset,
-		LocationIDs: req.LocationIDs,
-		MerchantID:  merchant.ID,
+	orders, err := h.OrderingService.ListOrder(ctx, core.OrderQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.OrderFilter{
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
+			CreatedAt: core.DateFilter{
+				Gte: req.Filter.CreatedAt.Gte,
+				Lte: req.Filter.CreatedAt.Lte,
+			},
+		},
+		Sort: core.OrderSort{
+			CreatedAt: req.Sort.CreatedAt,
+		},
 	})
 	if err != nil {
 		return errors.E(op, err)

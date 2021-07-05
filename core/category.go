@@ -27,11 +27,29 @@ func NewCategory(name string, merchantID ID) Category {
 	}
 }
 
+type CategoryFilter struct {
+	Name        string
+	IDs         []ID
+	LocationIDs []ID
+	MerchantID  ID
+}
+
+type CategorySort struct {
+	Name SortOrder
+}
+
+type CategoryQuery struct {
+	Limit  int64
+	Offset int64
+	Filter CategoryFilter
+	Sort   CategorySort
+}
+
 type CategoryStorage interface {
 	Put(context.Context, Category) error
 	PutBatch(context.Context, []Category) error
 	Get(context.Context, ID) (Category, error)
-	List(context.Context, CategoryFilter) ([]Category, error)
+	List(context.Context, CategoryQuery) ([]Category, error)
 }
 
 func (svc *CatalogService) PutCategory(ctx context.Context, category Category) (Category, error) {
@@ -60,9 +78,8 @@ func (svc *CatalogService) PutCategories(ctx context.Context, categories []Categ
 	for i, c := range categories {
 		ids[i] = c.ID
 	}
-	categories, err := svc.CategoryStorage.List(ctx, CategoryFilter{
-		Limit: int64(len(categories)),
-		IDs:   ids,
+	categories, err := svc.CategoryStorage.List(ctx, CategoryQuery{
+		Filter: CategoryFilter{IDs: ids},
 	})
 	if err != nil {
 		return nil, err
@@ -82,17 +99,10 @@ func (svc *CatalogService) GetCategory(ctx context.Context, id ID) (Category, er
 	return category, nil
 }
 
-func (svc *CatalogService) ListCategory(ctx context.Context, f CategoryFilter) ([]Category, error) {
+func (svc *CatalogService) ListCategory(ctx context.Context, q CategoryQuery) ([]Category, error) {
 	const op = errors.Op("core/CatalogService.ListCategory")
 
-	categories, err := svc.CategoryStorage.List(ctx, CategoryFilter{
-		Limit:       f.Limit,
-		Offset:      f.Offset,
-		IDs:         f.IDs,
-		Name:        f.Name,
-		LocationIDs: f.LocationIDs,
-		MerchantID:  f.MerchantID,
-	})
+	categories, err := svc.CategoryStorage.List(ctx, q)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
@@ -119,13 +129,4 @@ func (svc *CatalogService) DeleteCategory(ctx context.Context, id ID) (Category,
 	}
 
 	return category, nil
-}
-
-type CategoryFilter struct {
-	Limit       int64
-	Offset      int64
-	Name        string
-	LocationIDs []ID
-	MerchantID  ID
-	IDs         []ID
 }

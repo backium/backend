@@ -68,25 +68,32 @@ func (r *orderStorage) Get(ctx context.Context, id core.ID) (core.Order, error) 
 	return order, nil
 }
 
-func (s *orderStorage) List(ctx context.Context, f core.OrderFilter) ([]core.Order, error) {
+func (s *orderStorage) List(ctx context.Context, q core.OrderQuery) ([]core.Order, error) {
 	const op = errors.Op("mongo/orderStorage.List")
 
 	opts := options.Find().
-		SetLimit(f.Limit).
-		SetSkip(f.Offset)
+		SetLimit(q.Limit).
+		SetSkip(q.Offset)
+
+	if q.Sort.CreatedAt != core.SortNone {
+		opts.SetSort(bson.M{"created_at": sortOrder(q.Sort.CreatedAt)})
+	}
 
 	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if f.MerchantID != "" {
-		filter["merchant_id"] = f.MerchantID
+	if q.Filter.MerchantID != "" {
+		filter["merchant_id"] = q.Filter.MerchantID
 	}
-	if len(f.LocationIDs) != 0 {
-		filter["location_id"] = bson.M{"$in": f.LocationIDs}
+	if len(q.Filter.IDs) != 0 {
+		filter["_id"] = bson.M{"$in": q.Filter.IDs}
 	}
-	if f.BeginTime != 0 {
-		filter["created_at"] = bson.M{"$gte": f.BeginTime}
+	if len(q.Filter.LocationIDs) != 0 {
+		filter["location_id"] = bson.M{"$in": q.Filter.LocationIDs}
 	}
-	if f.EndTime != 0 {
-		filter["created_at"] = bson.M{"$gte": f.BeginTime, "$lte": f.EndTime}
+	if q.Filter.CreatedAt.Gte != 0 {
+		filter["created_at"] = bson.M{"$gte": q.Filter.CreatedAt.Gte}
+	}
+	if q.Filter.CreatedAt.Lte != 0 {
+		filter["created_at"] = bson.M{"$gte": q.Filter.CreatedAt.Gte, "$lte": q.Filter.CreatedAt.Lte}
 	}
 
 	res, err := s.collection.Find(ctx, filter, opts)

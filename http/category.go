@@ -122,12 +122,21 @@ func (h *Handler) HandleRetrieveCategory(c echo.Context) error {
 func (h *Handler) HandleSearchCategory(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleSearchCategory")
 
-	type request struct {
+	type filter struct {
 		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
 		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
 		Name        string    `json:"name"`
-		Limit       int64     `json:"limit" validate:"gte=0"`
-		Offset      int64     `json:"offset" validate:"gte=0"`
+	}
+
+	type sort struct {
+		Name core.SortOrder `json:"name"`
+	}
+
+	type request struct {
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
 	}
 
 	type response struct {
@@ -153,13 +162,17 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 		limit = CategoryListMaxSize
 	}
 
-	categories, err := h.CatalogService.ListCategory(ctx, core.CategoryFilter{
-		Name:        req.Name,
-		IDs:         req.IDs,
-		LocationIDs: req.LocationIDs,
-		MerchantID:  merchant.ID,
-		Limit:       limit,
-		Offset:      offset,
+	categories, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.CategoryFilter{
+			Name:        req.Filter.Name,
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
+		},
+		Sort: core.CategorySort{
+			Name: req.Sort.Name,
+		},
 	})
 	if err != nil {
 		return errors.E(op, err)
@@ -204,10 +217,10 @@ func (h *Handler) HandleListCategories(c echo.Context) error {
 		limit = CategoryListMaxSize
 	}
 
-	categories, err := h.CatalogService.ListCategory(ctx, core.CategoryFilter{
-		Limit:      limit,
-		Offset:     offset,
-		MerchantID: merchant.ID,
+	categories, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.CategoryFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {
 		return errors.E(op, err)

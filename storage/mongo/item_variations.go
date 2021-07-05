@@ -7,6 +7,7 @@ import (
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -94,25 +95,31 @@ func (s *itemVariationStorage) Get(ctx context.Context, id core.ID) (core.ItemVa
 	return variation, nil
 }
 
-func (s *itemVariationStorage) List(ctx context.Context, f core.ItemVariationFilter) ([]core.ItemVariation, error) {
+func (s *itemVariationStorage) List(ctx context.Context, q core.ItemVariationQuery) ([]core.ItemVariation, error) {
 	const op = errors.Op("mongo/itemVariationStorage.List")
 
 	opts := options.Find().
-		SetLimit(f.Limit).
-		SetSkip(f.Offset)
+		SetLimit(q.Limit).
+		SetSkip(q.Offset)
+	if q.Sort.Name != core.SortNone {
+		opts.SetSort(bson.M{"name": sortOrder(q.Sort.Name)})
+	}
 
 	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if f.MerchantID != "" {
-		filter["merchant_id"] = f.MerchantID
+	if q.Filter.MerchantID != "" {
+		filter["merchant_id"] = q.Filter.MerchantID
 	}
-	if f.IDs != nil {
-		filter["_id"] = bson.M{"$in": f.IDs}
+	if len(q.Filter.IDs) != 0 {
+		filter["_id"] = bson.M{"$in": q.Filter.IDs}
 	}
-	if f.LocationIDs != nil {
-		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
+	if len(q.Filter.LocationIDs) != 0 {
+		filter["location_ids"] = bson.M{"$in": q.Filter.LocationIDs}
 	}
-	if f.ItemIDs != nil {
-		filter["item_id"] = bson.M{"$in": f.ItemIDs}
+	if len(q.Filter.ItemIDs) != 0 {
+		filter["item_id"] = bson.M{"$in": q.Filter.ItemIDs}
+	}
+	if q.Filter.Name != "" {
+		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: q.Filter.Name, Options: "i"}}
 	}
 
 	res, err := s.collection.Find(ctx, filter, opts)

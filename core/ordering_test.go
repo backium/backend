@@ -49,19 +49,19 @@ func TestCreateOrder(t *testing.T) {
 				ItemStorage:          itemStorage,
 			}
 
-			categoryStorage.ListFn = func(ctx context.Context, fil CategoryFilter) ([]Category, error) {
+			categoryStorage.ListFn = func(ctx context.Context, fil CategoryQuery) ([]Category, error) {
 				return tc.Categories, nil
 			}
-			itemStorage.ListFn = func(ctx context.Context, fil ItemFilter) ([]Item, error) {
+			itemStorage.ListFn = func(ctx context.Context, fil ItemQuery) ([]Item, error) {
 				return tc.Items, nil
 			}
-			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationFilter) ([]ItemVariation, error) {
+			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationQuery) ([]ItemVariation, error) {
 				return tc.ItemVariations, nil
 			}
-			taxStorage.ListFn = func(ctx context.Context, fil TaxFilter) ([]Tax, error) {
+			taxStorage.ListFn = func(ctx context.Context, fil TaxQuery) ([]Tax, error) {
 				return tc.Taxes, nil
 			}
-			discountStorage.ListFn = func(ctx context.Context, fil DiscountFilter) ([]Discount, error) {
+			discountStorage.ListFn = func(ctx context.Context, fil DiscountQuery) ([]Discount, error) {
 				return tc.Discounts, nil
 			}
 			orderInMem := Order{}

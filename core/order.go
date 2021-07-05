@@ -91,18 +91,27 @@ type OrderDiscount struct {
 }
 
 type OrderFilter struct {
-	Limit       int64
-	Offset      int64
+	IDs         []ID
 	LocationIDs []ID
 	MerchantID  ID
-	BeginTime   int64
-	EndTime     int64
+	CreatedAt   DateFilter
+}
+
+type OrderSort struct {
+	CreatedAt SortOrder
+}
+
+type OrderQuery struct {
+	Limit  int64
+	Offset int64
+	Filter OrderFilter
+	Sort   OrderSort
 }
 
 type OrderStorage interface {
 	Put(context.Context, Order) error
 	Get(context.Context, ID) (Order, error)
-	List(context.Context, OrderFilter) ([]Order, error)
+	List(context.Context, OrderQuery) ([]Order, error)
 }
 
 // OrderSchema represents a potential order to be created.

@@ -7,6 +7,7 @@ import (
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -93,22 +94,29 @@ func (s *taxStorage) Get(ctx context.Context, id core.ID) (core.Tax, error) {
 	return tax, nil
 }
 
-func (s *taxStorage) List(ctx context.Context, f core.TaxFilter) ([]core.Tax, error) {
+func (s *taxStorage) List(ctx context.Context, q core.TaxQuery) ([]core.Tax, error) {
 	const op = errors.Op("mongo/taxStorage.List")
 
 	opts := options.Find().
-		SetLimit(f.Limit).
-		SetSkip(f.Offset)
+		SetLimit(q.Limit).
+		SetSkip(q.Offset)
+
+	if q.Sort.Name != core.SortNone {
+		opts.SetSort(bson.M{"name": sortOrder(q.Sort.Name)})
+	}
 
 	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if f.MerchantID != "" {
-		filter["merchant_id"] = f.MerchantID
+	if q.Filter.MerchantID != "" {
+		filter["merchant_id"] = q.Filter.MerchantID
 	}
-	if len(f.IDs) != 0 {
-		filter["_id"] = bson.M{"$in": f.IDs}
+	if len(q.Filter.IDs) != 0 {
+		filter["_id"] = bson.M{"$in": q.Filter.IDs}
 	}
-	if len(f.LocationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
+	if len(q.Filter.LocationIDs) != 0 {
+		filter["location_ids"] = bson.M{"$in": q.Filter.LocationIDs}
+	}
+	if q.Filter.Name != "" {
+		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: q.Filter.Name, Options: "i"}}
 	}
 
 	res, err := s.collection.Find(ctx, filter, opts)

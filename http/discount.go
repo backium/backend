@@ -173,10 +173,10 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 		limit = DiscountListMaxSize
 	}
 
-	discounts, err := h.CatalogService.ListDiscount(ctx, core.DiscountFilter{
-		Limit:      limit,
-		Offset:     offset,
-		MerchantID: merchant.ID,
+	discounts, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.DiscountFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {
 		return errors.E(op, err)
@@ -188,6 +188,74 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, response{res})
+}
+
+func (h *Handler) HandleSearchDiscount(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleSearchDiscount")
+
+	type filter struct {
+		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
+		Name        string    `json:"name"`
+	}
+
+	type sort struct {
+		Name core.SortOrder `json:"name"`
+	}
+
+	type request struct {
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
+	}
+
+	type response struct {
+		Discounts []Discount `json:"discounts"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit, offset int64 = DiscountListDefaultSize, req.Offset
+	if req.Limit <= DiscountListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > DiscountListMaxSize {
+		limit = DiscountListMaxSize
+	}
+
+	discounts, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.DiscountFilter{
+			Name:        req.Filter.Name,
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
+		},
+		Sort: core.DiscountSort{
+			Name: req.Sort.Name,
+		},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{Discounts: make([]Discount, len(discounts))}
+	for i, tax := range discounts {
+		resp.Discounts[i] = NewDiscount(tax)
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) HandleDeleteDiscount(c echo.Context) error {

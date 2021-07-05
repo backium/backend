@@ -54,18 +54,21 @@ func (s *Server) setupRoutes() {
 
 	userGroup.GET("/items/:id", h.HandleRetrieveItem)
 	userGroup.GET("/items", h.HandleListItems)
+	userGroup.POST("/items/search", h.HandleSearchItem)
 	userGroup.POST("/items", h.HandleCreateItem)
 	userGroup.PUT("/items/:id", h.HandleUpdateItem)
 	userGroup.DELETE("/items/:id", h.HandleDeleteItem)
 
 	userGroup.GET("/item_variations/:id", h.HandleRetrieveItemVariation)
 	userGroup.GET("/item_variations", h.HandleListItemVariations)
+	userGroup.POST("/item_variations/search", h.HandleSearchItemVariation)
 	userGroup.POST("/item_variations", h.HandleCreateItemVariation)
 	userGroup.PUT("/item_variations/:id", h.HandleUpdateItemVariation)
 	userGroup.DELETE("/item_variations/:id", h.HandleDeleteItemVariation)
 
 	userGroup.GET("/taxes/:id", h.HandleRetrieveTax)
 	userGroup.GET("/taxes", h.HandleListTaxes)
+	userGroup.POST("/taxes/search", h.HandleSearchTax)
 	userGroup.POST("/taxes", h.HandleCreateTax)
 	userGroup.PUT("/taxes/:id", h.HandleUpdateTax)
 	userGroup.DELETE("/taxes/:id", h.HandleDeleteTax)
@@ -73,6 +76,7 @@ func (s *Server) setupRoutes() {
 
 	userGroup.GET("/discounts/:id", h.HandleRetrieveDiscount)
 	userGroup.GET("/discounts", h.HandleListDiscounts)
+	userGroup.POST("/discounts/search", h.HandleSearchDiscount)
 	userGroup.POST("/discounts", h.HandleCreateDiscount)
 	userGroup.PUT("/discounts/:id", h.HandleUpdateDiscount)
 	userGroup.DELETE("/discounts/:id", h.HandleDeleteDiscount)

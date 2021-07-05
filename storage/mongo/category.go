@@ -95,25 +95,28 @@ func (s *categoryStorage) Get(ctx context.Context, id core.ID) (core.Category, e
 	return category, nil
 }
 
-func (s *categoryStorage) List(ctx context.Context, f core.CategoryFilter) ([]core.Category, error) {
+func (s *categoryStorage) List(ctx context.Context, q core.CategoryQuery) ([]core.Category, error) {
 	const op = errors.Op("mongo/categoryStorage.List")
 
 	opts := options.Find().
-		SetLimit(f.Limit).
-		SetSkip(f.Offset)
+		SetLimit(q.Limit).
+		SetSkip(q.Offset)
+	if q.Sort.Name != core.SortNone {
+		opts.SetSort(bson.M{"name": sortOrder(q.Sort.Name)})
+	}
 
 	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if f.MerchantID != "" {
-		filter["merchant_id"] = f.MerchantID
+	if q.Filter.MerchantID != "" {
+		filter["merchant_id"] = q.Filter.MerchantID
 	}
-	if len(f.IDs) != 0 {
-		filter["_id"] = bson.M{"$in": f.IDs}
+	if len(q.Filter.IDs) != 0 {
+		filter["_id"] = bson.M{"$in": q.Filter.IDs}
 	}
-	if len(f.LocationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
+	if len(q.Filter.LocationIDs) != 0 {
+		filter["location_ids"] = bson.M{"$in": q.Filter.LocationIDs}
 	}
-	if f.Name != "" {
-		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: f.Name, Options: "i"}}
+	if q.Filter.Name != "" {
+		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: q.Filter.Name, Options: "i"}}
 	}
 
 	res, err := s.collection.Find(ctx, filter, opts)

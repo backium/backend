@@ -38,7 +38,7 @@ type ItemVariationStorage interface {
 	Put(context.Context, ItemVariation) error
 	PutBatch(context.Context, []ItemVariation) error
 	Get(context.Context, ID) (ItemVariation, error)
-	List(context.Context, ItemVariationFilter) ([]ItemVariation, error)
+	List(context.Context, ItemVariationQuery) ([]ItemVariation, error)
 }
 
 func (s *CatalogService) PutItemVariation(ctx context.Context, variation ItemVariation) (ItemVariation, error) {
@@ -72,9 +72,8 @@ func (s *CatalogService) PutItemVariationVariations(ctx context.Context, variati
 	for i, d := range variations {
 		ids[i] = d.ID
 	}
-	variations, err := s.ItemVariationStorage.List(ctx, ItemVariationFilter{
-		Limit: int64(len(variations)),
-		IDs:   ids,
+	variations, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
+		Filter: ItemVariationFilter{IDs: ids},
 	})
 	if err != nil {
 		return nil, err
@@ -94,15 +93,10 @@ func (s *CatalogService) GetItemVariation(ctx context.Context, id ID) (ItemVaria
 	return variation, nil
 }
 
-func (s *CatalogService) ListItemVariation(ctx context.Context, f ItemVariationFilter) ([]ItemVariation, error) {
+func (s *CatalogService) ListItemVariation(ctx context.Context, q ItemVariationQuery) ([]ItemVariation, error) {
 	const op = errors.Op("core/CatalogService.ListItemVariation")
 
-	variations, err := s.ItemVariationStorage.List(ctx, ItemVariationFilter{
-		MerchantID: f.MerchantID,
-		Limit:      f.Limit,
-		Offset:     f.Offset,
-		ItemIDs:    f.ItemIDs,
-	})
+	variations, err := s.ItemVariationStorage.List(ctx, q)
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
@@ -132,10 +126,20 @@ func (s *CatalogService) DeleteItemVariation(ctx context.Context, id ID) (ItemVa
 }
 
 type ItemVariationFilter struct {
-	Limit       int64
-	Offset      int64
+	Name        string
+	IDs         []ID
+	ItemIDs     []ID
 	LocationIDs []ID
 	MerchantID  ID
-	ItemIDs     []ID
-	IDs         []ID
+}
+
+type ItemVariationSort struct {
+	Name SortOrder
+}
+
+type ItemVariationQuery struct {
+	Limit  int64
+	Offset int64
+	Filter ItemVariationFilter
+	Sort   ItemVariationSort
 }

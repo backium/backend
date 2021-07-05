@@ -181,10 +181,10 @@ func (h *Handler) HandleListItemVariations(c echo.Context) error {
 		limit = ItemVariationListMaxSize
 	}
 
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		Limit:      limit,
-		Offset:     offset,
-		MerchantID: merchant.ID,
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.ItemVariationFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {
 		return errors.E(op, err)
@@ -193,6 +193,73 @@ func (h *Handler) HandleListItemVariations(c echo.Context) error {
 	resp := response{ItemVariations: make([]ItemVariation, len(variations))}
 	for i, cus := range variations {
 		resp.ItemVariations[i] = NewItemVariation(cus)
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) HandleSearchItemVariation(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleSearchItemVariation")
+
+	type filter struct {
+		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
+		Name        string    `json:"name"`
+	}
+
+	type sort struct {
+		Name core.SortOrder `json:"name"`
+	}
+
+	type request struct {
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
+	}
+
+	type response struct {
+		ItemVariations []ItemVariation `json:"item_variations"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit, offset int64 = ItemVariationListDefaultSize, req.Offset
+	if req.Limit <= ItemVariationListMaxSize {
+		limit = req.Limit
+	} else {
+		limit = ItemVariationListMaxSize
+	}
+
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.ItemVariationFilter{
+			Name:        req.Filter.Name,
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
+		},
+		Sort: core.ItemVariationSort{
+			Name: req.Sort.Name,
+		},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{ItemVariations: make([]ItemVariation, len(variations))}
+	for i, variation := range variations {
+		resp.ItemVariations[i] = NewItemVariation(variation)
 	}
 
 	return c.JSON(http.StatusOK, resp)

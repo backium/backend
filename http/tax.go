@@ -207,10 +207,78 @@ func (h *Handler) HandleListTaxes(c echo.Context) error {
 		limit = TaxListMaxSize
 	}
 
-	taxes, err := h.CatalogService.ListTax(ctx, core.TaxFilter{
-		Limit:      limit,
-		Offset:     offset,
-		MerchantID: merchant.ID,
+	taxes, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.TaxFilter{MerchantID: merchant.ID},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{Taxes: make([]Tax, len(taxes))}
+	for i, tax := range taxes {
+		resp.Taxes[i] = NewTax(tax)
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) HandleSearchTax(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleSearchTax")
+
+	type filter struct {
+		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
+		Name        string    `json:"name"`
+	}
+
+	type sort struct {
+		Name core.SortOrder `json:"name"`
+	}
+
+	type request struct {
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
+	}
+
+	type response struct {
+		Taxes []Tax `json:"taxes"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit, offset int64 = TaxListDefaultSize, req.Offset
+	if req.Limit <= TaxListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > TaxListMaxSize {
+		limit = TaxListMaxSize
+	}
+
+	taxes, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.TaxFilter{
+			Name:        req.Filter.Name,
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
+		},
+		Sort: core.TaxSort{
+			Name: req.Sort.Name,
+		},
 	})
 	if err != nil {
 		return errors.E(op, err)

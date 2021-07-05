@@ -46,8 +46,10 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []core.ID{item.ID},
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+		Filter: core.ItemVariationFilter{
+			ItemIDs: []core.ID{item.ID},
+		},
 	})
 	return c.JSON(http.StatusOK, NewItem(item, variations))
 }
@@ -97,8 +99,10 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []core.ID{item.ID},
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+		Filter: core.ItemVariationFilter{
+			ItemIDs: []core.ID{item.ID},
+		},
 	})
 
 	return c.JSON(http.StatusOK, NewItem(item, variations))
@@ -128,8 +132,10 @@ func (h *Handler) HandleRetrieveItem(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []core.ID{item.ID},
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+		Filter: core.ItemVariationFilter{
+			ItemIDs: []core.ID{item.ID},
+		},
 	})
 	resp := NewItem(item, variations)
 
@@ -169,10 +175,10 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 		limit = ItemListMaxSize
 	}
 
-	items, err := h.CatalogService.ListItem(ctx, core.ItemFilter{
-		Limit:      limit,
-		Offset:     offset,
-		MerchantID: merchant.ID,
+	items, err := h.CatalogService.ListItem(ctx, core.ItemQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.ItemFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {
 		return errors.E(op, err)
@@ -182,8 +188,87 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 	for i, item := range items {
 		itemIDs[i] = item.ID
 	}
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: itemIDs,
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+		Filter: core.ItemVariationFilter{
+			ItemIDs: itemIDs,
+		},
+	})
+
+	resp := response{Items: make([]Item, len(items))}
+	for i, item := range items {
+		vars := item.ItemVariations(variations)
+		resp.Items[i] = NewItem(item, vars)
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) HandleSearchItem(c echo.Context) error {
+	const op = errors.Op("http/Handler.ListItems")
+
+	type filter struct {
+		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
+		Name        string    `json:"name"`
+	}
+
+	type sort struct {
+		Name core.SortOrder `json:"name"`
+	}
+
+	type request struct {
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
+	}
+
+	type response struct {
+		Items []Item `json:"items"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit, offset int64 = ItemListDefaultSize, req.Offset
+	if req.Limit <= ItemListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > ItemListMaxSize {
+		limit = ItemListMaxSize
+	}
+
+	items, err := h.CatalogService.ListItem(ctx, core.ItemQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.ItemFilter{
+			Name:        req.Filter.Name,
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
+		},
+		Sort: core.ItemSort{
+			Name: req.Sort.Name,
+		},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	itemIDs := make([]core.ID, len(items))
+	for i, item := range items {
+		itemIDs[i] = item.ID
+	}
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+		Filter: core.ItemVariationFilter{ItemIDs: itemIDs},
 	})
 
 	resp := response{Items: make([]Item, len(items))}
@@ -218,8 +303,10 @@ func (h *Handler) HandleDeleteItem(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationFilter{
-		ItemIDs: []core.ID{item.ID},
+	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+		Filter: core.ItemVariationFilter{
+			ItemIDs: []core.ID{item.ID},
+		},
 	})
 
 	return c.JSON(http.StatusOK, NewItem(item, variations))
