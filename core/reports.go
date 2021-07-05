@@ -379,6 +379,8 @@ func groupOrdersByHourOfDay(orders []WrappedOrder, timezone string) map[string][
 	orderGroups := make(map[string][]WrappedOrder)
 	location, _ := time.LoadLocation(timezone)
 
+	fmt.Println("timezone: ", timezone, "location: ", location)
+
 	for _, order := range orders {
 		uidGroups := map[string][]string{}
 
