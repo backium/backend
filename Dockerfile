@@ -21,6 +21,9 @@ RUN go install
 # FROM scratch
 FROM alpine:latest
 
+# Install tzdata
+RUN apk --no-cache add tzdata
+
 RUN mkdir -p /app
 
 WORKDIR /app
