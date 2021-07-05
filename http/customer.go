@@ -171,10 +171,10 @@ func (h *Handler) HandleListCustomers(c echo.Context) error {
 		limit = CustomerListMaxSize
 	}
 
-	customers, count, err := h.CustomerService.ListCustomer(ctx, core.CustomerFilter{
-		Limit:      limit,
-		Offset:     offset,
-		MerchantID: merchant.ID,
+	customers, count, err := h.CustomerService.ListCustomer(ctx, core.CustomerQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.CustomerFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {
 		return errors.E(op, err)
@@ -186,6 +186,76 @@ func (h *Handler) HandleListCustomers(c echo.Context) error {
 	}
 	for i, c := range customers {
 		resp.Customers[i] = NewCustomer(c)
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
+func (h *Handler) HandleSearchCustomer(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleSearchCustomer")
+
+	type filter struct {
+		IDs  []core.ID `json:"ids" validate:"omitempty,dive,id"`
+		Name string    `json:"name"`
+	}
+
+	type sort struct {
+		Name core.SortOrder `json:"name"`
+	}
+
+	type request struct {
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
+	}
+
+	type response struct {
+		Customers []Customer `json:"customers"`
+		Total     int64      `json:"total_count"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit, offset int64 = CustomerListDefaultSize, req.Offset
+	if req.Limit <= CustomerListMaxSize {
+		limit = req.Limit
+	}
+	if req.Limit > CustomerListMaxSize {
+		limit = CustomerListMaxSize
+	}
+
+	customers, count, err := h.CustomerService.ListCustomer(ctx, core.CustomerQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.CustomerFilter{
+			Name:       req.Filter.Name,
+			MerchantID: merchant.ID,
+		},
+		Sort: core.CustomerSort{
+			Name: req.Sort.Name,
+		},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{
+		Customers: make([]Customer, len(customers)),
+		Total:     count,
+	}
+	for i, cust := range customers {
+		resp.Customers[i] = NewCustomer(cust)
 	}
 
 	return c.JSON(http.StatusOK, resp)

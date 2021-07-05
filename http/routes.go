@@ -38,6 +38,7 @@ func (s *Server) setupRoutes() {
 
 	userGroup.GET("/customers/:id", h.HandleRetrieveCustomer)
 	userGroup.GET("/customers", h.HandleListCustomers)
+	userGroup.POST("/customers/search", h.HandleSearchCustomer)
 	userGroup.POST("/customers", h.HandleCreateCustomer)
 	userGroup.PUT("/customers/:id", h.HandleUpdateCustomer)
 	userGroup.DELETE("/customers/:id", h.HandleDeleteCustomer)

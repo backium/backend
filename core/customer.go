@@ -39,7 +39,7 @@ type CustomerStorage interface {
 	Put(context.Context, Customer) error
 	PutBatch(context.Context, []Customer) error
 	Get(context.Context, ID) (Customer, error)
-	List(context.Context, CustomerFilter) ([]Customer, int64, error)
+	List(context.Context, CustomerQuery) ([]Customer, int64, error)
 }
 
 type CustomerService struct {
@@ -72,9 +72,8 @@ func (svc *CustomerService) PutCustomers(ctx context.Context, customers []Custom
 	for i, t := range customers {
 		ids[i] = t.ID
 	}
-	customers, _, err := svc.CustomerStorage.List(ctx, CustomerFilter{
-		Limit: int64(len(customers)),
-		IDs:   ids,
+	customers, _, err := svc.CustomerStorage.List(ctx, CustomerQuery{
+		Filter: CustomerFilter{IDs: ids},
 	})
 	if err != nil {
 		return nil, err
@@ -94,14 +93,10 @@ func (svc *CustomerService) GetCustomer(ctx context.Context, id ID) (Customer, e
 	return customer, nil
 }
 
-func (svc *CustomerService) ListCustomer(ctx context.Context, f CustomerFilter) ([]Customer, int64, error) {
+func (svc *CustomerService) ListCustomer(ctx context.Context, q CustomerQuery) ([]Customer, int64, error) {
 	const op = errors.Op("core/CustomerService.ListCustomer")
 
-	customers, count, err := svc.CustomerStorage.List(ctx, CustomerFilter{
-		MerchantID: f.MerchantID,
-		Limit:      f.Limit,
-		Offset:     f.Offset,
-	})
+	customers, count, err := svc.CustomerStorage.List(ctx, q)
 	if err != nil {
 		return nil, 0, errors.E(op, err)
 	}
@@ -131,8 +126,18 @@ func (svc *CustomerService) DeleteCustomer(ctx context.Context, id ID) (Customer
 }
 
 type CustomerFilter struct {
-	Limit      int64
-	Offset     int64
-	MerchantID ID
+	Name       string
 	IDs        []ID
+	MerchantID ID
+}
+
+type CustomerSort struct {
+	Name SortOrder
+}
+
+type CustomerQuery struct {
+	Limit  int64
+	Offset int64
+	Filter CustomerFilter
+	Sort   CustomerSort
 }

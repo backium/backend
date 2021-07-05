@@ -7,6 +7,7 @@ import (
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -70,19 +71,33 @@ func (s *employeeStorage) Get(ctx context.Context, id core.ID) (core.Employee, e
 	return employee, nil
 }
 
-func (s *employeeStorage) List(ctx context.Context, f core.EmployeeFilter) ([]core.Employee, int64, error) {
+func (s *employeeStorage) List(ctx context.Context, q core.EmployeeQuery) ([]core.Employee, int64, error) {
 	const op = errors.Op("mongo/employeeStorage.List")
 
 	opts := options.Find().
-		SetLimit(f.Limit).
-		SetSkip(f.Offset)
+		SetLimit(q.Limit).
+		SetSkip(q.Offset)
+
+	if q.Sort.Name != core.SortNone {
+		opts.SetSort(bson.M{"first_name": sortOrder(q.Sort.Name)})
+	}
 
 	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if f.MerchantID != "" {
-		filter["merchant_id"] = f.MerchantID
+	if q.Filter.MerchantID != "" {
+		filter["merchant_id"] = q.Filter.MerchantID
 	}
-	if len(f.LocationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
+	if len(q.Filter.IDs) != 0 {
+		filter["_id"] = bson.M{"$in": q.Filter.IDs}
+	}
+	if len(q.Filter.LocationIDs) != 0 {
+		filter["location_ids"] = bson.M{"$in": q.Filter.LocationIDs}
+	}
+	if q.Filter.Name != "" {
+		reg := primitive.Regex{Pattern: q.Filter.Name, Options: "i"}
+		filter["$or"] = bson.A{
+			bson.M{"first_name": bson.M{"$regex": reg}},
+			bson.M{"last_name": bson.M{"$regex": reg}},
+		}
 	}
 
 	count, err := s.collection.CountDocuments(ctx, filter)

@@ -48,17 +48,10 @@ func (e *Employee) ChangeRate(rate Money) {
 	})
 }
 
-type EmployeeFilter struct {
-	Limit       int64
-	Offset      int64
-	LocationIDs []ID
-	MerchantID  ID
-}
-
 type EmployeeStorage interface {
 	Put(context.Context, Employee) error
 	Get(context.Context, ID) (Employee, error)
-	List(context.Context, EmployeeFilter) ([]Employee, int64, error)
+	List(context.Context, EmployeeQuery) ([]Employee, int64, error)
 }
 
 type EmployeeService struct {
@@ -92,15 +85,10 @@ func (svc *EmployeeService) Get(ctx context.Context, id ID) (Employee, error) {
 
 }
 
-func (svc *EmployeeService) ListEmployee(ctx context.Context, f EmployeeFilter) ([]Employee, int64, error) {
+func (svc *EmployeeService) ListEmployee(ctx context.Context, q EmployeeQuery) ([]Employee, int64, error) {
 	const op = errors.Op("core/EmployeeService.ListEmployee")
 
-	employees, count, err := svc.EmployeeStorage.List(ctx, EmployeeFilter{
-		LocationIDs: f.LocationIDs,
-		MerchantID:  f.MerchantID,
-		Limit:       f.Limit,
-		Offset:      f.Offset,
-	})
+	employees, count, err := svc.EmployeeStorage.List(ctx, q)
 	if err != nil {
 		return nil, 0, errors.E(op, err)
 	}
@@ -127,4 +115,22 @@ func (svc *EmployeeService) DeleteEmployee(ctx context.Context, id ID) (Employee
 	}
 
 	return employee, nil
+}
+
+type EmployeeFilter struct {
+	Name        string
+	IDs         []ID
+	LocationIDs []ID
+	MerchantID  ID
+}
+
+type EmployeeSort struct {
+	Name SortOrder
+}
+
+type EmployeeQuery struct {
+	Limit  int64
+	Offset int64
+	Filter EmployeeFilter
+	Sort   EmployeeSort
 }

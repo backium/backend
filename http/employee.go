@@ -144,10 +144,21 @@ func (h *Handler) HandleRetrieveEmployee(c echo.Context) error {
 func (h *Handler) HandleSearchEmployee(c echo.Context) error {
 	const op = errors.Op("http/Handler.SearchEmployee")
 
+	type filter struct {
+		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
+		Name        string    `json:"name"`
+	}
+
+	type sort struct {
+		Name core.SortOrder `json:"name"`
+	}
+
 	type request struct {
-		Limit       int64     `json:"limit"`
-		Offset      int64     `json:"offset"`
-		LocationIDs []core.ID `json:"location_ids"`
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
 	}
 
 	type response struct {
@@ -174,11 +185,17 @@ func (h *Handler) HandleSearchEmployee(c echo.Context) error {
 		limit = EmployeeListMaxSize
 	}
 
-	employees, count, err := h.EmployeeService.ListEmployee(ctx, core.EmployeeFilter{
-		Limit:       limit,
-		Offset:      offset,
-		LocationIDs: req.LocationIDs,
-		MerchantID:  merchant.ID,
+	employees, count, err := h.EmployeeService.ListEmployee(ctx, core.EmployeeQuery{
+		Limit:  limit,
+		Offset: offset,
+		Filter: core.EmployeeFilter{
+			Name:        req.Filter.Name,
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
+		},
+		Sort: core.EmployeeSort{
+			Name: req.Sort.Name,
+		},
 	})
 	if err != nil {
 		return errors.E(op, err)
