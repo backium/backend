@@ -2,7 +2,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 )
 
 type Authorizer struct {
@@ -29,15 +28,12 @@ func (auth *Authorizer) CanCreateItem(ctx context.Context, item Item) bool {
 }
 
 func (auth *Authorizer) CanUpdateItem(ctx context.Context, id ID) bool {
-	fmt.Println("verifying user permissions")
 	merchant := MerchantFromContext(ctx)
 
 	item, err := auth.ItemStorage.Get(ctx, id)
 	if err != nil {
 		return true
 	}
-
-	fmt.Println("item", item, merchant.ID)
 
 	return item.MerchantID == merchant.ID
 }
