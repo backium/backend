@@ -7,7 +7,7 @@ import (
 type mockOrderStorage struct {
 	PutFn  func(context.Context, Order) error
 	GetFn  func(context.Context, ID) (Order, error)
-	ListFn func(context.Context, OrderQuery) ([]Order, error)
+	ListFn func(context.Context, OrderQuery) ([]Order, int64, error)
 }
 
 func NewMockOrderStorage() *mockOrderStorage {
@@ -22,7 +22,7 @@ func (s *mockOrderStorage) Get(ctx context.Context, id ID) (Order, error) {
 	return s.GetFn(ctx, id)
 }
 
-func (s *mockOrderStorage) List(ctx context.Context, f OrderQuery) ([]Order, error) {
+func (s *mockOrderStorage) List(ctx context.Context, f OrderQuery) ([]Order, int64, error) {
 	return s.ListFn(ctx, f)
 }
 
@@ -30,7 +30,7 @@ type mockItemVariationStorage struct {
 	PutFn      func(context.Context, ItemVariation) error
 	PutBatchFn func(context.Context, []ItemVariation) error
 	GetFn      func(context.Context, ID) (ItemVariation, error)
-	ListFn     func(context.Context, ItemVariationQuery) ([]ItemVariation, error)
+	ListFn     func(context.Context, ItemVariationQuery) ([]ItemVariation, int64, error)
 }
 
 func NewMockItemVariationStorage() *mockItemVariationStorage {
@@ -49,7 +49,7 @@ func (m *mockItemVariationStorage) Get(ctx context.Context, id ID) (ItemVariatio
 	return m.GetFn(ctx, id)
 }
 
-func (m *mockItemVariationStorage) List(ctx context.Context, fil ItemVariationQuery) ([]ItemVariation, error) {
+func (m *mockItemVariationStorage) List(ctx context.Context, fil ItemVariationQuery) ([]ItemVariation, int64, error) {
 	return m.ListFn(ctx, fil)
 }
 
@@ -57,7 +57,7 @@ type mockTaxStorage struct {
 	PutFn      func(context.Context, Tax) error
 	PutBatchFn func(context.Context, []Tax) error
 	GetFn      func(context.Context, ID) (Tax, error)
-	ListFn     func(context.Context, TaxQuery) ([]Tax, error)
+	ListFn     func(context.Context, TaxQuery) ([]Tax, int64, error)
 }
 
 func NewMockTaxStorage() *mockTaxStorage {
@@ -76,7 +76,7 @@ func (m *mockTaxStorage) Get(ctx context.Context, id ID) (Tax, error) {
 	return m.GetFn(ctx, id)
 }
 
-func (m *mockTaxStorage) List(ctx context.Context, fil TaxQuery) ([]Tax, error) {
+func (m *mockTaxStorage) List(ctx context.Context, fil TaxQuery) ([]Tax, int64, error) {
 	return m.ListFn(ctx, fil)
 }
 
@@ -84,7 +84,7 @@ type mockDiscountStorage struct {
 	PutFn      func(context.Context, Discount) error
 	PutBatchFn func(context.Context, []Discount) error
 	GetFn      func(context.Context, ID) (Discount, error)
-	ListFn     func(context.Context, DiscountQuery) ([]Discount, error)
+	ListFn     func(context.Context, DiscountQuery) ([]Discount, int64, error)
 }
 
 func NewMockDiscountStorage() *mockDiscountStorage {
@@ -103,7 +103,7 @@ func (m *mockDiscountStorage) Get(ctx context.Context, id ID) (Discount, error) 
 	return m.GetFn(ctx, id)
 }
 
-func (m *mockDiscountStorage) List(ctx context.Context, fil DiscountQuery) ([]Discount, error) {
+func (m *mockDiscountStorage) List(ctx context.Context, fil DiscountQuery) ([]Discount, int64, error) {
 	return m.ListFn(ctx, fil)
 }
 
@@ -111,7 +111,7 @@ type mockCategoryStorage struct {
 	PutFn      func(context.Context, Category) error
 	PutBatchFn func(context.Context, []Category) error
 	GetFn      func(context.Context, ID) (Category, error)
-	ListFn     func(context.Context, CategoryQuery) ([]Category, error)
+	ListFn     func(context.Context, CategoryQuery) ([]Category, int64, error)
 }
 
 func NewMockCategoryStorage() *mockCategoryStorage {
@@ -130,7 +130,7 @@ func (m *mockCategoryStorage) Get(ctx context.Context, id ID) (Category, error) 
 	return m.GetFn(ctx, id)
 }
 
-func (m *mockCategoryStorage) List(ctx context.Context, fil CategoryQuery) ([]Category, error) {
+func (m *mockCategoryStorage) List(ctx context.Context, fil CategoryQuery) ([]Category, int64, error) {
 	return m.ListFn(ctx, fil)
 }
 
@@ -138,7 +138,7 @@ type mockItemStorage struct {
 	PutFn      func(context.Context, Item) error
 	PutBatchFn func(context.Context, []Item) error
 	GetFn      func(context.Context, ID) (Item, error)
-	ListFn     func(context.Context, ItemQuery) ([]Item, error)
+	ListFn     func(context.Context, ItemQuery) ([]Item, int64, error)
 }
 
 func NewMockItemStorage() *mockItemStorage {
@@ -157,6 +157,6 @@ func (m *mockItemStorage) Get(ctx context.Context, id ID) (Item, error) {
 	return m.GetFn(ctx, id)
 }
 
-func (m *mockItemStorage) List(ctx context.Context, fil ItemQuery) ([]Item, error) {
+func (m *mockItemStorage) List(ctx context.Context, fil ItemQuery) ([]Item, int64, error) {
 	return m.ListFn(ctx, fil)
 }

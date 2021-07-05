@@ -141,6 +141,7 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 
 	type response struct {
 		Categories []Category `json:"categories"`
+		Total      int64      `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -162,7 +163,7 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 		limit = CategoryListMaxSize
 	}
 
-	categories, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
+	categories, count, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.CategoryFilter{
@@ -178,7 +179,10 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Categories: make([]Category, len(categories))}
+	resp := response{
+		Categories: make([]Category, len(categories)),
+		Total:      count,
+	}
 	for i, category := range categories {
 		resp.Categories[i] = NewCategory(category)
 	}
@@ -196,6 +200,7 @@ func (h *Handler) HandleListCategories(c echo.Context) error {
 
 	type response struct {
 		Categories []Category `json:"categories"`
+		Total      int64      `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -217,7 +222,7 @@ func (h *Handler) HandleListCategories(c echo.Context) error {
 		limit = CategoryListMaxSize
 	}
 
-	categories, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
+	categories, count, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.CategoryFilter{MerchantID: merchant.ID},
@@ -226,7 +231,10 @@ func (h *Handler) HandleListCategories(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Categories: make([]Category, len(categories))}
+	resp := response{
+		Categories: make([]Category, len(categories)),
+		Total:      count,
+	}
 	for i, category := range categories {
 		resp.Categories[i] = NewCategory(category)
 	}

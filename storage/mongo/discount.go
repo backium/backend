@@ -94,7 +94,7 @@ func (s *discountStorage) Get(ctx context.Context, id core.ID) (core.Discount, e
 	return discount, nil
 }
 
-func (s *discountStorage) List(ctx context.Context, q core.DiscountQuery) ([]core.Discount, error) {
+func (s *discountStorage) List(ctx context.Context, q core.DiscountQuery) ([]core.Discount, int64, error) {
 	const op = errors.Op("mongo/discountStorage.List")
 
 	opts := options.Find().
@@ -119,15 +119,20 @@ func (s *discountStorage) List(ctx context.Context, q core.DiscountQuery) ([]cor
 		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: q.Filter.Name, Options: "i"}}
 	}
 
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var discounts []core.Discount
 	if err := res.All(ctx, &discounts); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return discounts, nil
+	return discounts, count, nil
 }

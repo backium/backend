@@ -22,15 +22,15 @@ type OrderingService struct {
 	PaymentStorage       PaymentStorage
 }
 
-func (s *OrderingService) ListOrder(ctx context.Context, q OrderQuery) ([]Order, error) {
+func (s *OrderingService) ListOrder(ctx context.Context, q OrderQuery) ([]Order, int64, error) {
 	const op = errors.Op("core/OrderingService.ListOrder")
 
-	orders, err := s.OrderStorage.List(ctx, q)
+	orders, count, err := s.OrderStorage.List(ctx, q)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, 0, errors.E(op, err)
 	}
 
-	return orders, nil
+	return orders, count, nil
 }
 
 func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (Order, error) {
@@ -463,35 +463,35 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 	order := NewOrder(sch.LocationID, sch.MerchantID)
 	order.Schema = sch
 
-	variations, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
+	variations, _, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
 		Filter: ItemVariationFilter{IDs: sch.itemVariationIDs()},
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
 
-	taxes, err := s.TaxStorage.List(ctx, TaxQuery{
+	taxes, _, err := s.TaxStorage.List(ctx, TaxQuery{
 		Filter: TaxFilter{IDs: sch.taxIDs()},
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
 
-	discounts, err := s.DiscountStorage.List(ctx, DiscountQuery{
+	discounts, _, err := s.DiscountStorage.List(ctx, DiscountQuery{
 		Filter: DiscountFilter{IDs: sch.discountIDs()},
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
 
-	categories, err := s.CategoryStorage.List(ctx, CategoryQuery{
+	categories, _, err := s.CategoryStorage.List(ctx, CategoryQuery{
 		Filter: CategoryFilter{LocationIDs: []ID{sch.LocationID}},
 	})
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
 
-	items, err := s.ItemStorage.List(ctx, ItemQuery{
+	items, _, err := s.ItemStorage.List(ctx, ItemQuery{
 		Filter: ItemFilter{LocationIDs: []ID{sch.LocationID}},
 	})
 	if err != nil {

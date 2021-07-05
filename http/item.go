@@ -50,7 +50,7 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+	variations, _, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Filter: core.ItemVariationFilter{
 			ItemIDs: []core.ID{item.ID},
 		},
@@ -107,7 +107,7 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+	variations, _, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Filter: core.ItemVariationFilter{
 			ItemIDs: []core.ID{item.ID},
 		},
@@ -144,7 +144,7 @@ func (h *Handler) HandleRetrieveItem(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+	variations, _, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Filter: core.ItemVariationFilter{
 			ItemIDs: []core.ID{item.ID},
 		},
@@ -164,6 +164,7 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 
 	type response struct {
 		Items []Item `json:"items"`
+		Total int64  `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -197,7 +198,7 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 		return errors.E(op, errors.KindNoPermission)
 	}
 
-	items, err := h.CatalogService.ListItem(ctx, query)
+	items, count, err := h.CatalogService.ListItem(ctx, query)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -206,13 +207,16 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 	for i, item := range items {
 		itemIDs[i] = item.ID
 	}
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+	variations, _, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Filter: core.ItemVariationFilter{
 			ItemIDs: itemIDs,
 		},
 	})
 
-	resp := response{Items: make([]Item, len(items))}
+	resp := response{
+		Items: make([]Item, len(items)),
+		Total: count,
+	}
 	for i, item := range items {
 		vars := item.ItemVariations(variations)
 		resp.Items[i] = NewItem(item, vars)
@@ -243,6 +247,7 @@ func (h *Handler) HandleSearchItem(c echo.Context) error {
 
 	type response struct {
 		Items []Item `json:"items"`
+		Total int64  `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -282,7 +287,7 @@ func (h *Handler) HandleSearchItem(c echo.Context) error {
 		return errors.E(op, errors.KindNoPermission)
 	}
 
-	items, err := h.CatalogService.ListItem(ctx, query)
+	items, count, err := h.CatalogService.ListItem(ctx, query)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -291,11 +296,14 @@ func (h *Handler) HandleSearchItem(c echo.Context) error {
 	for i, item := range items {
 		itemIDs[i] = item.ID
 	}
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+	variations, _, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Filter: core.ItemVariationFilter{ItemIDs: itemIDs},
 	})
 
-	resp := response{Items: make([]Item, len(items))}
+	resp := response{
+		Items: make([]Item, len(items)),
+		Total: count,
+	}
 	for i, item := range items {
 		vars := item.ItemVariations(variations)
 		resp.Items[i] = NewItem(item, vars)
@@ -327,7 +335,7 @@ func (h *Handler) HandleDeleteItem(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+	variations, _, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Filter: core.ItemVariationFilter{
 			ItemIDs: []core.ID{item.ID},
 		},

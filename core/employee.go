@@ -58,7 +58,7 @@ type EmployeeFilter struct {
 type EmployeeStorage interface {
 	Put(context.Context, Employee) error
 	Get(context.Context, ID) (Employee, error)
-	List(context.Context, EmployeeFilter) ([]Employee, error)
+	List(context.Context, EmployeeFilter) ([]Employee, int64, error)
 }
 
 type EmployeeService struct {
@@ -92,20 +92,20 @@ func (svc *EmployeeService) Get(ctx context.Context, id ID) (Employee, error) {
 
 }
 
-func (svc *EmployeeService) ListEmployee(ctx context.Context, f EmployeeFilter) ([]Employee, error) {
+func (svc *EmployeeService) ListEmployee(ctx context.Context, f EmployeeFilter) ([]Employee, int64, error) {
 	const op = errors.Op("core/EmployeeService.ListEmployee")
 
-	employees, err := svc.EmployeeStorage.List(ctx, EmployeeFilter{
+	employees, count, err := svc.EmployeeStorage.List(ctx, EmployeeFilter{
 		LocationIDs: f.LocationIDs,
 		MerchantID:  f.MerchantID,
 		Limit:       f.Limit,
 		Offset:      f.Offset,
 	})
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, 0, errors.E(op, err)
 	}
 
-	return employees, nil
+	return employees, count, nil
 }
 
 func (svc *EmployeeService) DeleteEmployee(ctx context.Context, id ID) (Employee, error) {

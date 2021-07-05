@@ -95,7 +95,7 @@ func (s *itemVariationStorage) Get(ctx context.Context, id core.ID) (core.ItemVa
 	return variation, nil
 }
 
-func (s *itemVariationStorage) List(ctx context.Context, q core.ItemVariationQuery) ([]core.ItemVariation, error) {
+func (s *itemVariationStorage) List(ctx context.Context, q core.ItemVariationQuery) ([]core.ItemVariation, int64, error) {
 	const op = errors.Op("mongo/itemVariationStorage.List")
 
 	opts := options.Find().
@@ -122,15 +122,20 @@ func (s *itemVariationStorage) List(ctx context.Context, q core.ItemVariationQue
 		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: q.Filter.Name, Options: "i"}}
 	}
 
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var variations []core.ItemVariation
 	if err := res.All(ctx, &variations); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return variations, nil
+	return variations, count, nil
 }

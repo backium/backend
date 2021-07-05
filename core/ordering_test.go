@@ -49,20 +49,20 @@ func TestCreateOrder(t *testing.T) {
 				ItemStorage:          itemStorage,
 			}
 
-			categoryStorage.ListFn = func(ctx context.Context, fil CategoryQuery) ([]Category, error) {
-				return tc.Categories, nil
+			categoryStorage.ListFn = func(ctx context.Context, fil CategoryQuery) ([]Category, int64, error) {
+				return tc.Categories, 0, nil
 			}
-			itemStorage.ListFn = func(ctx context.Context, fil ItemQuery) ([]Item, error) {
-				return tc.Items, nil
+			itemStorage.ListFn = func(ctx context.Context, fil ItemQuery) ([]Item, int64, error) {
+				return tc.Items, 0, nil
 			}
-			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationQuery) ([]ItemVariation, error) {
-				return tc.ItemVariations, nil
+			variationStorage.ListFn = func(ctx context.Context, fil ItemVariationQuery) ([]ItemVariation, int64, error) {
+				return tc.ItemVariations, 0, nil
 			}
-			taxStorage.ListFn = func(ctx context.Context, fil TaxQuery) ([]Tax, error) {
-				return tc.Taxes, nil
+			taxStorage.ListFn = func(ctx context.Context, fil TaxQuery) ([]Tax, int64, error) {
+				return tc.Taxes, 0, nil
 			}
-			discountStorage.ListFn = func(ctx context.Context, fil DiscountQuery) ([]Discount, error) {
-				return tc.Discounts, nil
+			discountStorage.ListFn = func(ctx context.Context, fil DiscountQuery) ([]Discount, int64, error) {
+				return tc.Discounts, 0, nil
 			}
 			orderInMem := Order{}
 			orderStorage.PutFn = func(ctx context.Context, order Order) error {

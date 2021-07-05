@@ -70,7 +70,7 @@ func (s *employeeStorage) Get(ctx context.Context, id core.ID) (core.Employee, e
 	return employee, nil
 }
 
-func (s *employeeStorage) List(ctx context.Context, f core.EmployeeFilter) ([]core.Employee, error) {
+func (s *employeeStorage) List(ctx context.Context, f core.EmployeeFilter) ([]core.Employee, int64, error) {
 	const op = errors.Op("mongo/employeeStorage.List")
 
 	opts := options.Find().
@@ -85,15 +85,20 @@ func (s *employeeStorage) List(ctx context.Context, f core.EmployeeFilter) ([]co
 		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
 	}
 
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var employees []core.Employee
 	if err := res.All(ctx, &employees); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return employees, nil
+	return employees, count, nil
 }

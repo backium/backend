@@ -100,12 +100,12 @@ type InventoryStorage interface {
 	PutCount(context.Context, InventoryCount) error
 	PutBatchCount(context.Context, []InventoryCount) error
 	PutBatchAdj(context.Context, []InventoryAdjustment) error
-	ListCount(context.Context, InventoryFilter) ([]InventoryCount, error)
+	ListCount(context.Context, InventoryFilter) ([]InventoryCount, int64, error)
 }
 
 func (s *CatalogService) initializeInventory(ctx context.Context, variation ItemVariation) error {
 	var inventoryCounts []InventoryCount
-	locations, err := s.LocationStorage.List(ctx, LocationFilter{MerchantID: variation.MerchantID})
+	locations, _, err := s.LocationStorage.List(ctx, LocationFilter{MerchantID: variation.MerchantID})
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []I
 	for i, adj := range adjs {
 		variations[i] = adj.ItemVariationID
 	}
-	counts, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{
+	counts, _, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{
 		ItemVariationIDs: variations,
 	})
 	if err != nil {
@@ -159,7 +159,7 @@ func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []I
 		return nil, errors.E(op, err)
 	}
 
-	counts, err = s.InventoryStorage.ListCount(ctx, InventoryFilter{
+	counts, _, err = s.InventoryStorage.ListCount(ctx, InventoryFilter{
 		IDs: countIDs,
 	})
 	if err != nil {
@@ -169,10 +169,10 @@ func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []I
 	return counts, nil
 }
 
-func (s *CatalogService) ListInventoryCounts(ctx context.Context, f InventoryFilter) ([]InventoryCount, error) {
+func (s *CatalogService) ListInventoryCounts(ctx context.Context, f InventoryFilter) ([]InventoryCount, int64, error) {
 	const op = errors.Op("core/CatalogService.ListInventoryCounts")
 
-	counts, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{
+	counts, total, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{
 		MerchantID:       f.MerchantID,
 		LocationIDs:      f.LocationIDs,
 		ItemVariationIDs: f.ItemVariationIDs,
@@ -180,8 +180,8 @@ func (s *CatalogService) ListInventoryCounts(ctx context.Context, f InventoryFil
 		Offset:           f.Offset,
 	})
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, 0, errors.E(op, err)
 	}
 
-	return counts, nil
+	return counts, total, nil
 }

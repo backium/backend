@@ -186,6 +186,7 @@ func (h *Handler) HandleListTaxes(c echo.Context) error {
 
 	type response struct {
 		Taxes []Tax `json:"taxes"`
+		Total int64 `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -207,7 +208,7 @@ func (h *Handler) HandleListTaxes(c echo.Context) error {
 		limit = TaxListMaxSize
 	}
 
-	taxes, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
+	taxes, count, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.TaxFilter{MerchantID: merchant.ID},
@@ -216,7 +217,10 @@ func (h *Handler) HandleListTaxes(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Taxes: make([]Tax, len(taxes))}
+	resp := response{
+		Taxes: make([]Tax, len(taxes)),
+		Total: count,
+	}
 	for i, tax := range taxes {
 		resp.Taxes[i] = NewTax(tax)
 	}
@@ -246,6 +250,7 @@ func (h *Handler) HandleSearchTax(c echo.Context) error {
 
 	type response struct {
 		Taxes []Tax `json:"taxes"`
+		Total int64 `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -268,7 +273,7 @@ func (h *Handler) HandleSearchTax(c echo.Context) error {
 		limit = TaxListMaxSize
 	}
 
-	taxes, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
+	taxes, count, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.TaxFilter{
@@ -284,7 +289,10 @@ func (h *Handler) HandleSearchTax(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Taxes: make([]Tax, len(taxes))}
+	resp := response{
+		Taxes: make([]Tax, len(taxes)),
+		Total: count,
+	}
 	for i, tax := range taxes {
 		resp.Taxes[i] = NewTax(tax)
 	}

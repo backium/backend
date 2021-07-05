@@ -41,7 +41,7 @@ func (auth *Authorizer) CanUpdateItem(ctx context.Context, id ID) bool {
 func (auth *Authorizer) CanSearchItem(ctx context.Context, f ItemFilter) bool {
 	merchant := MerchantFromContext(ctx)
 
-	items, _ := auth.ItemStorage.List(ctx, ItemQuery{
+	items, _, _ := auth.ItemStorage.List(ctx, ItemQuery{
 		Filter: f,
 	})
 
@@ -57,7 +57,7 @@ func (auth *Authorizer) CanSearchItem(ctx context.Context, f ItemFilter) bool {
 func (auth *Authorizer) CanChangeInventory(ctx context.Context, variationIDs []ID) bool {
 	merchant := MerchantFromContext(ctx)
 
-	variations, err := auth.ItemVariationStorage.List(ctx, ItemVariationQuery{
+	variations, _, err := auth.ItemVariationStorage.List(ctx, ItemVariationQuery{
 		Filter: ItemVariationFilter{IDs: variationIDs},
 	})
 	if err != nil {

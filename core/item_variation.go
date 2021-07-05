@@ -38,7 +38,7 @@ type ItemVariationStorage interface {
 	Put(context.Context, ItemVariation) error
 	PutBatch(context.Context, []ItemVariation) error
 	Get(context.Context, ID) (ItemVariation, error)
-	List(context.Context, ItemVariationQuery) ([]ItemVariation, error)
+	List(context.Context, ItemVariationQuery) ([]ItemVariation, int64, error)
 }
 
 func (s *CatalogService) PutItemVariation(ctx context.Context, variation ItemVariation) (ItemVariation, error) {
@@ -72,7 +72,7 @@ func (s *CatalogService) PutItemVariationVariations(ctx context.Context, variati
 	for i, d := range variations {
 		ids[i] = d.ID
 	}
-	variations, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
+	variations, _, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
 		Filter: ItemVariationFilter{IDs: ids},
 	})
 	if err != nil {
@@ -93,15 +93,15 @@ func (s *CatalogService) GetItemVariation(ctx context.Context, id ID) (ItemVaria
 	return variation, nil
 }
 
-func (s *CatalogService) ListItemVariation(ctx context.Context, q ItemVariationQuery) ([]ItemVariation, error) {
+func (s *CatalogService) ListItemVariation(ctx context.Context, q ItemVariationQuery) ([]ItemVariation, int64, error) {
 	const op = errors.Op("core/CatalogService.ListItemVariation")
 
-	variations, err := s.ItemVariationStorage.List(ctx, q)
+	variations, count, err := s.ItemVariationStorage.List(ctx, q)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, 0, errors.E(op, err)
 	}
 
-	return variations, nil
+	return variations, count, nil
 }
 
 func (s *CatalogService) DeleteItemVariation(ctx context.Context, id ID) (ItemVariation, error) {

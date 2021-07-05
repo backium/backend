@@ -44,7 +44,7 @@ type ItemStorage interface {
 	Put(context.Context, Item) error
 	PutBatch(context.Context, []Item) error
 	Get(context.Context, ID) (Item, error)
-	List(context.Context, ItemQuery) ([]Item, error)
+	List(context.Context, ItemQuery) ([]Item, int64, error)
 }
 
 func (s *CatalogService) PutItem(ctx context.Context, item Item) (Item, error) {
@@ -73,7 +73,7 @@ func (s *CatalogService) PutItems(ctx context.Context, items []Item) ([]Item, er
 	for i, d := range items {
 		ids[i] = d.ID
 	}
-	items, err := s.ItemStorage.List(ctx, ItemQuery{
+	items, _, err := s.ItemStorage.List(ctx, ItemQuery{
 		Filter: ItemFilter{IDs: ids},
 	})
 	if err != nil {
@@ -94,15 +94,15 @@ func (s *CatalogService) GetItem(ctx context.Context, id ID) (Item, error) {
 	return item, nil
 }
 
-func (s *CatalogService) ListItem(ctx context.Context, q ItemQuery) ([]Item, error) {
+func (s *CatalogService) ListItem(ctx context.Context, q ItemQuery) ([]Item, int64, error) {
 	const op = errors.Op("core/CatalogService.ListItem")
 
-	items, err := s.ItemStorage.List(ctx, q)
+	items, count, err := s.ItemStorage.List(ctx, q)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, 0, errors.E(op, err)
 	}
 
-	return items, nil
+	return items, count, nil
 }
 
 func (s *CatalogService) DeleteItem(ctx context.Context, id ID) (Item, error) {

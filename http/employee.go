@@ -152,6 +152,7 @@ func (h *Handler) HandleSearchEmployee(c echo.Context) error {
 
 	type response struct {
 		Employees []Employee `json:"employees"`
+		Total     int64      `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -173,7 +174,7 @@ func (h *Handler) HandleSearchEmployee(c echo.Context) error {
 		limit = EmployeeListMaxSize
 	}
 
-	employees, err := h.EmployeeService.ListEmployee(ctx, core.EmployeeFilter{
+	employees, count, err := h.EmployeeService.ListEmployee(ctx, core.EmployeeFilter{
 		Limit:       limit,
 		Offset:      offset,
 		LocationIDs: req.LocationIDs,
@@ -183,7 +184,10 @@ func (h *Handler) HandleSearchEmployee(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Employees: make([]Employee, len(employees))}
+	resp := response{
+		Employees: make([]Employee, len(employees)),
+		Total:     count,
+	}
 	for i, employee := range employees {
 		resp.Employees[i] = NewEmployee(employee)
 	}

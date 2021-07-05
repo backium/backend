@@ -160,6 +160,7 @@ func (h *Handler) HandleListItemVariations(c echo.Context) error {
 
 	type response struct {
 		ItemVariations []ItemVariation `json:"item_variations"`
+		Total          int64           `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -181,7 +182,7 @@ func (h *Handler) HandleListItemVariations(c echo.Context) error {
 		limit = ItemVariationListMaxSize
 	}
 
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+	variations, count, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.ItemVariationFilter{MerchantID: merchant.ID},
@@ -190,9 +191,12 @@ func (h *Handler) HandleListItemVariations(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{ItemVariations: make([]ItemVariation, len(variations))}
-	for i, cus := range variations {
-		resp.ItemVariations[i] = NewItemVariation(cus)
+	resp := response{
+		ItemVariations: make([]ItemVariation, len(variations)),
+		Total:          count,
+	}
+	for i, v := range variations {
+		resp.ItemVariations[i] = NewItemVariation(v)
 	}
 
 	return c.JSON(http.StatusOK, resp)
@@ -220,6 +224,7 @@ func (h *Handler) HandleSearchItemVariation(c echo.Context) error {
 
 	type response struct {
 		ItemVariations []ItemVariation `json:"item_variations"`
+		Total          int64           `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -241,7 +246,7 @@ func (h *Handler) HandleSearchItemVariation(c echo.Context) error {
 		limit = ItemVariationListMaxSize
 	}
 
-	variations, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
+	variations, count, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.ItemVariationFilter{
@@ -257,9 +262,12 @@ func (h *Handler) HandleSearchItemVariation(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{ItemVariations: make([]ItemVariation, len(variations))}
-	for i, variation := range variations {
-		resp.ItemVariations[i] = NewItemVariation(variation)
+	resp := response{
+		ItemVariations: make([]ItemVariation, len(variations)),
+		Total:          count,
+	}
+	for i, v := range variations {
+		resp.ItemVariations[i] = NewItemVariation(v)
 	}
 
 	return c.JSON(http.StatusOK, resp)

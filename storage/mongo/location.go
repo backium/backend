@@ -93,7 +93,7 @@ func (s *locationStorage) Get(ctx context.Context, id core.ID) (core.Location, e
 	return location, nil
 }
 
-func (s *locationStorage) List(ctx context.Context, f core.LocationFilter) ([]core.Location, error) {
+func (s *locationStorage) List(ctx context.Context, f core.LocationFilter) ([]core.Location, int64, error) {
 	const op = errors.Op("mongo/locationStorage.List")
 
 	opts := options.Find().
@@ -108,15 +108,20 @@ func (s *locationStorage) List(ctx context.Context, f core.LocationFilter) ([]co
 		filter["_id"] = bson.M{"$in": f.IDs}
 	}
 
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var locations []core.Location
 	if err := res.All(ctx, &locations); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return locations, nil
+	return locations, count, nil
 }

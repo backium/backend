@@ -49,7 +49,7 @@ type CategoryStorage interface {
 	Put(context.Context, Category) error
 	PutBatch(context.Context, []Category) error
 	Get(context.Context, ID) (Category, error)
-	List(context.Context, CategoryQuery) ([]Category, error)
+	List(context.Context, CategoryQuery) ([]Category, int64, error)
 }
 
 func (svc *CatalogService) PutCategory(ctx context.Context, category Category) (Category, error) {
@@ -78,7 +78,7 @@ func (svc *CatalogService) PutCategories(ctx context.Context, categories []Categ
 	for i, c := range categories {
 		ids[i] = c.ID
 	}
-	categories, err := svc.CategoryStorage.List(ctx, CategoryQuery{
+	categories, _, err := svc.CategoryStorage.List(ctx, CategoryQuery{
 		Filter: CategoryFilter{IDs: ids},
 	})
 	if err != nil {
@@ -99,15 +99,15 @@ func (svc *CatalogService) GetCategory(ctx context.Context, id ID) (Category, er
 	return category, nil
 }
 
-func (svc *CatalogService) ListCategory(ctx context.Context, q CategoryQuery) ([]Category, error) {
+func (svc *CatalogService) ListCategory(ctx context.Context, q CategoryQuery) ([]Category, int64, error) {
 	const op = errors.Op("core/CatalogService.ListCategory")
 
-	categories, err := svc.CategoryStorage.List(ctx, q)
+	categories, count, err := svc.CategoryStorage.List(ctx, q)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, 0, errors.E(op, err)
 	}
 
-	return categories, nil
+	return categories, count, nil
 }
 
 func (svc *CatalogService) DeleteCategory(ctx context.Context, id ID) (Category, error) {

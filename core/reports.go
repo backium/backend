@@ -91,7 +91,7 @@ type CustomReportRequest struct {
 func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRequest) ([]CustomReport, error) {
 	const op = errors.Op("core/ReportService.GenerateCustom")
 
-	orders, err := svc.OrderStorage.List(ctx, OrderQuery{
+	orders, _, err := svc.OrderStorage.List(ctx, OrderQuery{
 		Filter: OrderFilter{
 			LocationIDs: req.Filter.LocationIDs,
 			MerchantID:  req.Filter.MerchantID,

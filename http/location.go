@@ -127,6 +127,7 @@ func (h *Handler) HandleListLocations(c echo.Context) error {
 
 	type response struct {
 		Locations []Location `json:"locations"`
+		Total     int64      `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -148,7 +149,7 @@ func (h *Handler) HandleListLocations(c echo.Context) error {
 		limit = LocationListMaxSize
 	}
 
-	locations, err := h.LocationService.ListLocation(ctx, core.LocationFilter{
+	locations, count, err := h.LocationService.ListLocation(ctx, core.LocationFilter{
 		Limit:      limit,
 		Offset:     offset,
 		MerchantID: merchant.ID,
@@ -157,7 +158,10 @@ func (h *Handler) HandleListLocations(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Locations: make([]Location, len(locations))}
+	resp := response{
+		Locations: make([]Location, len(locations)),
+		Total:     count,
+	}
 	for i, loc := range locations {
 		resp.Locations[i] = NewLocation(loc)
 	}

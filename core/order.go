@@ -111,7 +111,7 @@ type OrderQuery struct {
 type OrderStorage interface {
 	Put(context.Context, Order) error
 	Get(context.Context, ID) (Order, error)
-	List(context.Context, OrderQuery) ([]Order, error)
+	List(context.Context, OrderQuery) ([]Order, int64, error)
 }
 
 // OrderSchema represents a potential order to be created.

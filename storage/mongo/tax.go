@@ -94,7 +94,7 @@ func (s *taxStorage) Get(ctx context.Context, id core.ID) (core.Tax, error) {
 	return tax, nil
 }
 
-func (s *taxStorage) List(ctx context.Context, q core.TaxQuery) ([]core.Tax, error) {
+func (s *taxStorage) List(ctx context.Context, q core.TaxQuery) ([]core.Tax, int64, error) {
 	const op = errors.Op("mongo/taxStorage.List")
 
 	opts := options.Find().
@@ -119,15 +119,20 @@ func (s *taxStorage) List(ctx context.Context, q core.TaxQuery) ([]core.Tax, err
 		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: q.Filter.Name, Options: "i"}}
 	}
 
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var taxes []core.Tax
 	if err := res.All(ctx, &taxes); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return taxes, nil
+	return taxes, count, nil
 }

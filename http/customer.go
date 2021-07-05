@@ -149,6 +149,7 @@ func (h *Handler) HandleListCustomers(c echo.Context) error {
 
 	type response struct {
 		Customers []Customer `json:"customers"`
+		Total     int64      `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -170,7 +171,7 @@ func (h *Handler) HandleListCustomers(c echo.Context) error {
 		limit = CustomerListMaxSize
 	}
 
-	customers, err := h.CustomerService.ListCustomer(ctx, core.CustomerFilter{
+	customers, count, err := h.CustomerService.ListCustomer(ctx, core.CustomerFilter{
 		Limit:      limit,
 		Offset:     offset,
 		MerchantID: merchant.ID,
@@ -179,9 +180,12 @@ func (h *Handler) HandleListCustomers(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Customers: make([]Customer, len(customers))}
-	for i, customer := range customers {
-		resp.Customers[i] = NewCustomer(customer)
+	resp := response{
+		Customers: make([]Customer, len(customers)),
+		Total:     count,
+	}
+	for i, c := range customers {
+		resp.Customers[i] = NewCustomer(c)
 	}
 
 	return c.JSON(http.StatusOK, resp)

@@ -94,7 +94,7 @@ func (s *customerStorage) Get(ctx context.Context, id core.ID) (core.Customer, e
 	return customer, nil
 }
 
-func (s *customerStorage) List(ctx context.Context, f core.CustomerFilter) ([]core.Customer, error) {
+func (s *customerStorage) List(ctx context.Context, f core.CustomerFilter) ([]core.Customer, int64, error) {
 	const op = errors.Op("mongo/customerStorage.List")
 
 	opts := options.Find().
@@ -109,15 +109,20 @@ func (s *customerStorage) List(ctx context.Context, f core.CustomerFilter) ([]co
 		filter["_id"] = bson.M{"$in": f.IDs}
 	}
 
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var customers []core.Customer
 	if err := res.All(ctx, &customers); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return customers, nil
+	return customers, count, nil
 }

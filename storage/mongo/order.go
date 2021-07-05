@@ -68,7 +68,7 @@ func (r *orderStorage) Get(ctx context.Context, id core.ID) (core.Order, error) 
 	return order, nil
 }
 
-func (s *orderStorage) List(ctx context.Context, q core.OrderQuery) ([]core.Order, error) {
+func (s *orderStorage) List(ctx context.Context, q core.OrderQuery) ([]core.Order, int64, error) {
 	const op = errors.Op("mongo/orderStorage.List")
 
 	opts := options.Find().
@@ -96,16 +96,20 @@ func (s *orderStorage) List(ctx context.Context, q core.OrderQuery) ([]core.Orde
 		filter["created_at"] = bson.M{"$gte": q.Filter.CreatedAt.Gte, "$lte": q.Filter.CreatedAt.Lte}
 	}
 
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var orders []core.Order
 	if err := res.All(ctx, &orders); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return orders, nil
-
+	return orders, count, nil
 }

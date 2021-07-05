@@ -95,7 +95,7 @@ func (s *categoryStorage) Get(ctx context.Context, id core.ID) (core.Category, e
 	return category, nil
 }
 
-func (s *categoryStorage) List(ctx context.Context, q core.CategoryQuery) ([]core.Category, error) {
+func (s *categoryStorage) List(ctx context.Context, q core.CategoryQuery) ([]core.Category, int64, error) {
 	const op = errors.Op("mongo/categoryStorage.List")
 
 	opts := options.Find().
@@ -119,15 +119,20 @@ func (s *categoryStorage) List(ctx context.Context, q core.CategoryQuery) ([]cor
 		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: q.Filter.Name, Options: "i"}}
 	}
 
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var categories []core.Category
 	if err := res.All(ctx, &categories); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return categories, nil
+	return categories, count, nil
 }

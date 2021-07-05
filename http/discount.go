@@ -152,6 +152,7 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 
 	type response struct {
 		Discounts []Discount `json:"discounts"`
+		Total     int64      `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -173,7 +174,7 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 		limit = DiscountListMaxSize
 	}
 
-	discounts, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
+	discounts, count, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.DiscountFilter{MerchantID: merchant.ID},
@@ -182,12 +183,15 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	res := make([]Discount, len(discounts))
-	for i, it := range discounts {
-		res[i] = NewDiscount(it)
+	resp := response{
+		Discounts: make([]Discount, len(discounts)),
+		Total:     count,
+	}
+	for i, d := range discounts {
+		resp.Discounts[i] = NewDiscount(d)
 	}
 
-	return c.JSON(http.StatusOK, response{res})
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) HandleSearchDiscount(c echo.Context) error {
@@ -212,6 +216,7 @@ func (h *Handler) HandleSearchDiscount(c echo.Context) error {
 
 	type response struct {
 		Discounts []Discount `json:"discounts"`
+		Total     int64      `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -234,7 +239,7 @@ func (h *Handler) HandleSearchDiscount(c echo.Context) error {
 		limit = DiscountListMaxSize
 	}
 
-	discounts, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
+	discounts, count, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.DiscountFilter{
@@ -250,7 +255,10 @@ func (h *Handler) HandleSearchDiscount(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Discounts: make([]Discount, len(discounts))}
+	resp := response{
+		Discounts: make([]Discount, len(discounts)),
+		Total:     count,
+	}
 	for i, tax := range discounts {
 		resp.Discounts[i] = NewDiscount(tax)
 	}

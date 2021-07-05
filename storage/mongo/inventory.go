@@ -122,36 +122,41 @@ func (s *inventoryStorage) PutBatchAdj(ctx context.Context, batch []core.Invento
 	return nil
 }
 
-func (s *inventoryStorage) ListCount(ctx context.Context, f core.InventoryFilter) ([]core.InventoryCount, error) {
+func (s *inventoryStorage) ListCount(ctx context.Context, f core.InventoryFilter) ([]core.InventoryCount, int64, error) {
 	const op = errors.Op("mongo/inventoryStorage.List")
 
 	opts := options.Find().
 		SetLimit(f.Limit).
 		SetSkip(f.Offset)
 
-	fil := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
+	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
 	if f.MerchantID != "" {
-		fil["merchant_id"] = f.MerchantID
+		filter["merchant_id"] = f.MerchantID
 	}
 	if len(f.LocationIDs) != 0 {
-		fil["location_id"] = bson.M{"$in": f.LocationIDs}
+		filter["location_id"] = bson.M{"$in": f.LocationIDs}
 	}
 	if len(f.ItemVariationIDs) != 0 {
-		fil["item_variation_id"] = bson.M{"$in": f.ItemVariationIDs}
+		filter["item_variation_id"] = bson.M{"$in": f.ItemVariationIDs}
 	}
 	if len(f.IDs) != 0 {
-		fil["_id"] = bson.M{"$in": f.IDs}
+		filter["_id"] = bson.M{"$in": f.IDs}
 	}
 
-	res, err := s.countCollection.Find(ctx, fil, opts)
+	count, err := s.countCollection.CountDocuments(ctx, filter)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	res, err := s.countCollection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var counts []core.InventoryCount
 	if err := res.All(ctx, &counts); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return counts, nil
+	return counts, count, nil
 }

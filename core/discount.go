@@ -53,7 +53,7 @@ type DiscountStorage interface {
 	Put(context.Context, Discount) error
 	PutBatch(context.Context, []Discount) error
 	Get(context.Context, ID) (Discount, error)
-	List(context.Context, DiscountQuery) ([]Discount, error)
+	List(context.Context, DiscountQuery) ([]Discount, int64, error)
 }
 
 func (s *CatalogService) PutDiscount(ctx context.Context, discount Discount) (Discount, error) {
@@ -82,7 +82,7 @@ func (s *CatalogService) PutDiscounts(ctx context.Context, discounts []Discount)
 	for i, d := range discounts {
 		ids[i] = d.ID
 	}
-	discounts, err := s.DiscountStorage.List(ctx, DiscountQuery{
+	discounts, _, err := s.DiscountStorage.List(ctx, DiscountQuery{
 		Limit:  int64(len(discounts)),
 		Filter: DiscountFilter{IDs: ids},
 	})
@@ -104,15 +104,15 @@ func (s *CatalogService) GetDiscount(ctx context.Context, id ID) (Discount, erro
 	return discount, nil
 }
 
-func (s *CatalogService) ListDiscount(ctx context.Context, q DiscountQuery) ([]Discount, error) {
+func (s *CatalogService) ListDiscount(ctx context.Context, q DiscountQuery) ([]Discount, int64, error) {
 	const op = errors.Op("core/CatalogService.ListDiscount")
 
-	discounts, err := s.DiscountStorage.List(ctx, q)
+	discounts, count, err := s.DiscountStorage.List(ctx, q)
 	if err != nil {
-		return nil, errors.E(op, err)
+		return nil, 0, errors.E(op, err)
 	}
 
-	return discounts, nil
+	return discounts, count, nil
 }
 
 func (s *CatalogService) DeleteDiscount(ctx context.Context, id ID) (Discount, error) {

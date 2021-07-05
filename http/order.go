@@ -41,6 +41,7 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 
 	type response struct {
 		Orders []Order `json:"orders"`
+		Total  int64   `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -62,7 +63,7 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 		limit = OrderListMaxSize
 	}
 
-	orders, err := h.OrderingService.ListOrder(ctx, core.OrderQuery{
+	orders, count, err := h.OrderingService.ListOrder(ctx, core.OrderQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.OrderFilter{
@@ -81,7 +82,10 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Orders: make([]Order, len(orders))}
+	resp := response{
+		Orders: make([]Order, len(orders)),
+		Total:  count,
+	}
 	for i, order := range orders {
 		resp.Orders[i] = NewOrder(order)
 	}

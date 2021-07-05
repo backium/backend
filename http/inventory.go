@@ -74,6 +74,7 @@ func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 
 	type response struct {
 		Counts []InventoryCount `json:"counts"`
+		Total  int64            `json:"total_count"`
 	}
 
 	ctx := c.Request().Context()
@@ -95,7 +96,7 @@ func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 		limit = InventoryCountListMaxSize
 	}
 
-	counts, err := h.CatalogService.ListInventoryCounts(ctx, core.InventoryFilter{
+	counts, totalCount, err := h.CatalogService.ListInventoryCounts(ctx, core.InventoryFilter{
 		Limit:            limit,
 		Offset:           offset,
 		MerchantID:       merchant.ID,
@@ -106,7 +107,10 @@ func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 		return errors.E(op, err)
 	}
 
-	resp := response{Counts: NewInventoryCounts(counts)}
+	resp := response{
+		Counts: NewInventoryCounts(counts),
+		Total:  totalCount,
+	}
 
 	return c.JSON(http.StatusOK, resp)
 }
