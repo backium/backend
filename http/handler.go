@@ -20,6 +20,7 @@ type Handler struct {
 	OrderingService   core.OrderingService
 	PaymentService    core.PaymentService
 	ReportService     core.ReportService
+	Authorizer        core.Authorizer
 	SessionRepository core.SessionStorage
 }
 

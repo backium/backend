@@ -10,6 +10,7 @@ const (
 	KindValidation
 	KindUserExist
 	KindNotFound
+	KindNoPermission
 	KindInvalidCredentials
 	KindInvalidSession
 )

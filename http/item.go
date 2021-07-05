@@ -42,6 +42,10 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 		item.LocationIDs = *req.LocationIDs
 	}
 
+	if ok := h.Authorizer.CanCreateItem(ctx, item); !ok {
+		return errors.E(op, errors.KindNoPermission)
+	}
+
 	item, err := h.CatalogService.PutItem(c.Request().Context(), item)
 	if err != nil {
 		return errors.E(op, err)
@@ -75,6 +79,10 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
 		return err
+	}
+
+	if ok := h.Authorizer.CanUpdateItem(ctx, req.ID); !ok {
+		return errors.E(op, errors.KindNoPermission)
 	}
 
 	item, err := h.CatalogService.GetItem(ctx, req.ID)
@@ -127,6 +135,10 @@ func (h *Handler) HandleRetrieveItem(c echo.Context) error {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
+	if ok := h.Authorizer.CanGetItem(ctx, req.ID); !ok {
+		return errors.E(op, errors.KindNoPermission)
+	}
+
 	item, err := h.CatalogService.GetItem(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
@@ -175,11 +187,17 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 		limit = ItemListMaxSize
 	}
 
-	items, err := h.CatalogService.ListItem(ctx, core.ItemQuery{
+	query := core.ItemQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.ItemFilter{MerchantID: merchant.ID},
-	})
+	}
+
+	if ok := h.Authorizer.CanSearchItem(ctx, query.Filter); !ok {
+		return errors.E(op, errors.KindNoPermission)
+	}
+
+	items, err := h.CatalogService.ListItem(ctx, query)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -247,7 +265,7 @@ func (h *Handler) HandleSearchItem(c echo.Context) error {
 		limit = ItemListMaxSize
 	}
 
-	items, err := h.CatalogService.ListItem(ctx, core.ItemQuery{
+	query := core.ItemQuery{
 		Limit:  limit,
 		Offset: offset,
 		Filter: core.ItemFilter{
@@ -258,7 +276,13 @@ func (h *Handler) HandleSearchItem(c echo.Context) error {
 		Sort: core.ItemSort{
 			Name: req.Sort.Name,
 		},
-	})
+	}
+
+	if ok := h.Authorizer.CanSearchItem(ctx, query.Filter); !ok {
+		return errors.E(op, errors.KindNoPermission)
+	}
+
+	items, err := h.CatalogService.ListItem(ctx, query)
 	if err != nil {
 		return errors.E(op, err)
 	}

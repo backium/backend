@@ -10,6 +10,7 @@ import (
 const (
 	ErrTypeInvalidRequest ErrorType = "invalid_request_error"
 	ErrTypeAuthentication ErrorType = "authentication_error"
+	ErrTypePermission     ErrorType = "permission_error"
 	ErrTypeApi            ErrorType = "api_error"
 )
 
@@ -34,6 +35,10 @@ func errorHandler(err error, c echo.Context) {
 		code = http.StatusBadRequest
 		serr.Type = ErrTypeInvalidRequest
 		serr.Message = "Validation error: " + err.Error()
+	case errors.Is(err, errors.KindNoPermission):
+		code = http.StatusUnauthorized
+		serr.Type = ErrTypePermission
+		serr.Message = "You do not have enough permissions to perform that action"
 	case errors.Is(err, errors.KindInvalidCredentials):
 		code = http.StatusBadRequest
 		serr.Type = ErrTypeAuthentication

@@ -42,8 +42,11 @@ func (s *Server) Setup() error {
 
 func (s *Server) setupHandlers() {
 	// setup dependencies
-
-	// setup services
+	authorizer := core.Authorizer{
+		ItemStorage:          s.ItemStorage,
+		ItemVariationStorage: s.ItemVariationStorage,
+		CategoryStorage:      s.CategoryStorage,
+	}
 	locationService := core.LocationService{LocationStorage: s.LocationStorage}
 	customerService := core.CustomerService{CustomerStorage: s.CustomerStorage}
 	merchantService := core.MerchantService{MerchantStorage: s.MerchantStorage}
@@ -86,6 +89,7 @@ func (s *Server) setupHandlers() {
 
 	// setup handlers
 	s.Handler = Handler{
+		Authorizer:        authorizer,
 		LocationService:   locationService,
 		CustomerService:   customerService,
 		MerchantService:   merchantService,
