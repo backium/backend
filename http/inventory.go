@@ -89,7 +89,7 @@ func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = InventoryCountListDefaultSize, req.Offset
+	var limit int64 = InventoryCountListDefaultSize
 	if req.Limit <= InventoryCountListMaxSize {
 		limit = req.Limit
 	} else {
@@ -98,7 +98,7 @@ func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 
 	counts, totalCount, err := h.CatalogService.ListInventoryCounts(ctx, core.InventoryFilter{
 		Limit:            limit,
-		Offset:           offset,
+		Offset:           req.Offset,
 		MerchantID:       merchant.ID,
 		LocationIDs:      req.LocationIDs,
 		ItemVariationIDs: req.ItemVariationIDs,

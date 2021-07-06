@@ -178,7 +178,7 @@ func (h *Handler) HandleSearchEmployee(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = EmployeeListDefaultSize, req.Offset
+	var limit int64 = EmployeeListDefaultSize
 	if req.Limit <= EmployeeListMaxSize {
 		limit = req.Limit
 	} else {
@@ -187,7 +187,7 @@ func (h *Handler) HandleSearchEmployee(c echo.Context) error {
 
 	employees, count, err := h.EmployeeService.ListEmployee(ctx, core.EmployeeQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.EmployeeFilter{
 			Name:        req.Filter.Name,
 			LocationIDs: req.Filter.LocationIDs,

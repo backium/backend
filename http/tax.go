@@ -201,7 +201,7 @@ func (h *Handler) HandleListTaxes(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = TaxListDefaultSize, req.Offset
+	var limit int64 = TaxListDefaultSize
 	if req.Limit <= TaxListMaxSize {
 		limit = req.Limit
 	} else {
@@ -210,7 +210,7 @@ func (h *Handler) HandleListTaxes(c echo.Context) error {
 
 	taxes, count, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.TaxFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {
@@ -265,17 +265,16 @@ func (h *Handler) HandleSearchTax(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = TaxListDefaultSize, req.Offset
+	var limit int64 = TaxListDefaultSize
 	if req.Limit <= TaxListMaxSize {
 		limit = req.Limit
-	}
-	if req.Limit > TaxListMaxSize {
+	} else {
 		limit = TaxListMaxSize
 	}
 
 	taxes, count, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.TaxFilter{
 			Name:        req.Filter.Name,
 			LocationIDs: req.Filter.LocationIDs,

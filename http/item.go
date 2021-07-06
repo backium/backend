@@ -180,17 +180,16 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = ItemListDefaultSize, req.Offset
+	var limit int64 = ItemListDefaultSize
 	if req.Limit <= ItemListMaxSize {
 		limit = req.Limit
-	}
-	if req.Limit > ItemListMaxSize {
+	} else {
 		limit = ItemListMaxSize
 	}
 
 	query := core.ItemQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.ItemFilter{MerchantID: merchant.ID},
 	}
 

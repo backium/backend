@@ -67,8 +67,8 @@ func (s *OrderingService) PayOrder(ctx context.Context, orderID ID,
 		return Order{}, errors.E(op, err)
 	}
 
-	payments, err := s.PaymentStorage.List(ctx, PaymentFilter{
-		IDs: paymentIDs,
+	payments, _, err := s.PaymentStorage.List(ctx, PaymentQuery{
+		Filter: PaymentFilter{IDs: paymentIDs},
 	})
 	if err != nil {
 		return Order{}, errors.E(op, errors.KindUnexpected, err)
