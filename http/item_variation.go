@@ -175,7 +175,7 @@ func (h *Handler) HandleListItemVariations(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = ItemVariationListDefaultSize, req.Offset
+	var limit int64 = ItemVariationListDefaultSize
 	if req.Limit <= ItemVariationListMaxSize {
 		limit = req.Limit
 	} else {
@@ -184,7 +184,7 @@ func (h *Handler) HandleListItemVariations(c echo.Context) error {
 
 	variations, count, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.ItemVariationFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {
@@ -239,7 +239,7 @@ func (h *Handler) HandleSearchItemVariation(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = ItemVariationListDefaultSize, req.Offset
+	var limit int64 = ItemVariationListDefaultSize
 	if req.Limit <= ItemVariationListMaxSize {
 		limit = req.Limit
 	} else {
@@ -248,7 +248,7 @@ func (h *Handler) HandleSearchItemVariation(c echo.Context) error {
 
 	variations, count, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.ItemVariationFilter{
 			Name:        req.Filter.Name,
 			LocationIDs: req.Filter.LocationIDs,

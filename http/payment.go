@@ -9,6 +9,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	PaymentListDefaultSize = 10
+	PaymentListMaxSize     = 50
+)
+
 func (h *Handler) HandleCreatePayment(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreatePayment")
 
@@ -45,6 +50,85 @@ func (h *Handler) HandleCreatePayment(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, NewPayment(payment))
+}
+
+func (h *Handler) HandleSearchPayment(c echo.Context) error {
+	const op = errors.Op("http/Handler.SearchPayments")
+
+	type dateFilter struct {
+		Gte int64 `json:"gte" validate:"gte=0"`
+		Lte int64 `json:"lte" validate:"gte=0"`
+	}
+
+	type filter struct {
+		IDs         []core.ID  `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID  `json:"location_ids" validate:"omitempty,dive,id"`
+		CreatedAt   dateFilter `json:"created_at"`
+	}
+
+	type sort struct {
+		CreatedAt core.SortOrder `json:"created_at"`
+	}
+
+	type request struct {
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+		Sort   sort   `json:"sort"`
+	}
+
+	type response struct {
+		Payments []Payment `json:"payments"`
+		Total    int64     `json:"total_count"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit int64 = PaymentListDefaultSize
+	if req.Limit <= PaymentListMaxSize {
+		limit = req.Limit
+	} else {
+		limit = PaymentListMaxSize
+	}
+
+	payments, count, err := h.PaymentService.ListPayment(ctx, core.PaymentQuery{
+		Limit:  limit,
+		Offset: req.Offset,
+		Filter: core.PaymentFilter{
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
+			CreatedAt: core.DateFilter{
+				Gte: req.Filter.CreatedAt.Gte,
+				Lte: req.Filter.CreatedAt.Lte,
+			},
+		},
+		Sort: core.PaymentSort{
+			CreatedAt: req.Sort.CreatedAt,
+		},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{
+		Payments: make([]Payment, len(payments)),
+		Total:    count,
+	}
+	for i, p := range payments {
+		resp.Payments[i] = NewPayment(p)
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }
 
 type Payment struct {

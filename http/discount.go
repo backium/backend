@@ -167,7 +167,7 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = DiscountListDefaultSize, req.Offset
+	var limit int64 = DiscountListDefaultSize
 	if req.Limit <= DiscountListMaxSize {
 		limit = req.Limit
 	} else {
@@ -176,7 +176,7 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 
 	discounts, count, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.DiscountFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {
@@ -231,17 +231,16 @@ func (h *Handler) HandleSearchDiscount(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = DiscountListDefaultSize, req.Offset
+	var limit int64 = DiscountListDefaultSize
 	if req.Limit <= DiscountListMaxSize {
 		limit = req.Limit
-	}
-	if req.Limit > DiscountListMaxSize {
+	} else {
 		limit = DiscountListMaxSize
 	}
 
 	discounts, count, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.DiscountFilter{
 			Name:        req.Filter.Name,
 			LocationIDs: req.Filter.LocationIDs,

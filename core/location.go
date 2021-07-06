@@ -31,7 +31,7 @@ type LocationStorage interface {
 	Put(context.Context, Location) error
 	PutBatch(context.Context, []Location) error
 	Get(context.Context, ID) (Location, error)
-	List(context.Context, LocationFilter) ([]Location, int64, error)
+	List(context.Context, LocationQuery) ([]Location, int64, error)
 }
 
 type LocationService struct {
@@ -64,9 +64,8 @@ func (svc *LocationService) PutLocations(ctx context.Context, locations []Locati
 	for i, t := range locations {
 		ids[i] = t.ID
 	}
-	locations, _, err := svc.LocationStorage.List(ctx, LocationFilter{
-		Limit: int64(len(locations)),
-		IDs:   ids,
+	locations, _, err := svc.LocationStorage.List(ctx, LocationQuery{
+		Filter: LocationFilter{IDs: ids},
 	})
 	if err != nil {
 		return nil, err
@@ -86,14 +85,10 @@ func (svc *LocationService) GetLocation(ctx context.Context, id ID) (Location, e
 	return location, nil
 }
 
-func (svc *LocationService) ListLocation(ctx context.Context, f LocationFilter) ([]Location, int64, error) {
+func (svc *LocationService) ListLocation(ctx context.Context, q LocationQuery) ([]Location, int64, error) {
 	const op = errors.Op("core/LocationService.ListLocation")
 
-	locations, count, err := svc.LocationStorage.List(ctx, LocationFilter{
-		MerchantID: f.MerchantID,
-		Limit:      f.Limit,
-		Offset:     f.Offset,
-	})
+	locations, count, err := svc.LocationStorage.List(ctx, q)
 	if err != nil {
 		return nil, 0, errors.E(op, err)
 	}
@@ -123,8 +118,18 @@ func (svc *LocationService) DeleteLocation(ctx context.Context, id ID) (Location
 }
 
 type LocationFilter struct {
-	Limit      int64
-	Offset     int64
-	MerchantID ID
+	Name       string
 	IDs        []ID
+	MerchantID ID
+}
+
+type LocationSort struct {
+	Name SortOrder
+}
+
+type LocationQuery struct {
+	Limit  int64
+	Offset int64
+	Filter LocationFilter
+	Sort   LocationSort
 }

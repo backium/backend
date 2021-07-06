@@ -32,6 +32,7 @@ func (s *Server) setupRoutes() {
 
 	userGroup.GET("/locations/:id", h.HandleRetrieveLocation)
 	userGroup.GET("/locations", h.HandleListLocations)
+	userGroup.POST("/locations/search", h.HandleSearchLocation)
 	userGroup.POST("/locations", h.HandleCreateLocation)
 	userGroup.PUT("/locations/:id", h.HandleUpdateLocation)
 	userGroup.DELETE("/locations/:id", h.HandleDeleteLocation)
@@ -83,10 +84,11 @@ func (s *Server) setupRoutes() {
 	userGroup.DELETE("/discounts/:id", h.HandleDeleteDiscount)
 
 	userGroup.POST("/orders", h.HandleCreateOrder)
-	userGroup.POST("/orders/search", h.HandleSearchOrders)
+	userGroup.POST("/orders/search", h.HandleSearchOrder)
 	userGroup.POST("/orders/:order_id/pay", h.HandlePayOrder)
 
 	userGroup.POST("/payments", h.HandleCreatePayment)
+	userGroup.POST("/payments/search", h.HandleSearchPayment)
 
 	userGroup.POST("/reports/custom", h.HandleGenerateCustomReport)
 }

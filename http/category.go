@@ -156,7 +156,7 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = CategoryListDefaultSize, req.Offset
+	var limit int64 = CategoryListDefaultSize
 	if req.Limit <= CategoryListMaxSize {
 		limit = req.Limit
 	} else {
@@ -165,7 +165,7 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 
 	categories, count, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.CategoryFilter{
 			Name:        req.Filter.Name,
 			LocationIDs: req.Filter.LocationIDs,
@@ -215,7 +215,7 @@ func (h *Handler) HandleListCategories(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = CategoryListDefaultSize, req.Offset
+	var limit int64 = CategoryListDefaultSize
 	if req.Limit <= CategoryListMaxSize {
 		limit = req.Limit
 	} else {
@@ -224,7 +224,7 @@ func (h *Handler) HandleListCategories(c echo.Context) error {
 
 	categories, count, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.CategoryFilter{MerchantID: merchant.ID},
 	})
 	if err != nil {

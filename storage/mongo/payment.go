@@ -69,36 +69,51 @@ func (s *paymentStorage) Get(ctx context.Context, id core.ID) (core.Payment, err
 	return payment, nil
 }
 
-func (s *paymentStorage) List(ctx context.Context, f core.PaymentFilter) ([]core.Payment, error) {
+func (s *paymentStorage) List(ctx context.Context, q core.PaymentQuery) ([]core.Payment, int64, error) {
 	const op = errors.Op("mongo/paymentStorage.List")
 
 	opts := options.Find().
-		SetLimit(f.Limit).
-		SetSkip(f.Offset)
+		SetLimit(q.Limit).
+		SetSkip(q.Offset)
+
+	if q.Sort.CreatedAt != core.SortNone {
+		opts.SetSort(bson.M{"created_at": sortOrder(q.Sort.CreatedAt)})
+	}
 
 	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
-	if f.MerchantID != "" {
-		filter["merchant_id"] = f.MerchantID
+	if q.Filter.MerchantID != "" {
+		filter["merchant_id"] = q.Filter.MerchantID
 	}
-	if len(f.IDs) != 0 {
-		filter["_id"] = bson.M{"$in": f.IDs}
+	if len(q.Filter.OrderIDs) != 0 {
+		filter["order_id"] = bson.M{"$in": q.Filter.OrderIDs}
 	}
-	if len(f.LocationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": f.LocationIDs}
+	if len(q.Filter.IDs) != 0 {
+		filter["_id"] = bson.M{"$in": q.Filter.IDs}
 	}
-	if len(f.OrderIDs) != 0 {
-		filter["order_id"] = bson.M{"$in": f.OrderIDs}
+	if len(q.Filter.LocationIDs) != 0 {
+		filter["location_id"] = bson.M{"$in": q.Filter.LocationIDs}
+	}
+	if q.Filter.CreatedAt.Gte != 0 {
+		filter["created_at"] = bson.M{"$gte": q.Filter.CreatedAt.Gte}
+	}
+	if q.Filter.CreatedAt.Lte != 0 {
+		filter["created_at"] = bson.M{"$gte": q.Filter.CreatedAt.Gte, "$lte": q.Filter.CreatedAt.Lte}
+	}
+
+	count, err := s.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	res, err := s.collection.Find(ctx, filter, opts)
 	if err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
 	var payments []core.Payment
 	if err := res.All(ctx, &payments); err != nil {
-		return nil, errors.E(op, errors.KindUnexpected, err)
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
 	}
 
-	return payments, nil
+	return payments, count, nil
 }

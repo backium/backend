@@ -39,18 +39,28 @@ func NewPayment(ptype PaymentType, orderID, merchantID, locationID ID) Payment {
 }
 
 type PaymentFilter struct {
-	Limit       int64
-	Offset      int64
 	IDs         []ID
 	OrderIDs    []ID
 	LocationIDs []ID
 	MerchantID  ID
+	CreatedAt   DateFilter
+}
+
+type PaymentSort struct {
+	CreatedAt SortOrder
+}
+
+type PaymentQuery struct {
+	Limit  int64
+	Offset int64
+	Filter PaymentFilter
+	Sort   PaymentSort
 }
 
 type PaymentStorage interface {
 	Put(context.Context, Payment) error
 	Get(context.Context, ID) (Payment, error)
-	List(context.Context, PaymentFilter) ([]Payment, error)
+	List(context.Context, PaymentQuery) ([]Payment, int64, error)
 }
 
 type PaymentService struct {
@@ -70,4 +80,15 @@ func (svc *PaymentService) CreatePayment(ctx context.Context, payment Payment) (
 	}
 
 	return payment, nil
+}
+
+func (svc *PaymentService) ListPayment(ctx context.Context, q PaymentQuery) ([]Payment, int64, error) {
+	const op = errors.Op("core/PaymentService.ListPayment")
+
+	payments, count, err := svc.PaymentStorage.List(ctx, q)
+	if err != nil {
+		return nil, 0, errors.E(op, err)
+	}
+
+	return payments, count, nil
 }

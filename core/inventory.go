@@ -105,7 +105,11 @@ type InventoryStorage interface {
 
 func (s *CatalogService) initializeInventory(ctx context.Context, variation ItemVariation) error {
 	var inventoryCounts []InventoryCount
-	locations, _, err := s.LocationStorage.List(ctx, LocationFilter{MerchantID: variation.MerchantID})
+	locations, _, err := s.LocationStorage.List(ctx, LocationQuery{
+		Filter: LocationFilter{
+			MerchantID: variation.MerchantID,
+		},
+	})
 	if err != nil {
 		return err
 	}

@@ -14,7 +14,7 @@ const (
 	OrderListMaxSize     = 50
 )
 
-func (h *Handler) HandleSearchOrders(c echo.Context) error {
+func (h *Handler) HandleSearchOrder(c echo.Context) error {
 	const op = errors.Op("http/Handler.SearchOrders")
 
 	type dateFilter struct {
@@ -56,7 +56,7 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = OrderListDefaultSize, req.Offset
+	var limit int64 = OrderListDefaultSize
 	if req.Limit <= OrderListMaxSize {
 		limit = req.Limit
 	} else {
@@ -65,7 +65,7 @@ func (h *Handler) HandleSearchOrders(c echo.Context) error {
 
 	orders, count, err := h.OrderingService.ListOrder(ctx, core.OrderQuery{
 		Limit:  limit,
-		Offset: offset,
+		Offset: req.Offset,
 		Filter: core.OrderFilter{
 			LocationIDs: req.Filter.LocationIDs,
 			MerchantID:  merchant.ID,
