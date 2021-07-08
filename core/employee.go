@@ -12,20 +12,28 @@ type RateEntry struct {
 	CreatedAt int64 `bson:"created_at"`
 }
 
+type SalaryEntry struct {
+	Salary    Money  `bson:"salary"`
+	Note      string `bson:"note"`
+	CreatedAt int64  `bson:"created_at"`
+}
+
 type Employee struct {
-	ID          ID          `bson:"_id"`
-	FirstName   string      `bson:"first_name"`
-	LastName    string      `bson:"last_name"`
-	Email       string      `bson:"email"`
-	Phone       string      `bson:"phone"`
-	IsOwner     bool        `bson:"is_owner"`
-	Rate        *Money      `bson:"rate"`
-	RateHistory []RateEntry `bson:"rate_history"`
-	LocationIDs []ID        `bson:"location_ids"`
-	MerchantID  ID          `bson:"merchant_id"`
-	CreatedAt   int64       `bson:"created_at"`
-	UpdatedAt   int64       `bson:"updated_at"`
-	Status      Status      `bson:"status"`
+	ID            ID            `bson:"_id"`
+	FirstName     string        `bson:"first_name"`
+	LastName      string        `bson:"last_name"`
+	Email         string        `bson:"email"`
+	Phone         string        `bson:"phone"`
+	IsOwner       bool          `bson:"is_owner"`
+	Rate          *Money        `bson:"rate"`
+	RateHistory   []RateEntry   `bson:"rate_history"`
+	Salary        *Money        `bson:"salary"`
+	SalaryHistory []SalaryEntry `bson:"salary_history"`
+	LocationIDs   []ID          `bson:"location_ids"`
+	MerchantID    ID            `bson:"merchant_id"`
+	CreatedAt     int64         `bson:"created_at"`
+	UpdatedAt     int64         `bson:"updated_at"`
+	Status        Status        `bson:"status"`
 }
 
 func NewEmployee(firstName, lastName string, merchantID ID) Employee {
@@ -40,10 +48,19 @@ func NewEmployee(firstName, lastName string, merchantID ID) Employee {
 	}
 }
 
-func (e *Employee) ChangeRate(rate Money) {
-	e.Rate = &Money{Value: rate.Value, Currency: rate.Currency}
+func (e *Employee) ChangeRate(amount Money) {
+	e.Rate = &Money{Value: amount.Value, Currency: amount.Currency}
 	e.RateHistory = append(e.RateHistory, RateEntry{
-		Rate:      rate,
+		Rate:      amount,
+		CreatedAt: time.Now().Unix(),
+	})
+}
+
+func (e *Employee) ChangeSalary(amount Money, note string) {
+	e.Salary = &Money{Value: amount.Value, Currency: amount.Currency}
+	e.SalaryHistory = append(e.SalaryHistory, SalaryEntry{
+		Salary:    amount,
+		Note:      note,
 		CreatedAt: time.Now().Unix(),
 	})
 }

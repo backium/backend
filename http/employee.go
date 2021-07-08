@@ -17,12 +17,18 @@ const (
 func (h *Handler) HandleCreateEmployee(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateEmployee")
 
+	type salary struct {
+		Amount *MoneyRequest `json:"amount" validate:"required"`
+		Note   string        `json:"note"`
+	}
+
 	type request struct {
 		FirstName   string        `json:"first_name" validate:"required"`
 		LastName    string        `json:"last_name" validate:"required"`
 		Email       string        `json:"email" validate:"omitempty,email"`
 		Phone       string        `json:"phone" validate:"omitempty,e164"`
 		Rate        *MoneyRequest `json:"rate" validate:"omitempty"`
+		Salary      *salary       `json:"salary" validate:"omitempty"`
 		LocationIDs []core.ID     `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
@@ -45,6 +51,10 @@ func (h *Handler) HandleCreateEmployee(c echo.Context) error {
 		rate := core.NewMoney(ptr.GetInt64(req.Rate.Value), req.Rate.Currency)
 		employee.ChangeRate(rate)
 	}
+	if req.Salary != nil {
+		amount := core.NewMoney(ptr.GetInt64(req.Salary.Amount.Value), req.Salary.Amount.Currency)
+		employee.ChangeSalary(amount, req.Salary.Note)
+	}
 	if len(req.LocationIDs) != 0 {
 		employee.LocationIDs = req.LocationIDs
 	}
@@ -60,6 +70,11 @@ func (h *Handler) HandleCreateEmployee(c echo.Context) error {
 func (h *Handler) HandleUpdateEmployee(c echo.Context) error {
 	const op = errors.Op("http/Handler.UpdateEmployee")
 
+	type salary struct {
+		Amount *MoneyRequest `json:"amount" validate:"required"`
+		Note   string        `json:"note"`
+	}
+
 	type request struct {
 		ID          core.ID       `param:"id" validate:"required"`
 		FirstName   *string       `json:"first_name" validate:"omitempty,min=1"`
@@ -67,6 +82,7 @@ func (h *Handler) HandleUpdateEmployee(c echo.Context) error {
 		Email       *string       `json:"email" validate:"omitempty,email"`
 		Phone       *string       `json:"phone" validate:"omitempty,e164"`
 		Rate        *MoneyRequest `json:"rate" validate:"omitempty"`
+		Salary      *salary       `json:"salary" validate:"omitempty"`
 		LocationIDs *[]core.ID    `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
@@ -101,6 +117,10 @@ func (h *Handler) HandleUpdateEmployee(c echo.Context) error {
 	if req.Rate != nil {
 		rate := core.NewMoney(ptr.GetInt64(req.Rate.Value), req.Rate.Currency)
 		employee.ChangeRate(rate)
+	}
+	if req.Salary != nil {
+		amount := core.NewMoney(ptr.GetInt64(req.Salary.Amount.Value), req.Salary.Amount.Currency)
+		employee.ChangeSalary(amount, req.Salary.Note)
 	}
 	if req.LocationIDs != nil {
 		employee.LocationIDs = *req.LocationIDs
@@ -244,31 +264,51 @@ type RateEntry struct {
 	CreatedAt int64        `json:"created_at"`
 }
 
+type SalaryEntry struct {
+	Salary    MoneyRequest `json:"salary"`
+	Note      string       `json:"note"`
+	CreatedAt int64        `json:"created_at"`
+}
+
 type Employee struct {
-	ID          core.ID       `json:"id"`
-	FirstName   string        `json:"first_name"`
-	LastName    string        `json:"last_name"`
-	Email       string        `json:"email,omitempty"`
-	Phone       string        `json:"phone,omitempty"`
-	IsOwner     bool          `json:"is_owner"`
-	Rate        *MoneyRequest `json:"rate,omitempty"`
-	RateHistory []RateEntry   `json:"rate_history"`
-	LocationIDs []core.ID     `json:"location_ids"`
-	MerchantID  core.ID       `json:"merchant_id"`
-	CreatedAt   int64         `json:"created_at"`
-	UpdatedAt   int64         `json:"updated_at"`
-	Status      core.Status   `json:"status"`
+	ID            core.ID       `json:"id"`
+	FirstName     string        `json:"first_name"`
+	LastName      string        `json:"last_name"`
+	Email         string        `json:"email,omitempty"`
+	Phone         string        `json:"phone,omitempty"`
+	IsOwner       bool          `json:"is_owner"`
+	Rate          *MoneyRequest `json:"rate,omitempty"`
+	RateHistory   []RateEntry   `json:"rate_history"`
+	Salary        *MoneyRequest `json:"salary,omitempty"`
+	SalaryHistory []SalaryEntry `json:"salary_history,omitempty"`
+	LocationIDs   []core.ID     `json:"location_ids"`
+	MerchantID    core.ID       `json:"merchant_id"`
+	CreatedAt     int64         `json:"created_at"`
+	UpdatedAt     int64         `json:"updated_at"`
+	Status        core.Status   `json:"status"`
 }
 
 func NewEmployee(employee core.Employee) Employee {
-	history := make([]RateEntry, len(employee.RateHistory))
+	rHistory := make([]RateEntry, len(employee.RateHistory))
 	for i, rate := range employee.RateHistory {
-		history[i] = RateEntry{
+		rHistory[i] = RateEntry{
 			Rate: MoneyRequest{
 				Value:    ptr.Int64(rate.Rate.Value),
 				Currency: rate.Rate.Currency,
 			},
 			CreatedAt: rate.CreatedAt,
+		}
+	}
+
+	sHistory := make([]SalaryEntry, len(employee.SalaryHistory))
+	for i, salary := range employee.SalaryHistory {
+		sHistory[i] = SalaryEntry{
+			Salary: MoneyRequest{
+				Value:    ptr.Int64(salary.Salary.Value),
+				Currency: salary.Salary.Currency,
+			},
+			Note:      salary.Note,
+			CreatedAt: salary.CreatedAt,
 		}
 	}
 
@@ -279,20 +319,29 @@ func NewEmployee(employee core.Employee) Employee {
 			Currency: employee.Rate.Currency,
 		}
 	}
+	var salary *MoneyRequest
+	if employee.Salary != nil {
+		salary = &MoneyRequest{
+			Value:    &employee.Salary.Value,
+			Currency: employee.Salary.Currency,
+		}
+	}
 
 	return Employee{
-		ID:          employee.ID,
-		FirstName:   employee.FirstName,
-		LastName:    employee.LastName,
-		Email:       employee.Email,
-		Phone:       employee.Phone,
-		IsOwner:     employee.IsOwner,
-		Rate:        rate,
-		RateHistory: history,
-		LocationIDs: employee.LocationIDs,
-		MerchantID:  employee.MerchantID,
-		CreatedAt:   employee.CreatedAt,
-		UpdatedAt:   employee.UpdatedAt,
-		Status:      employee.Status,
+		ID:            employee.ID,
+		FirstName:     employee.FirstName,
+		LastName:      employee.LastName,
+		Email:         employee.Email,
+		Phone:         employee.Phone,
+		IsOwner:       employee.IsOwner,
+		Rate:          rate,
+		RateHistory:   rHistory,
+		Salary:        salary,
+		SalaryHistory: sHistory,
+		LocationIDs:   employee.LocationIDs,
+		MerchantID:    employee.MerchantID,
+		CreatedAt:     employee.CreatedAt,
+		UpdatedAt:     employee.UpdatedAt,
+		Status:        employee.Status,
 	}
 }
