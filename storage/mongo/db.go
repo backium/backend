@@ -21,6 +21,10 @@ func New(uri string, dbName string) (DB, error) {
 	return mdb, nil
 }
 
+func (m DB) Client() *mongo.Client {
+	return m.client
+}
+
 func (m DB) Collection(name string) *mongo.Collection {
 	return m.db.Collection(name)
 }

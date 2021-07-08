@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/errors"
@@ -64,7 +63,6 @@ func (s *userStorage) GetByEmail(ctx context.Context, email string) (core.User, 
 	filter := bson.M{"email": email}
 
 	if err := s.driver.findOneAndDecode(ctx, &user, filter); err != nil {
-		fmt.Println("err", err)
 		return core.User{}, errors.E(op, err)
 	}
 
