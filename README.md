@@ -9,7 +9,6 @@ Docker, docker compose and golang.
 To start the server in development mode run the following command.
 
 ```sh
-# run containers
 $ docker-compose up
 ```
 
