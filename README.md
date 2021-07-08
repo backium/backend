@@ -21,6 +21,6 @@ echo "127.0.0.1\tmongodb" | (sudo tee -a /etc/hosts) > /dev/null
 Finally, run the script to generate mock data.
 
 ```sh
-go run ./scripts/setup.go
+go run ./scripts/setup.go --mongo-uri mongodb://localhost:27017 --mongo-name testing
 ```
 
