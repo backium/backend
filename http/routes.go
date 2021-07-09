@@ -46,6 +46,7 @@ func (s *Server) setupRoutes() {
 
 	userGroup.POST("/inventory/batch-change", h.HandleChangeInventory)
 	userGroup.POST("/inventory/batch-retrieve-counts", h.HandleBatchRetrieveInventory)
+	userGroup.POST("/inventory/adjustment/search", h.HandleSearchInventoryAdjustment)
 
 	userGroup.GET("/categories/:id", h.HandleRetrieveCategory)
 	userGroup.GET("/categories", h.HandleListCategories)

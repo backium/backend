@@ -26,6 +26,7 @@ type InventoryAdjustment struct {
 	ItemVariationID ID          `bson:"item_variation_id"`
 	Quantity        int64       `bson:"quantity"`
 	Op              InventoryOp `bson:"operation"`
+	Note            string      `bson:"note"`
 	LocationID      ID          `bson:"location_id"`
 	MerchantID      ID          `bson:"merchant_id"`
 	CreatedAt       int64       `bson:"created_at"`
@@ -101,6 +102,7 @@ type InventoryStorage interface {
 	PutBatchCount(context.Context, []InventoryCount) error
 	PutBatchAdj(context.Context, []InventoryAdjustment) error
 	ListCount(context.Context, InventoryFilter) ([]InventoryCount, int64, error)
+	ListAdjustment(context.Context, InventoryFilter) ([]InventoryAdjustment, int64, error)
 }
 
 func (s *CatalogService) initializeInventory(ctx context.Context, variation ItemVariation) error {
@@ -188,4 +190,15 @@ func (s *CatalogService) ListInventoryCounts(ctx context.Context, f InventoryFil
 	}
 
 	return counts, total, nil
+}
+
+func (s *CatalogService) ListInventoryAdjustment(ctx context.Context, f InventoryFilter) ([]InventoryAdjustment, int64, error) {
+	const op = errors.Op("core/CatalogService.ListInventoryCounts")
+
+	adjs, total, err := s.InventoryStorage.ListAdjustment(ctx, f)
+	if err != nil {
+		return nil, 0, errors.E(op, err)
+	}
+
+	return adjs, total, nil
 }

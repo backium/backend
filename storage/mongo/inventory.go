@@ -160,3 +160,42 @@ func (s *inventoryStorage) ListCount(ctx context.Context, f core.InventoryFilter
 
 	return counts, count, nil
 }
+
+func (s *inventoryStorage) ListAdjustment(ctx context.Context, f core.InventoryFilter) ([]core.InventoryAdjustment, int64, error) {
+	const op = errors.Op("mongo/inventoryStorage.ListAdjustment")
+
+	opts := options.Find().
+		SetLimit(f.Limit).
+		SetSkip(f.Offset)
+
+	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
+	if f.MerchantID != "" {
+		filter["merchant_id"] = f.MerchantID
+	}
+	if len(f.LocationIDs) != 0 {
+		filter["location_id"] = bson.M{"$in": f.LocationIDs}
+	}
+	if len(f.ItemVariationIDs) != 0 {
+		filter["item_variation_id"] = bson.M{"$in": f.ItemVariationIDs}
+	}
+	if len(f.IDs) != 0 {
+		filter["_id"] = bson.M{"$in": f.IDs}
+	}
+
+	count, err := s.adjCollection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	res, err := s.adjCollection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	var adjs []core.InventoryAdjustment
+	if err := res.All(ctx, &adjs); err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	return adjs, count, nil
+}
