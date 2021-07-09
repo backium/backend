@@ -27,6 +27,7 @@ func (h *Handler) HandleCreateEmployee(c echo.Context) error {
 		LastName    string        `json:"last_name" validate:"required"`
 		Email       string        `json:"email" validate:"omitempty,email"`
 		Phone       string        `json:"phone" validate:"omitempty,e164"`
+		Image       string        `json:"image"`
 		Rate        *MoneyRequest `json:"rate" validate:"omitempty"`
 		Salary      *salary       `json:"salary" validate:"omitempty"`
 		LocationIDs []core.ID     `json:"location_ids" validate:"omitempty,dive,required"`
@@ -47,6 +48,7 @@ func (h *Handler) HandleCreateEmployee(c echo.Context) error {
 	employee := core.NewEmployee(req.FirstName, req.LastName, merchant.ID)
 	employee.Email = req.Email
 	employee.Phone = req.Phone
+	employee.Image = req.Image
 	if req.Rate != nil {
 		rate := core.NewMoney(ptr.GetInt64(req.Rate.Value), req.Rate.Currency)
 		employee.ChangeRate(rate)
@@ -81,6 +83,7 @@ func (h *Handler) HandleUpdateEmployee(c echo.Context) error {
 		LastName    *string       `json:"last_name" validate:"omitempty,min=1"`
 		Email       *string       `json:"email" validate:"omitempty,email"`
 		Phone       *string       `json:"phone" validate:"omitempty,e164"`
+		Image       *string       `json:"image"`
 		Rate        *MoneyRequest `json:"rate" validate:"omitempty"`
 		Salary      *salary       `json:"salary" validate:"omitempty"`
 		LocationIDs *[]core.ID    `json:"location_ids" validate:"omitempty,dive,required"`
@@ -113,6 +116,9 @@ func (h *Handler) HandleUpdateEmployee(c echo.Context) error {
 	}
 	if req.Phone != nil {
 		employee.Phone = *req.Phone
+	}
+	if req.Image != nil {
+		employee.Image = *req.Image
 	}
 	if req.Rate != nil {
 		rate := core.NewMoney(ptr.GetInt64(req.Rate.Value), req.Rate.Currency)
@@ -276,6 +282,7 @@ type Employee struct {
 	LastName      string        `json:"last_name"`
 	Email         string        `json:"email,omitempty"`
 	Phone         string        `json:"phone,omitempty"`
+	Image         string        `json:"image,omitempty"`
 	IsOwner       bool          `json:"is_owner"`
 	Rate          *MoneyRequest `json:"rate,omitempty"`
 	RateHistory   []RateEntry   `json:"rate_history"`
@@ -333,6 +340,7 @@ func NewEmployee(employee core.Employee) Employee {
 		LastName:      employee.LastName,
 		Email:         employee.Email,
 		Phone:         employee.Phone,
+		Image:         employee.Image,
 		IsOwner:       employee.IsOwner,
 		Rate:          rate,
 		RateHistory:   rHistory,

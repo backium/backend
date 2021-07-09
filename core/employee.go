@@ -24,6 +24,7 @@ type Employee struct {
 	LastName      string        `bson:"last_name"`
 	Email         string        `bson:"email"`
 	Phone         string        `bson:"phone"`
+	Image         string        `bson:"image"`
 	IsOwner       bool          `bson:"is_owner"`
 	Rate          *Money        `bson:"rate"`
 	RateHistory   []RateEntry   `bson:"rate_history"`
