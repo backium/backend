@@ -52,13 +52,19 @@ func main() {
 	discountStorage := mongo.NewDiscountStorage(db)
 	orderStorage := mongo.NewOrderStorage(db)
 	paymentStorage := mongo.NewPaymentStorage(db)
-	//inventoryStorage := mongo.NewInventoryStorage(db)
+	inventoryStorage := mongo.NewInventoryStorage(db)
 
 	userService := core.UserService{
 		UserStorage:     userRepository,
 		MerchantStorage: merchantStorage,
 		LocationStorage: locationStorage,
 		EmployeeStorage: employeeStorage,
+	}
+
+	catalogService := core.CatalogService{
+		ItemVariationStorage: itemVariationStorage,
+		InventoryStorage:     inventoryStorage,
+		LocationStorage:      locationStorage,
 	}
 
 	orderingService := core.OrderingService{
@@ -184,8 +190,10 @@ func main() {
 		variations = append(variations, iv)
 	}
 
-	if err := itemVariationStorage.PutBatch(ctx, variations); err != nil {
-		log.Fatalf("Could not create variations: %v", err)
+	for _, v := range variations {
+		if _, err := catalogService.PutItemVariation(ctx, v); err != nil {
+			log.Fatalf("Could not create variations: %v", err)
+		}
 	}
 
 	// Creating taxes

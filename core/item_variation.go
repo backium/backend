@@ -53,9 +53,11 @@ func (s *CatalogService) PutItemVariation(ctx context.Context, variation ItemVar
 		return ItemVariation{}, errors.E(op, err)
 	}
 
-	// Initialize inventory counts
-	if err := s.initializeInventory(ctx, variation); err != nil {
-		fmt.Printf("Problem generating inventory for item %v: %v", variation.ID, err)
+	if variation.CreatedAt == variation.UpdatedAt {
+		// Initialize inventory counts
+		if err := s.initializeInventory(ctx, variation); err != nil {
+			fmt.Printf("Problem generating inventory for item %v: %v", variation.ID, err)
+		}
 	}
 
 	return variation, nil
