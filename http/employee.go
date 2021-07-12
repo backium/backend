@@ -287,7 +287,7 @@ type Employee struct {
 	Rate          *MoneyRequest `json:"rate,omitempty"`
 	RateHistory   []RateEntry   `json:"rate_history"`
 	Salary        *MoneyRequest `json:"salary,omitempty"`
-	SalaryHistory []SalaryEntry `json:"salary_history,omitempty"`
+	SalaryHistory []SalaryEntry `json:"salary_history"`
 	LocationIDs   []core.ID     `json:"location_ids"`
 	MerchantID    core.ID       `json:"merchant_id"`
 	CreatedAt     int64         `json:"created_at"`

@@ -93,6 +93,80 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+func (h *Handler) HandleCalculateOrder(c echo.Context) error {
+	const op = errors.Op("http/Handler.CalculateOrder")
+
+	type item struct {
+		UID         string  `json:"uid" validate:"required"`
+		VariationID core.ID `json:"variation_id" validate:"required"`
+		Quantity    int64   `json:"quantity" validate:"required"`
+	}
+
+	type tax struct {
+		UID   string        `json:"uid" validate:"required"`
+		ID    core.ID       `json:"id" validate:"required"`
+		Scope core.TaxScope `json:"scope" validate:"required"`
+	}
+
+	type discount struct {
+		UID string  `json:"uid" validate:"required"`
+		ID  core.ID `json:"id" validate:"required"`
+	}
+
+	type request struct {
+		Items      []item     `json:"items" validate:"required,dive"`
+		CustomerID core.ID    `json:"customer_id" validate:"omitempty,id"`
+		LocationID core.ID    `json:"location_id" validate:"required"`
+		Taxes      []tax      `json:"taxes" validate:"omitempty,dive"`
+		Discounts  []discount `json:"discounts" validate:"omitempty,dive"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	schema := core.OrderSchema{
+		CustomerID: req.CustomerID,
+		LocationID: req.LocationID,
+		MerchantID: merchant.ID,
+	}
+	for _, item := range req.Items {
+		schema.ItemVariations = append(schema.ItemVariations, core.OrderSchemaItemVariation{
+			UID:      item.UID,
+			ID:       item.VariationID,
+			Quantity: item.Quantity,
+		})
+	}
+	for _, tax := range req.Taxes {
+		schema.Taxes = append(schema.Taxes, core.OrderSchemaTax{
+			UID:   tax.UID,
+			ID:    tax.ID,
+			Scope: tax.Scope,
+		})
+	}
+	for _, discount := range req.Discounts {
+		schema.Discounts = append(schema.Discounts, core.OrderSchemaDiscount{
+			UID: discount.UID,
+			ID:  discount.ID,
+		})
+	}
+
+	order, err := h.OrderingService.CalculateOrder(ctx, schema)
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	return c.JSON(http.StatusOK, NewOrder(order))
+}
+
 func (h *Handler) HandleCreateOrder(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateOrder")
 
@@ -115,6 +189,7 @@ func (h *Handler) HandleCreateOrder(c echo.Context) error {
 
 	type request struct {
 		Items      []item     `json:"items" validate:"required,dive"`
+		CustomerID core.ID    `json:"customer_id" validate:"omitempty,id"`
 		LocationID core.ID    `json:"location_id" validate:"required"`
 		Taxes      []tax      `json:"taxes" validate:"omitempty,dive"`
 		Discounts  []discount `json:"discounts" validate:"omitempty,dive"`
@@ -133,6 +208,7 @@ func (h *Handler) HandleCreateOrder(c echo.Context) error {
 	}
 
 	schema := core.OrderSchema{
+		CustomerID: req.CustomerID,
 		LocationID: req.LocationID,
 		MerchantID: merchant.ID,
 	}
@@ -202,10 +278,11 @@ type Order struct {
 	Taxes               []OrderTax      `json:"taxes"`
 	Discounts           []OrderDiscount `json:"discounts"`
 	State               core.OrderState `json:"state"`
+	CustomerID          core.ID         `json:"customer_id,omitempty"`
 	LocationID          core.ID         `json:"location_id"`
 	MerchantID          core.ID         `json:"merchant_id"`
-	CreatedAt           int64           `json:"created_at"`
-	UpdatedAt           int64           `json:"updated_at"`
+	CreatedAt           int64           `json:"created_at,omitempty"`
+	UpdatedAt           int64           `json:"updated_at,omitempty"`
 }
 
 func NewOrder(order core.Order) Order {
@@ -239,6 +316,7 @@ func NewOrder(order core.Order) Order {
 			Value:    ptr.Int64(order.TotalAmount.Value),
 			Currency: order.TotalAmount.Currency,
 		},
+		CustomerID: order.CustomerID,
 		LocationID: order.LocationID,
 		MerchantID: order.MerchantID,
 		CreatedAt:  order.CreatedAt,
