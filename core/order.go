@@ -27,6 +27,7 @@ type Order struct {
 	TotalTipAmount      Money                `bson:"total_tip_amount"`
 	TotalAmount         Money                `bson:"total_amount"`
 	State               OrderState           `bson:"state"`
+	CustomerID          ID                   `bson:"customer_id"`
 	LocationID          ID                   `bson:"location_id"`
 	MerchantID          ID                   `bson:"merchant_id"`
 	CreatedAt           int64                `bson:"created_at"`
@@ -119,6 +120,7 @@ type OrderSchema struct {
 	ItemVariations []OrderSchemaItemVariation `bson:"item_variations"`
 	Taxes          []OrderSchemaTax           `bson:"taxes"`
 	Discounts      []OrderSchemaDiscount      `bson:"discounts"`
+	CustomerID     ID                         `bson:"customer_id"`
 	LocationID     ID                         `bson:"location_id"`
 	MerchantID     ID                         `bson:"merchant_id"`
 	Currency       Currency                   `bson:"currency"`

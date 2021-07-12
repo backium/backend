@@ -85,6 +85,7 @@ func (s *Server) setupRoutes() {
 	userGroup.DELETE("/discounts/:id", h.HandleDeleteDiscount)
 
 	userGroup.POST("/orders", h.HandleCreateOrder)
+	userGroup.POST("/orders/calculate", h.HandleCalculateOrder)
 	userGroup.POST("/orders/search", h.HandleSearchOrder)
 	userGroup.POST("/orders/:order_id/pay", h.HandlePayOrder)
 

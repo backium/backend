@@ -33,6 +33,22 @@ func (s *OrderingService) ListOrder(ctx context.Context, q OrderQuery) ([]Order,
 	return orders, count, nil
 }
 
+func (s *OrderingService) CalculateOrder(ctx context.Context, schema OrderSchema) (Order, error) {
+	const op = errors.Op("core/OrderingService.CalculateOrder")
+
+	if ok := schema.Validate(); !ok {
+		return Order{}, errors.E(op, errors.KindValidation, "Order contains duplicate UIDs")
+	}
+
+	schema.Currency = "PEN"
+	order, err := s.build(ctx, schema)
+	if err != nil {
+		return Order{}, errors.E(op, err)
+	}
+
+	return *order, nil
+}
+
 func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (Order, error) {
 	const op = errors.Op("core/OrderingService.CreateOrder")
 
@@ -462,6 +478,7 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 
 	order := NewOrder(sch.LocationID, sch.MerchantID)
 	order.Schema = sch
+	order.CustomerID = sch.CustomerID
 
 	variations, _, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
 		Filter: ItemVariationFilter{IDs: sch.itemVariationIDs()},
