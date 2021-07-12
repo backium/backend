@@ -18,10 +18,11 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateItem")
 
 	type request struct {
-		Name        string     `json:"name" validate:"required"`
-		Description string     `json:"description" validate:"omitempty,max=100"`
-		CategoryID  core.ID    `json:"category_id" validate:"required"`
-		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
+		Name         string     `json:"name" validate:"required"`
+		Description  string     `json:"description" validate:"omitempty,max=100"`
+		CategoryID   core.ID    `json:"category_id" validate:"required"`
+		EnabledInPOS bool       `json:"enabled"`
+		LocationIDs  *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -38,6 +39,7 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 
 	item := core.NewItem(req.Name, req.CategoryID, merchant.ID)
 	item.Description = req.Description
+	item.EnabledInPOS = req.EnabledInPOS
 	if req.LocationIDs != nil {
 		item.LocationIDs = *req.LocationIDs
 	}
@@ -62,11 +64,12 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 	const op = errors.Op("http/Handler.UpdateItem")
 
 	type request struct {
-		ID          core.ID    `param:"id" validate:"required"`
-		Name        *string    `json:"name" validate:"omitempty,min=1"`
-		Description *string    `json:"description" validate:"omitempty,max=100"`
-		CategoryID  *core.ID   `json:"category_id" validate:"omitempty,min=1"`
-		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
+		ID           core.ID    `param:"id" validate:"required"`
+		Name         *string    `json:"name" validate:"omitempty,min=1"`
+		Description  *string    `json:"description" validate:"omitempty,max=100"`
+		CategoryID   *core.ID   `json:"category_id" validate:"omitempty,min=1"`
+		EnabledInPOS *bool      `json:"enabled"`
+		LocationIDs  *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -100,6 +103,9 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 	}
 	if req.CategoryID != nil {
 		item.CategoryID = *req.CategoryID
+	}
+	if req.EnabledInPOS != nil {
+		item.EnabledInPOS = *req.EnabledInPOS
 	}
 
 	item, err = h.CatalogService.PutItem(ctx, item)
@@ -344,25 +350,27 @@ func (h *Handler) HandleDeleteItem(c echo.Context) error {
 }
 
 type Item struct {
-	ID          core.ID         `json:"id"`
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	CategoryID  core.ID         `json:"category_id"`
-	Variations  []ItemVariation `json:"variations"`
-	LocationIDs []core.ID       `json:"location_ids"`
-	MerchantID  core.ID         `json:"merchant_id"`
-	Status      core.Status     `json:"status"`
+	ID           core.ID         `json:"id"`
+	Name         string          `json:"name"`
+	Description  string          `json:"description"`
+	CategoryID   core.ID         `json:"category_id"`
+	Variations   []ItemVariation `json:"variations"`
+	LocationIDs  []core.ID       `json:"location_ids"`
+	EnabledInPOS bool            `json:"enabled"`
+	MerchantID   core.ID         `json:"merchant_id"`
+	Status       core.Status     `json:"status"`
 }
 
 func NewItem(item core.Item, variations []core.ItemVariation) Item {
 	return Item{
-		ID:          item.ID,
-		Name:        item.Name,
-		Description: item.Description,
-		CategoryID:  item.CategoryID,
-		Variations:  NewItemVariations(variations),
-		LocationIDs: item.LocationIDs,
-		MerchantID:  item.MerchantID,
-		Status:      item.Status,
+		ID:           item.ID,
+		Name:         item.Name,
+		Description:  item.Description,
+		CategoryID:   item.CategoryID,
+		Variations:   NewItemVariations(variations),
+		LocationIDs:  item.LocationIDs,
+		EnabledInPOS: item.EnabledInPOS,
+		MerchantID:   item.MerchantID,
+		Status:       item.Status,
 	}
 }
