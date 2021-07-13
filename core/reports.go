@@ -18,6 +18,7 @@ const (
 	GroupingDay           GroupingType = "day"
 	GroupingWeekday       GroupingType = "weekday"
 	GroupingHourOfDay     GroupingType = "hour_of_day"
+	GroupingMonth         GroupingType = "month"
 )
 
 type GroupingType string
@@ -30,7 +31,8 @@ func (g *GroupingType) Validate() bool {
 		GroupingItemVariation,
 		GroupingDay,
 		GroupingWeekday,
-		GroupingHourOfDay:
+		GroupingHourOfDay,
+		GroupingMonth:
 		return true
 	default:
 		return false
@@ -46,6 +48,7 @@ func GroupingTypes() string {
 		string(GroupingDay),
 		string(GroupingWeekday),
 		string(GroupingHourOfDay),
+		string(GroupingMonth),
 	}, ",")
 }
 
@@ -259,6 +262,8 @@ func groupOrders(orders []WrappedOrder, groupType GroupingType, timezone string)
 		orderGroups = groupOrdersByWeekday(orders, timezone)
 	case GroupingHourOfDay:
 		orderGroups = groupOrdersByHourOfDay(orders, timezone)
+	case GroupingMonth:
+		orderGroups = groupOrdersByMonth(orders, timezone)
 	default:
 		return nil, errors.E("Unsupported groupType")
 	}
@@ -352,6 +357,29 @@ func groupOrdersByDay(orders []WrappedOrder, timezone string) map[string][]Wrapp
 	return orderGroups
 }
 
+func groupOrdersByMonth(orders []WrappedOrder, timezone string) map[string][]WrappedOrder {
+	orderGroups := make(map[string][]WrappedOrder)
+	location, _ := time.LoadLocation(timezone)
+
+	for _, order := range orders {
+		uidGroups := map[string][]string{}
+
+		creationTime := time.Unix(order.Order.CreatedAt, 0).In(location)
+		name := strings.ToLower(creationTime.Month().String())
+		for _, variation := range order.Order.ItemVariations {
+			if order.Contains(variation.UID) {
+				uidGroups[name] = append(uidGroups[name], variation.UID)
+			}
+		}
+
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
+		}
+	}
+
+	return orderGroups
+}
+
 func groupOrdersByWeekday(orders []WrappedOrder, timezone string) map[string][]WrappedOrder {
 	orderGroups := make(map[string][]WrappedOrder)
 	location, _ := time.LoadLocation(timezone)
@@ -378,8 +406,6 @@ func groupOrdersByWeekday(orders []WrappedOrder, timezone string) map[string][]W
 func groupOrdersByHourOfDay(orders []WrappedOrder, timezone string) map[string][]WrappedOrder {
 	orderGroups := make(map[string][]WrappedOrder)
 	location, _ := time.LoadLocation(timezone)
-
-	fmt.Println("timezone: ", timezone, "location: ", location)
 
 	for _, order := range orders {
 		uidGroups := map[string][]string{}
