@@ -25,6 +25,7 @@ type Server struct {
 	InventoryStorage     core.InventoryStorage
 	EmployeeStorage      core.EmployeeStorage
 	SessionRepository    core.SessionStorage
+	Uploader             core.Uploader
 }
 
 func (s *Server) Setup() error {
@@ -76,6 +77,8 @@ func (s *Server) setupHandlers() {
 		ItemVariationStorage: s.ItemVariationStorage,
 		TaxStorage:           s.TaxStorage,
 		DiscountStorage:      s.DiscountStorage,
+		LocationStorage:      s.LocationStorage,
+		Uploader:             s.Uploader,
 	}
 	paymentService := core.PaymentService{
 		PaymentStorage: s.PaymentStorage,

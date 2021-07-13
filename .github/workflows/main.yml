@@ -40,5 +40,6 @@ jobs:
             --env BACKIUM_DB_NAME=${{ secrets.BACKIUM_DB_NAME }} \
             --env BACKIUM_REDIS_URI=${{ secrets.BACKIUM_REDIS_URI }} \
             --env BACKIUM_REDIS_PASSWORD=${{ secrets.BACKIUM_REDIS_PASSWORD }} \
+            --env BACKIUM_CLOUDINARY_URI=${{ secrets.BACKIUM_CLOUDINARY_URI }} \
             --env BACKIUM_APP_PORT=8080 \
             -d -p 8080:8080 326036341196.dkr.ecr.us-east-1.amazonaws.com/backium-backend:${{github.run_number}}

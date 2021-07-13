@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/backium/backend/cloudinary"
 	"github.com/backium/backend/http"
 	"github.com/backium/backend/storage/mongo"
 	"github.com/backium/backend/storage/redis"
@@ -17,7 +18,11 @@ func main() {
 	log.Printf("%+v", config)
 	db, err := mongo.New(config.DBURI, config.DBName)
 	if err != nil {
-		panic(err)
+		log.Fatalf("mongodb: %v", err)
+	}
+	uploader, err := cloudinary.New(config.CloudinaryURI)
+	if err != nil {
+		log.Fatalf("cloudinary: %v", err)
 	}
 	userRepository := mongo.NewUserRepository(db)
 	employeeStorage := mongo.NewEmployeeStorage(db)
@@ -51,6 +56,7 @@ func main() {
 		PaymentStorage:       paymentStorage,
 		InventoryStorage:     inventoryStorage,
 		SessionRepository:    redis,
+		Uploader:             uploader,
 	}
 	s.Setup()
 	s.ListenAndServe(config.Port)
