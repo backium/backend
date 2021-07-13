@@ -20,6 +20,8 @@ type OrderingService struct {
 	TaxStorage           TaxStorage
 	DiscountStorage      DiscountStorage
 	PaymentStorage       PaymentStorage
+	LocationStorage      LocationStorage
+	Uploader             Uploader
 }
 
 func (s *OrderingService) ListOrder(ctx context.Context, q OrderQuery) ([]Order, int64, error) {

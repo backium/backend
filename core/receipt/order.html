@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+      }
+
+      body {
+        padding: 5px 10px;
+        font-size: 11px;
+        font-family: Monaco, Monaco, sans-serif;
+      }
+
+      footer {
+        text-align: center;
+      }
+
+      header {
+        border-bottom: 1px solid black;
+        padding-bottom: 5px;
+      }
+
+      .receipt-date {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 7px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid black;
+      }
+
+      .receipt-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 3px;
+        border-bottom: 1px solid black;
+      }
+
+      .receipt-items {
+        border-bottom: 1px solid black;
+        font-weight: bold;
+        padding: 15px 0px;
+      }
+
+      .subtotal {
+        border-bottom: 3px solid black;
+        padding-top: 3px;
+      }
+
+      .item {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 5px;
+        padding-bottom: 5px;
+      }
+
+      .totals {
+        font-weight: bold;
+        padding-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>{{.LocationName}}</h1>
+      <div>{{.CustomerName}}</div>
+    </header>
+
+    <div class="receipt-date">
+      <div>{{.Date}}</div>
+      <div>{{.Hour}}</div>
+    </div>
+
+    <div class="receipt-info">
+      <div>Check ID</div>
+      <div>{{.ReceiptID}}</div>
+    </div>
+
+    <div class="receipt-items">
+      {{ range.Items }}
+      <div class="item">
+        <div>x{{.Quantity}} {{.Name}}</div>
+        <div>S/ {{.Price}}</div>
+      </div>
+      {{ end }}
+    </div>
+
+    <div class="subtotal">
+      <div class="item">
+        <div>SUBTOTAL</div>
+        <div>S/ {{.Subtotal}}</div>
+      </div>
+      <div class="item">
+        <div>TIPS</div>
+        <div>S/ {{.Tips}}</div>
+      </div>
+    </div>
+
+    <div class="totals">
+      <div class="item">
+        <div>TOTAL</div>
+        <div>S/ {{.Total}}</div>
+      </div>
+    </div>
+
+    <footer>
+      <div>Have a nice day!</div>
+      <div>
+        Refunds and exchanges are only given within 28 days of the purchase
+        date. You must show a receipt to get a refund.
+      </div>
+    </footer>
+  </body>
+</html>

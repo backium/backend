@@ -14,6 +14,39 @@ const (
 	OrderListMaxSize     = 50
 )
 
+func (h *Handler) HandleGenerateReceipt(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleGenerateReceipt")
+
+	type request struct {
+		OrderID core.ID `json:"order_id" validate:"id"`
+	}
+
+	type response struct {
+		URL string `json:"url"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	url, err := h.OrderingService.GenerateOrderReceipt(ctx, req.OrderID)
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{URL: url}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (h *Handler) HandleSearchOrder(c echo.Context) error {
 	const op = errors.Op("http/Handler.SearchOrders")
 

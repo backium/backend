@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/cheggaaa/pb/v3 v3.0.8 // indirect
+	github.com/cloudinary/cloudinary-go v1.2.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator/v10 v10.6.1
 	github.com/go-redis/redis/v8 v8.10.0

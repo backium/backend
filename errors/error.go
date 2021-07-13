@@ -1,6 +1,9 @@
 package errors
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 type Op string
 type Kind int
@@ -53,4 +56,19 @@ func Is(err error, kind Kind) bool {
 		return e.Kind == kind
 	}
 	return Is(e.Err, kind)
+}
+
+// errorString is a trivial implementation of error.
+type errorString struct {
+	s string
+}
+
+func (e *errorString) Error() string {
+	return e.s
+}
+
+// Errorf is equivalent to fmt.Errorf, but allows clients to import only this
+// package for all error handling.
+func Errorf(format string, args ...interface{}) error {
+	return &errorString{fmt.Sprintf(format, args...)}
 }

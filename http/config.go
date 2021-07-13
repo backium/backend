@@ -8,6 +8,7 @@ type Config struct {
 	RedisURI      string `mapstructure:"BACKIUM_REDIS_URI"`
 	RedisPassword string `mapstructure:"BACKIUM_REDIS_PASSWORD"`
 	Port          string `mapstructure:"BACKIUM_APP_PORT"`
+	CloudinaryURI string `mapstructure:"BACKIUM_CLOUDINARY_URI"`
 }
 
 func LoadConfig(path string) (Config, error) {
