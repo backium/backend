@@ -137,42 +137,28 @@ func main() {
 
 	// Creating items
 	type itemdata struct {
-		name          string
-		cost          int64
-		price         int64
-		minimum_stock int64
-		category      core.ID
+		name     string
+		category core.ID
 	}
 
 	idata := []itemdata{
 		// Panes
-		{"Tartaleta de Fresa", 175, 350, 4, categories[0].ID},
-		{"Porcion de Budin", 150, 300, 4, categories[0].ID},
-		{"Mil Hojas de manjar", 150, 300, 4, categories[0].ID},
-		{"Tartaleta de Manzana", 175, 350, 4, categories[0].ID},
-		{"Orejas", 125, 250, 4, categories[0].ID},
-		{"Empanada de Pollo", 200, 400, 4, categories[0].ID},
-		{"Empanada de Carne", 200, 400, 4, categories[0].ID},
-		{"Crema Volteada", 150, 300, 4, categories[0].ID},
-		{"Leche Asada", 150, 300, 4, categories[0].ID},
-		{"Empanadas Mixtas", 150, 350, 4, categories[0].ID},
-		{"Tres leches vainilla", 200, 450, 4, categories[0].ID},
-		{"Tres leches chocolate", 200, 450, 4, categories[0].ID},
-		{"Torta Chocolate", 200, 450, 4, categories[0].ID},
-		{"Mil Hojas de Fresa", 200, 450, 4, categories[0].ID},
-		{"Pionono de Fresa", 200, 450, 4, categories[0].ID},
-		{"Torta Helada", 200, 450, 4, categories[0].ID},
-		{"Cheesecake Maracuya", 200, 450, 4, categories[0].ID},
-		{"Cheesecake Sauco", 200, 450, 4, categories[0].ID},
-		{"Cheesecake Fresa", 200, 450, 4, categories[0].ID},
-		{"Pye de Limon", 200, 400, 4, categories[0].ID},
-		{"Empanadas de Salchicha", 200, 400, 4, categories[0].ID},
-		{"Alfajor Pequeño", 7, 20, 4, categories[0].ID},
-		{"Alfajor", 30, 75, 4, categories[0].ID},
-		{"Relampagos", 100, 300, 4, categories[0].ID},
-		{"Poseidon", 100, 250, 4, categories[0].ID},
-		{"Pizza", 175, 350, 4, categories[0].ID},
-		{"Churros", 50, 200, 4, categories[0].ID},
+		{"Tartaleta de Fresa", categories[0].ID},
+		{"Porcion de Budin", categories[0].ID},
+		{"Mil Hojas de manjar", categories[0].ID},
+		{"Tartaleta de Manzana", categories[0].ID},
+		{"Orejas", categories[0].ID},
+		{"Empanada de Pollo", categories[0].ID},
+		{"Empanada de Carne", categories[0].ID},
+		{"Crema Volteada", categories[0].ID},
+		{"Leche Asada", categories[0].ID},
+		{"Empanadas Mixtas", categories[0].ID},
+		{"Tres leches vainilla", categories[0].ID},
+		{"Tres leches chocolate", categories[0].ID},
+		{"Torta Chocolate", categories[0].ID},
+		{"Mil Hojas de Fresa", categories[0].ID},
+		{"Pionono de Fresa", categories[0].ID},
+		{"Torta Helada", categories[0].ID},
 	}
 
 	log.Printf("Creating %v items ...", len(idata))
@@ -192,11 +178,10 @@ func main() {
 	log.Printf("Creating %v item variations ...", len(idata))
 
 	var variations []core.ItemVariation
-	for i, item := range items {
+	for _, item := range items {
 		iv := core.NewItemVariation(item.Name, item.ID, user.MerchantID)
-		iv.Price = core.NewMoney(idata[i].price, core.PEN)
-		iv.Cost = &core.Money{Value: idata[i].cost, Currency: core.PEN}
-		iv.MinimumRequiredStock = idata[i].minimum_stock
+		price := 500 + rand.Int63n(5000)
+		iv.Price = core.NewMoney(price, core.PEN)
 		iv.LocationIDs = locationIDs
 		variations = append(variations, iv)
 	}
@@ -241,7 +226,7 @@ func main() {
 
 	ddata := []discdata{
 		{"Employee On Shift", core.DiscountPercentage, 0, 25},
-		{"Friends & Family", core.DiscountFixed, 200, 0},
+		{"Friends & Family", core.DiscountFixed, 500, 0},
 		{"Polic & Fire", core.DiscountPercentage, 0, 20},
 	}
 
