@@ -62,6 +62,7 @@ func (h *Handler) HandleSearchPayment(c echo.Context) error {
 
 	type filter struct {
 		IDs         []core.ID  `json:"ids" validate:"omitempty,dive,id"`
+		OrderIDs    []core.ID  `json:"order_ids" validate:"omitempty,dive,id"`
 		LocationIDs []core.ID  `json:"location_ids" validate:"omitempty,dive,id"`
 		CreatedAt   dateFilter `json:"created_at"`
 	}
@@ -105,6 +106,7 @@ func (h *Handler) HandleSearchPayment(c echo.Context) error {
 		Limit:  limit,
 		Offset: req.Offset,
 		Filter: core.PaymentFilter{
+			OrderIDs:    req.Filter.OrderIDs,
 			LocationIDs: req.Filter.LocationIDs,
 			MerchantID:  merchant.ID,
 			CreatedAt: core.DateFilter{
