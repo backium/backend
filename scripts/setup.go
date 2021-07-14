@@ -54,6 +54,7 @@ func main() {
 	paymentStorage := mongo.NewPaymentStorage(db)
 	inventoryStorage := mongo.NewInventoryStorage(db)
 	cashDrawerStorage := mongo.NewCashDrawerStorage(db)
+	customerStorage := mongo.NewCustomerStorage(db)
 
 	userService := core.UserService{
 		UserStorage:       userRepository,
@@ -112,6 +113,32 @@ func main() {
 
 	// Creating merchant categories, items, variations, taxes and discounts
 	log.Println("Creating merchant catalog ...")
+
+	// Creating customers
+	type customerdata struct {
+		name  string
+		email string
+	}
+
+	custdata := []customerdata{
+		{"Alex Harper", "alex.harper@mail.com"},
+		{"Saul Quispe", "saul.quispe@mail.com"},
+		{"Ravi Dahr", "ravi.dahr@mail.com"},
+		{"Timoteo Zurita", "timoteo.zurita@mail.com"},
+		{"Diana Frias", "diana.frias@mail.com"},
+		{"Jenny Rueda", "jenny.ruedas@mail.com"},
+	}
+
+	log.Printf("Creating %v customers ...", len(custdata))
+
+	var customers []core.Customer
+	for _, cd := range custdata {
+		c := core.NewCustomer(cd.name, cd.email, user.MerchantID)
+		customers = append(customers, c)
+		if err := customerStorage.Put(ctx, c); err != nil {
+			log.Fatalf("Could not create categories: %v", err)
+		}
+	}
 
 	// Creating categories
 	type catdata struct {
@@ -275,7 +302,9 @@ func main() {
 
 	var orders []core.Order
 	for i := 0; i < numOrders; i++ {
+		idx := rand.Int63() % int64(len(customers))
 		schema := core.OrderSchema{
+			CustomerID: customers[idx].ID,
 			Currency:   core.PEN,
 			LocationID: locationIDs[0],
 			MerchantID: user.MerchantID,
