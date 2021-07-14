@@ -89,10 +89,16 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 
 		}
 
-		user.MerchantID = merchant.ID
 		location := NewLocation("My Business", merchant.ID)
 		location.BusinessName = "My Business"
 		if err := svc.LocationStorage.Put(ctx, location); err != nil {
+			return User{}, errors.E(op, errors.KindUnexpected, err)
+		}
+
+		employee := NewEmployee("Jhon", "Doe", merchant.ID)
+		employee.IsOwner = true
+		employee.Email = user.Email
+		if err := svc.EmployeeStorage.Put(ctx, employee); err != nil {
 			return User{}, errors.E(op, errors.KindUnexpected, err)
 		}
 
@@ -102,6 +108,9 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 		if err := svc.CashDrawerStorage.Put(ctx, cash); err != nil {
 			return User{}, errors.E(op, errors.KindUnexpected, err)
 		}
+
+		user.MerchantID = merchant.ID
+		user.EmployeeID = employee.ID
 	case UserKindEmployee:
 		employee, err := svc.EmployeeStorage.Get(ctx, user.EmployeeID)
 		if err != nil {
