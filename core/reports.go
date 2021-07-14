@@ -15,6 +15,7 @@ const (
 	GroupingItemCategory  GroupingType = "item_category"
 	GroupingItem          GroupingType = "item"
 	GroupingItemVariation GroupingType = "item_variation"
+	GroupingOrderState    GroupingType = "order_state"
 	GroupingDay           GroupingType = "day"
 	GroupingWeekday       GroupingType = "weekday"
 	GroupingHourOfDay     GroupingType = "hour_of_day"
@@ -29,6 +30,7 @@ func (g *GroupingType) Validate() bool {
 		GroupingItem,
 		GroupingItemCategory,
 		GroupingItemVariation,
+		GroupingOrderState,
 		GroupingDay,
 		GroupingWeekday,
 		GroupingHourOfDay,
@@ -45,6 +47,7 @@ func GroupingTypes() string {
 		string(GroupingItem),
 		string(GroupingItemCategory),
 		string(GroupingItemVariation),
+		string(GroupingOrderState),
 		string(GroupingDay),
 		string(GroupingWeekday),
 		string(GroupingHourOfDay),
@@ -256,6 +259,8 @@ func groupOrders(orders []WrappedOrder, groupType GroupingType, timezone string)
 		orderGroups = groupOrdersByItem(orders)
 	case GroupingItemVariation:
 		orderGroups = groupOrdersByItemVariation(orders)
+	case GroupingOrderState:
+		orderGroups = groupOrdersByState(orders)
 	case GroupingDay:
 		orderGroups = groupOrdersByDay(orders, timezone)
 	case GroupingWeekday:
@@ -318,6 +323,27 @@ func groupOrdersByItemVariation(orders []WrappedOrder) map[string][]WrappedOrder
 		uidGroups := map[string][]string{}
 		for _, variation := range order.Order.ItemVariations {
 			name := variation.Name
+			if order.Contains(variation.UID) {
+				uidGroups[name] = append(uidGroups[name], variation.UID)
+			}
+		}
+
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
+		}
+	}
+
+	return orderGroups
+}
+
+func groupOrdersByState(orders []WrappedOrder) map[string][]WrappedOrder {
+	orderGroups := make(map[string][]WrappedOrder)
+
+	for _, order := range orders {
+		uidGroups := map[string][]string{}
+
+		name := string(order.Order.State)
+		for _, variation := range order.Order.ItemVariations {
 			if order.Contains(variation.UID) {
 				uidGroups[name] = append(uidGroups[name], variation.UID)
 			}
