@@ -35,7 +35,8 @@ type LocationStorage interface {
 }
 
 type LocationService struct {
-	LocationStorage LocationStorage
+	LocationStorage   LocationStorage
+	CashDrawerStorage CashDrawerStorage
 }
 
 func (svc *LocationService) PutLocation(ctx context.Context, location Location) (Location, error) {

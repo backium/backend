@@ -53,12 +53,14 @@ func main() {
 	orderStorage := mongo.NewOrderStorage(db)
 	paymentStorage := mongo.NewPaymentStorage(db)
 	inventoryStorage := mongo.NewInventoryStorage(db)
+	cashDrawerStorage := mongo.NewCashDrawerStorage(db)
 
 	userService := core.UserService{
-		UserStorage:     userRepository,
-		MerchantStorage: merchantStorage,
-		LocationStorage: locationStorage,
-		EmployeeStorage: employeeStorage,
+		UserStorage:       userRepository,
+		MerchantStorage:   merchantStorage,
+		LocationStorage:   locationStorage,
+		EmployeeStorage:   employeeStorage,
+		CashDrawerStorage: cashDrawerStorage,
 	}
 
 	catalogService := core.CatalogService{

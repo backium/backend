@@ -24,6 +24,7 @@ type Server struct {
 	PaymentStorage       core.PaymentStorage
 	InventoryStorage     core.InventoryStorage
 	EmployeeStorage      core.EmployeeStorage
+	CashDrawerStorage    core.CashDrawerStorage
 	SessionRepository    core.SessionStorage
 	Uploader             core.Uploader
 }
@@ -48,14 +49,18 @@ func (s *Server) setupHandlers() {
 		ItemVariationStorage: s.ItemVariationStorage,
 		CategoryStorage:      s.CategoryStorage,
 	}
-	locationService := core.LocationService{LocationStorage: s.LocationStorage}
+	locationService := core.LocationService{
+		LocationStorage:   s.LocationStorage,
+		CashDrawerStorage: s.CashDrawerStorage,
+	}
 	customerService := core.CustomerService{CustomerStorage: s.CustomerStorage}
 	merchantService := core.MerchantService{MerchantStorage: s.MerchantStorage}
 	userService := core.UserService{
-		UserStorage:     s.UserRepository,
-		EmployeeStorage: s.EmployeeStorage,
-		MerchantStorage: s.MerchantStorage,
-		LocationStorage: s.LocationStorage,
+		UserStorage:       s.UserRepository,
+		EmployeeStorage:   s.EmployeeStorage,
+		MerchantStorage:   s.MerchantStorage,
+		LocationStorage:   s.LocationStorage,
+		CashDrawerStorage: s.CashDrawerStorage,
 	}
 	employeeService := core.EmployeeService{
 		EmployeeStorage: s.EmployeeStorage,

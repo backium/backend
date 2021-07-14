@@ -37,6 +37,7 @@ func main() {
 	orderStorage := mongo.NewOrderStorage(db)
 	paymentStorage := mongo.NewPaymentStorage(db)
 	inventoryStorage := mongo.NewInventoryStorage(db)
+	cashDrawerStorage := mongo.NewCashDrawerStorage(db)
 
 	redis := redis.NewSessionRepository(config.RedisURI, config.RedisPassword)
 	s := http.Server{
@@ -55,6 +56,7 @@ func main() {
 		OrderStorage:         orderStorage,
 		PaymentStorage:       paymentStorage,
 		InventoryStorage:     inventoryStorage,
+		CashDrawerStorage:    cashDrawerStorage,
 		SessionRepository:    redis,
 		Uploader:             uploader,
 	}

@@ -52,11 +52,11 @@ func (h *Handler) HandleRetrieveMerchant(c echo.Context) error {
 }
 
 type Merchant struct {
-	ID           core.ID `json:"id"`
-	FirstName    string  `json:"first_name"`
-	LastName     string  `json:"last_name"`
-	BusinessName string  `json:"business_name"`
-	Currency     string  `json:"currency"`
+	ID           core.ID       `json:"id"`
+	FirstName    string        `json:"first_name"`
+	LastName     string        `json:"last_name"`
+	BusinessName string        `json:"business_name"`
+	Currency     core.Currency `json:"currency"`
 }
 
 func NewMerchant(m core.Merchant) Merchant {

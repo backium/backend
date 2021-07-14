@@ -61,10 +61,11 @@ type UserStorage interface {
 }
 
 type UserService struct {
-	UserStorage     UserStorage
-	MerchantStorage MerchantStorage
-	LocationStorage LocationStorage
-	EmployeeStorage EmployeeStorage
+	UserStorage       UserStorage
+	MerchantStorage   MerchantStorage
+	LocationStorage   LocationStorage
+	EmployeeStorage   EmployeeStorage
+	CashDrawerStorage CashDrawerStorage
 }
 
 func (svc *UserService) Create(ctx context.Context, user User, password string) (User, error) {
@@ -82,7 +83,7 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 	case UserKindOwner:
 		merchant := NewMerchant()
 		merchant.BusinessName = "My Business"
-		merchant.Currency = "PEN"
+		merchant.Currency = PEN
 		if err := svc.MerchantStorage.Put(ctx, merchant); err != nil {
 			return User{}, errors.E(op, errors.KindUnexpected, err)
 
@@ -92,6 +93,13 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 		location := NewLocation("My Business", merchant.ID)
 		location.BusinessName = "My Business"
 		if err := svc.LocationStorage.Put(ctx, location); err != nil {
+			return User{}, errors.E(op, errors.KindUnexpected, err)
+		}
+
+		cash := NewCashDrawer(location.ID, merchant.ID)
+		cash.Amount = NewMoney(0, merchant.Currency)
+
+		if err := svc.CashDrawerStorage.Put(ctx, cash); err != nil {
 			return User{}, errors.E(op, errors.KindUnexpected, err)
 		}
 	case UserKindEmployee:

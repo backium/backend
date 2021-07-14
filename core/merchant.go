@@ -7,14 +7,14 @@ import (
 )
 
 type Merchant struct {
-	ID           ID     `bson:"_id"`
-	FirstName    string `bson:"first_name"`
-	LastName     string `bson:"last_name"`
-	BusinessName string `bson:"business_name"`
-	Currency     string `bson:"currency"`
-	CreatedAt    int64  `bson:"created_at"`
-	UpdatedAt    int64  `bson:"updated_at"`
-	Keys         []Key  `bson:"keys"`
+	ID           ID       `bson:"_id"`
+	FirstName    string   `bson:"first_name"`
+	LastName     string   `bson:"last_name"`
+	BusinessName string   `bson:"business_name"`
+	Currency     Currency `bson:"currency"`
+	CreatedAt    int64    `bson:"created_at"`
+	UpdatedAt    int64    `bson:"updated_at"`
+	Keys         []Key    `bson:"keys"`
 }
 
 func NewMerchant() Merchant {
