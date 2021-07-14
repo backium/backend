@@ -43,7 +43,7 @@ func main() {
 	s := http.Server{
 		Echo:                 echo.New(),
 		DB:                   db,
-		UserRepository:       userRepository,
+		UserStorage:          userRepository,
 		EmployeeStorage:      employeeStorage,
 		MerchantStorage:      merchantStorage,
 		LocationStorage:      locationStorage,

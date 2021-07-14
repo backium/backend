@@ -34,8 +34,8 @@ func (h *Handler) HandleChangeInventory(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	merchant := core.MerchantFromContext(ctx)
-	if merchant == nil {
+	user := core.UserFromContext(ctx)
+	if user == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
 
@@ -46,10 +46,11 @@ func (h *Handler) HandleChangeInventory(c echo.Context) error {
 
 	adjs := make([]core.InventoryAdjustment, len(req.Adjustments))
 	for i, adj := range req.Adjustments {
-		adjs[i] = core.NewInventoryAdjustment(adj.ItemVariationID, adj.LocationID, merchant.ID)
+		adjs[i] = core.NewInventoryAdjustment(adj.ItemVariationID, adj.LocationID, user.MerchantID)
 		adjs[i].Op = adj.Op
 		adjs[i].Quantity = *adj.Quantity
 		adjs[i].Note = adj.Note
+		adjs[i].EmployeeID = user.EmployeeID
 	}
 
 	counts, err := h.CatalogService.ApplyInventoryAdjustments(ctx, adjs)
@@ -120,11 +121,18 @@ func (h *Handler) HandleBatchRetrieveInventory(c echo.Context) error {
 func (h *Handler) HandleSearchInventoryAdjustment(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleSearchInventoryAdjustment")
 
+	type dateFilter struct {
+		Gte int64 `json:"gte" validate:"gte=0"`
+		Lte int64 `json:"lte" validate:"gte=0"`
+	}
+
 	type request struct {
-		ItemVariationIDs []core.ID `json:"item_variation_ids"`
-		LocationIDs      []core.ID `json:"location_ids"`
-		Limit            int64     `json:"limit" validate:"gte=0"`
-		Offset           int64     `json:"offset" validate:"gte=0"`
+		ItemVariationIDs []core.ID  `json:"item_variation_ids"`
+		EmployeeIDs      []core.ID  `json:"employee_ids"`
+		LocationIDs      []core.ID  `json:"location_ids"`
+		CreatedAt        dateFilter `json:"created_at"`
+		Limit            int64      `json:"limit" validate:"gte=0"`
+		Offset           int64      `json:"offset" validate:"gte=0"`
 	}
 
 	type response struct {
@@ -157,6 +165,8 @@ func (h *Handler) HandleSearchInventoryAdjustment(c echo.Context) error {
 		MerchantID:       merchant.ID,
 		LocationIDs:      req.LocationIDs,
 		ItemVariationIDs: req.ItemVariationIDs,
+		EmployeeIDs:      req.EmployeeIDs,
+		CreatedAt:        core.DateFilter{Gte: req.CreatedAt.Gte, Lte: req.CreatedAt.Lte},
 	})
 	if err != nil {
 		return errors.E(op, err)
@@ -182,6 +192,7 @@ type InventoryAdjustment struct {
 	Quantity        int64            `json:"quantity"`
 	Op              core.InventoryOp `json:"operation"`
 	Note            string           `json:"note"`
+	EmployeeID      core.ID          `json:"employee_id"`
 	LocationID      core.ID          `json:"location_id"`
 	CreatedAt       int64            `json:"created_at"`
 }
@@ -192,6 +203,7 @@ func NewInventoryAdjustment(adj core.InventoryAdjustment) InventoryAdjustment {
 		Quantity:        adj.Quantity,
 		Op:              adj.Op,
 		Note:            adj.Note,
+		EmployeeID:      adj.EmployeeID,
 		LocationID:      adj.LocationID,
 		CreatedAt:       adj.CreatedAt,
 	}

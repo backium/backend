@@ -27,6 +27,7 @@ type InventoryAdjustment struct {
 	Quantity        int64       `bson:"quantity"`
 	Op              InventoryOp `bson:"operation"`
 	Note            string      `bson:"note"`
+	EmployeeID      ID          `bson:"employee_id"`
 	LocationID      ID          `bson:"location_id"`
 	MerchantID      ID          `bson:"merchant_id"`
 	CreatedAt       int64       `bson:"created_at"`
@@ -93,6 +94,8 @@ type InventoryFilter struct {
 	Offset           int64
 	IDs              []ID
 	ItemVariationIDs []ID
+	EmployeeIDs      []ID
+	CreatedAt        DateFilter
 	LocationIDs      []ID
 	MerchantID       ID
 }
@@ -178,13 +181,7 @@ func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []I
 func (s *CatalogService) ListInventoryCounts(ctx context.Context, f InventoryFilter) ([]InventoryCount, int64, error) {
 	const op = errors.Op("core/CatalogService.ListInventoryCounts")
 
-	counts, total, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{
-		MerchantID:       f.MerchantID,
-		LocationIDs:      f.LocationIDs,
-		ItemVariationIDs: f.ItemVariationIDs,
-		Limit:            f.Limit,
-		Offset:           f.Offset,
-	})
+	counts, total, err := s.InventoryStorage.ListCount(ctx, f)
 	if err != nil {
 		return nil, 0, errors.E(op, err)
 	}

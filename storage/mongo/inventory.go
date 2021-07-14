@@ -178,8 +178,17 @@ func (s *inventoryStorage) ListAdjustment(ctx context.Context, f core.InventoryF
 	if len(f.ItemVariationIDs) != 0 {
 		filter["item_variation_id"] = bson.M{"$in": f.ItemVariationIDs}
 	}
+	if len(f.EmployeeIDs) != 0 {
+		filter["employee_id"] = bson.M{"$in": f.EmployeeIDs}
+	}
 	if len(f.IDs) != 0 {
 		filter["_id"] = bson.M{"$in": f.IDs}
+	}
+	if f.CreatedAt.Gte != 0 {
+		filter["created_at"] = bson.M{"$gte": f.CreatedAt.Gte}
+	}
+	if f.CreatedAt.Lte != 0 {
+		filter["created_at"] = bson.M{"$gte": f.CreatedAt.Gte, "$lte": f.CreatedAt.Lte}
 	}
 
 	count, err := s.adjCollection.CountDocuments(ctx, filter)
