@@ -21,6 +21,7 @@ type OrderingService struct {
 	DiscountStorage      DiscountStorage
 	PaymentStorage       PaymentStorage
 	LocationStorage      LocationStorage
+	CustomerStorage      CustomerStorage
 	Uploader             Uploader
 }
 

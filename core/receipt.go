@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -41,8 +42,13 @@ func (s *OrderingService) GenerateOrderReceipt(ctx context.Context, orderID ID) 
 	if err != nil {
 		return "", errors.E(op, err)
 	}
+	customer, err := s.CustomerStorage.Get(ctx, order.CustomerID)
+	if err != nil {
+		customer.Name = "Guest"
+		log.Printf("generate receipt: %v", err)
+	}
 
-	htmlFilename, err := compileReceiptHtml(location, order)
+	htmlFilename, err := compileReceiptHtml(location, order, customer)
 	if err != nil {
 		return "", errors.E(op, errors.KindUnexpected, errors.Errorf("compiling receipt: %w", err))
 	}
@@ -71,7 +77,7 @@ func htmlToPdf(filename string) (string, error) {
 	return pdfFilename, nil
 }
 
-func compileReceiptHtml(location Location, order Order) (string, error) {
+func compileReceiptHtml(location Location, order Order, customer Customer) (string, error) {
 	t, err := template.ParseFiles("core/receipt/order.html")
 	if err != nil {
 		return "", err
@@ -98,7 +104,7 @@ func compileReceiptHtml(location Location, order Order) (string, error) {
 	receiptID := string(order.ID[len(order.ID)-7:])
 	receipt := receiptContent{
 		LocationName: location.Name,
-		CustomerName: "Guest",
+		CustomerName: customer.Name,
 		ReceiptID:    receiptID,
 		Date:         now.Format("January 2, 2006"),
 		Hour:         now.Format("15:04:02 AM"),
