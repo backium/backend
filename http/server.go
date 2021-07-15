@@ -50,8 +50,10 @@ func (s *Server) setupHandlers() {
 		CategoryStorage:      s.CategoryStorage,
 	}
 	locationService := core.LocationService{
-		LocationStorage:   s.LocationStorage,
-		CashDrawerStorage: s.CashDrawerStorage,
+		LocationStorage:      s.LocationStorage,
+		CashDrawerStorage:    s.CashDrawerStorage,
+		ItemVariationStorage: s.ItemVariationStorage,
+		InventoryStorage:     s.InventoryStorage,
 	}
 	customerService := core.CustomerService{CustomerStorage: s.CustomerStorage}
 	merchantService := core.MerchantService{MerchantStorage: s.MerchantStorage}

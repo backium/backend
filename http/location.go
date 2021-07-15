@@ -38,7 +38,7 @@ func (h *Handler) HandleCreateLocation(c echo.Context) error {
 	location.BusinessName = req.BusinessName
 	location.Image = req.Image
 
-	location, err := h.LocationService.PutLocation(ctx, location)
+	location, err := h.LocationService.CreateLocation(ctx, location)
 	if err != nil {
 		return errors.E(op, err)
 	}

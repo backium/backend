@@ -35,12 +35,66 @@ type LocationStorage interface {
 }
 
 type LocationService struct {
-	LocationStorage   LocationStorage
-	CashDrawerStorage CashDrawerStorage
+	LocationStorage      LocationStorage
+	CashDrawerStorage    CashDrawerStorage
+	ItemVariationStorage ItemVariationStorage
+	InventoryStorage     InventoryStorage
+}
+
+func (svc *LocationService) CreateLocation(ctx context.Context, location Location) (Location, error) {
+	const op = errors.Op("core/LocationService.CreateLocation")
+
+	location, err := svc.PutLocation(ctx, location)
+	if err != nil {
+		return Location{}, errors.E(op, err)
+	}
+
+	if err := svc.initializeNewLocation(ctx, location); err != nil {
+		return Location{}, errors.E(op, err)
+	}
+
+	return location, nil
+}
+
+func (svc *LocationService) initializeNewLocation(ctx context.Context, location Location) error {
+	const op = errors.Op("core/LocationService.initializeNewLocation")
+
+	merchant := MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "unknown merchant")
+	}
+
+	variations, _, err := svc.ItemVariationStorage.List(ctx, ItemVariationQuery{
+		Filter: ItemVariationFilter{
+			MerchantID: location.MerchantID,
+		},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	counts := make([]InventoryCount, len(variations))
+	for _, variation := range variations {
+		c := NewInventoryCount(variation.ID, location.ID, location.MerchantID)
+		counts = append(counts, c)
+	}
+
+	if err := svc.InventoryStorage.PutBatchCount(ctx, counts); err != nil {
+		return errors.E(op, err)
+	}
+
+	cash := NewCashDrawer(location.ID, location.MerchantID)
+	cash.Amount = NewMoney(0, merchant.Currency)
+
+	if err := svc.CashDrawerStorage.Put(ctx, cash); err != nil {
+		return errors.E(op, err)
+	}
+
+	return nil
 }
 
 func (svc *LocationService) PutLocation(ctx context.Context, location Location) (Location, error) {
-	const op = errors.Op("controller.Location.Create")
+	const op = errors.Op("core/LocationService.PutLocation")
 
 	if err := svc.LocationStorage.Put(ctx, location); err != nil {
 		return Location{}, err
