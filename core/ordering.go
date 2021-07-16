@@ -487,7 +487,15 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 	order := NewOrder(sch.LocationID, sch.MerchantID)
 	order.Schema = sch
 	order.EmployeeID = user.EmployeeID
-	order.CustomerID = sch.CustomerID
+
+	if customer, err := s.CustomerStorage.Get(ctx, sch.CustomerID); err == nil {
+		order.CustomerID = customer.ID
+		order.Customer = OrderCustomer{
+			ID:    customer.ID,
+			Name:  customer.Name,
+			Email: customer.Email,
+		}
+	}
 
 	variations, _, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
 		Filter: ItemVariationFilter{IDs: sch.itemVariationIDs()},

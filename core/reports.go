@@ -12,6 +12,7 @@ import (
 
 const (
 	GroupingNone          GroupingType = "none"
+	GroupingCustomer      GroupingType = "customer"
 	GroupingItemCategory  GroupingType = "item_category"
 	GroupingItem          GroupingType = "item"
 	GroupingItemVariation GroupingType = "item_variation"
@@ -27,6 +28,7 @@ type GroupingType string
 func (g *GroupingType) Validate() bool {
 	switch *g {
 	case GroupingNone,
+		GroupingCustomer,
 		GroupingItem,
 		GroupingItemCategory,
 		GroupingItemVariation,
@@ -44,6 +46,7 @@ func (g *GroupingType) Validate() bool {
 func GroupingTypes() string {
 	return strings.Join([]string{
 		string(GroupingNone),
+		string(GroupingCustomer),
 		string(GroupingItem),
 		string(GroupingItemCategory),
 		string(GroupingItemVariation),
@@ -253,6 +256,8 @@ func groupOrders(orders []WrappedOrder, groupType GroupingType, timezone string)
 	switch groupType {
 	case GroupingNone:
 		orderGroups["all"] = orders
+	case GroupingCustomer:
+		orderGroups = groupOrdersByCustomer(orders)
 	case GroupingItemCategory:
 		orderGroups = groupOrdersByCategory(orders)
 	case GroupingItem:
@@ -323,6 +328,27 @@ func groupOrdersByItemVariation(orders []WrappedOrder) map[string][]WrappedOrder
 		uidGroups := map[string][]string{}
 		for _, variation := range order.Order.ItemVariations {
 			name := variation.Name
+			if order.Contains(variation.UID) {
+				uidGroups[name] = append(uidGroups[name], variation.UID)
+			}
+		}
+
+		for name, uids := range uidGroups {
+			orderGroups[name] = append(orderGroups[name], order.CloneWith(uids))
+		}
+	}
+
+	return orderGroups
+}
+
+func groupOrdersByCustomer(orders []WrappedOrder) map[string][]WrappedOrder {
+	orderGroups := make(map[string][]WrappedOrder)
+
+	for _, order := range orders {
+		uidGroups := map[string][]string{}
+
+		name := string(order.Order.Customer.Name)
+		for _, variation := range order.Order.ItemVariations {
 			if order.Contains(variation.UID) {
 				uidGroups[name] = append(uidGroups[name], variation.UID)
 			}

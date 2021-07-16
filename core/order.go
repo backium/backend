@@ -22,6 +22,7 @@ type Order struct {
 	ItemVariations      []OrderItemVariation `bson:"item_variations"`
 	Taxes               []OrderTax           `bson:"taxes"`
 	Discounts           []OrderDiscount      `bson:"discounts"`
+	Customer            OrderCustomer        `bson:"customer"`
 	TotalDiscountAmount Money                `bson:"total_discount_amount"`
 	TotalTaxAmount      Money                `bson:"total_tax_amount"`
 	TotalTipAmount      Money                `bson:"total_tip_amount"`
@@ -44,6 +45,12 @@ func NewOrder(locationID, merchantID ID) Order {
 		LocationID:     locationID,
 		MerchantID:     merchantID,
 	}
+}
+
+type OrderCustomer struct {
+	ID    ID     `bson:"id"`
+	Name  string `bson:"name"`
+	Email string `bson:"email"`
 }
 
 type OrderItemVariation struct {
