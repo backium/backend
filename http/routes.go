@@ -39,6 +39,7 @@ func (s *Server) setupRoutes() {
 
 	userGroup.POST("/cash-drawers/:id/adjust", h.HandleChangeCashDrawer)
 	userGroup.POST("/cash-drawers/search", h.HandleSearchCashDrawer)
+	userGroup.POST("/cash-drawers/adjustment/search", h.HandleSearchCashDrawerAdjustment)
 
 	userGroup.GET("/customers/:id", h.HandleRetrieveCustomer)
 	userGroup.GET("/customers", h.HandleListCustomers)

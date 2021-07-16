@@ -124,3 +124,39 @@ func (s *cashDrawerStorage) List(ctx context.Context, q core.CashDrawerQuery) ([
 
 	return drawers, count, nil
 }
+
+func (s *cashDrawerStorage) ListAdjustment(ctx context.Context, q core.CashDrawerQuery) ([]core.CashDrawerAdjustment, int64, error) {
+	const op = errors.Op("mongo/cashDrawerStorage.ListAdjustment")
+
+	opts := options.Find().
+		SetLimit(q.Limit).
+		SetSkip(q.Offset)
+
+	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
+	if q.Filter.MerchantID != "" {
+		filter["merchant_id"] = q.Filter.MerchantID
+	}
+	if len(q.Filter.IDs) != 0 {
+		filter["_id"] = bson.M{"$in": q.Filter.IDs}
+	}
+	if len(q.Filter.LocationIDs) != 0 {
+		filter["location_id"] = bson.M{"$in": q.Filter.LocationIDs}
+	}
+
+	count, err := s.adjCollection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	res, err := s.adjCollection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	var adjs []core.CashDrawerAdjustment
+	if err := res.All(ctx, &adjs); err != nil {
+		return nil, 0, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	return adjs, count, nil
+}

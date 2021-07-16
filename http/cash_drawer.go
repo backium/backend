@@ -108,6 +108,63 @@ func (h *Handler) HandleSearchCashDrawer(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+func (h *Handler) HandleSearchCashDrawerAdjustment(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleSearchCashDrawer")
+
+	type filter struct {
+		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
+		Name        string    `json:"name"`
+	}
+
+	type request struct {
+		Limit  int64  `json:"limit" validate:"gte=0"`
+		Offset int64  `json:"offset" validate:"gte=0"`
+		Filter filter `json:"filter"`
+	}
+
+	type response struct {
+		Adjustments []CashDrawerAdjustment `json:"adjustments"`
+		Total       int64                  `json:"total_count"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	var limit int64 = CashDrawerCountListDefaultSize
+	if req.Limit <= CashDrawerCountListMaxSize {
+		limit = req.Limit
+	} else {
+		limit = CashDrawerCountListMaxSize
+	}
+
+	adjs, totalCount, err := h.LocationService.ListCashDrawerAdjustment(ctx, core.CashDrawerQuery{
+		Limit:  limit,
+		Offset: req.Offset,
+		Filter: core.CashDrawerFilter{
+			LocationIDs: req.Filter.LocationIDs,
+		},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{
+		Adjustments: NewCashDrawerAdjustments(adjs),
+		Total:       totalCount,
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
 type CashDrawer struct {
 	ID           core.ID `json:"id"`
 	Amount       Money   `json:"amount"`
@@ -120,6 +177,7 @@ type CashDrawerAdjustment struct {
 	Amount       Money             `json:"amount"`
 	Op           core.CashDrawerOp `json:"operation"`
 	Note         string            `json:"note"`
+	EmployeeID   core.ID           `json:"employee_id"`
 	LocationID   core.ID           `json:"location_id"`
 	CreatedAt    int64             `json:"created_at"`
 }
@@ -130,6 +188,8 @@ func NewCashDrawerAdjustment(adj core.CashDrawerAdjustment) CashDrawerAdjustment
 		Amount:       NewMoney(adj.Amount),
 		Op:           adj.Op,
 		Note:         adj.Note,
+		EmployeeID:   adj.EmployeeID,
+		LocationID:   adj.LocationID,
 		CreatedAt:    adj.CreatedAt,
 	}
 }
@@ -147,6 +207,14 @@ func NewCashDrawers(drawers []core.CashDrawer) []CashDrawer {
 	resp := make([]CashDrawer, len(drawers))
 	for i, d := range drawers {
 		resp[i] = NewCashDrawer(d)
+	}
+	return resp
+}
+
+func NewCashDrawerAdjustments(adjs []core.CashDrawerAdjustment) []CashDrawerAdjustment {
+	resp := make([]CashDrawerAdjustment, len(adjs))
+	for i, d := range adjs {
+		resp[i] = NewCashDrawerAdjustment(d)
 	}
 	return resp
 }

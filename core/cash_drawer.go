@@ -19,6 +19,7 @@ type CashDrawerAdjustment struct {
 	Amount       Money        `bson:"amount"`
 	Op           CashDrawerOp `bson:"operation"`
 	Note         string       `bson:"note"`
+	EmployeeID   ID           `bson:"employee_id"`
 	LocationID   ID           `bson:"location_id"`
 	MerchantID   ID           `bson:"merchant_id"`
 	CreatedAt    int64        `bson:"created_at"`
@@ -65,11 +66,16 @@ type CashDrawerStorage interface {
 	PutAdj(context.Context, CashDrawerAdjustment) error
 	Get(context.Context, ID) (CashDrawer, error)
 	List(context.Context, CashDrawerQuery) ([]CashDrawer, int64, error)
-	//ListAdjustment(context.Context, CashDrawerFilter) ([]CashDrawerAdjustment, int64, error)
+	ListAdjustment(context.Context, CashDrawerQuery) ([]CashDrawerAdjustment, int64, error)
 }
 
 func (s *LocationService) AdjustCashDrawer(ctx context.Context, adj CashDrawerAdjustment) (CashDrawer, error) {
 	const op = errors.Op("core/LocationService.ApplyCashDrawerAdjustment")
+
+	user := UserFromContext(ctx)
+	if user == nil {
+		return CashDrawer{}, errors.E(op, errors.KindUnexpected, "Unknown user")
+	}
 
 	cash, err := s.CashDrawerStorage.Get(ctx, adj.CashDrawerID)
 	if err != nil {
@@ -86,6 +92,7 @@ func (s *LocationService) AdjustCashDrawer(ctx context.Context, adj CashDrawerAd
 	}
 
 	adj.LocationID = cash.LocationID
+	adj.EmployeeID = user.EmployeeID
 	if err := s.CashDrawerStorage.PutAdj(ctx, adj); err != nil {
 		return CashDrawer{}, errors.E(op, err)
 	}
@@ -111,4 +118,15 @@ func (s *LocationService) ListCashDrawer(ctx context.Context, q CashDrawerQuery)
 	}
 
 	return cash, count, nil
+}
+
+func (s *LocationService) ListCashDrawerAdjustment(ctx context.Context, q CashDrawerQuery) ([]CashDrawerAdjustment, int64, error) {
+	const op = errors.Op("core/LocationService.ListCashDrawerAdjustment")
+
+	adjs, count, err := s.CashDrawerStorage.ListAdjustment(ctx, q)
+	if err != nil {
+		return nil, 0, errors.E(op, err)
+	}
+
+	return adjs, count, nil
 }
