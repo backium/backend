@@ -27,6 +27,7 @@ type Order struct {
 	TotalTipAmount      Money                `bson:"total_tip_amount"`
 	TotalAmount         Money                `bson:"total_amount"`
 	State               OrderState           `bson:"state"`
+	EmployeeID          ID                   `bson:"employee_id"`
 	CustomerID          ID                   `bson:"customer_id"`
 	LocationID          ID                   `bson:"location_id"`
 	MerchantID          ID                   `bson:"merchant_id"`

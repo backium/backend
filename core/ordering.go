@@ -475,12 +475,18 @@ func (b *OrderBuilder) applyOrderLevelTaxes(order *Order) {
 func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, error) {
 	const op = errors.Op("core/OrderingService.build")
 
+	user := UserFromContext(ctx)
+	if user == nil {
+		return nil, errors.E(op, errors.KindUnexpected, "Unknow user")
+	}
+
 	if sch.LocationID == "" || sch.MerchantID == "" {
 		return nil, errors.E(op, errors.KindValidation, "Invalid order schema")
 	}
 
 	order := NewOrder(sch.LocationID, sch.MerchantID)
 	order.Schema = sch
+	order.EmployeeID = user.EmployeeID
 	order.CustomerID = sch.CustomerID
 
 	variations, _, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{

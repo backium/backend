@@ -311,6 +311,7 @@ type Order struct {
 	Taxes               []OrderTax      `json:"taxes"`
 	Discounts           []OrderDiscount `json:"discounts"`
 	State               core.OrderState `json:"state"`
+	EmployeeID          core.ID         `json:"employee_id"`
 	CustomerID          core.ID         `json:"customer_id,omitempty"`
 	LocationID          core.ID         `json:"location_id"`
 	MerchantID          core.ID         `json:"merchant_id"`
@@ -349,6 +350,7 @@ func NewOrder(order core.Order) Order {
 			Value:    ptr.Int64(order.TotalAmount.Value),
 			Currency: order.TotalAmount.Currency,
 		},
+		EmployeeID: order.EmployeeID,
 		CustomerID: order.CustomerID,
 		LocationID: order.LocationID,
 		MerchantID: order.MerchantID,
