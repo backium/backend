@@ -106,7 +106,12 @@ func main() {
 		log.Fatalf("Could not create new user: %v", err)
 	}
 
+	merchant, _ := merchantStorage.Get(ctx, user.MerchantID)
+
 	log.Printf("New user: email=%v, password=%v, merchant_id=%v", user.Email, password, user.MerchantID)
+
+	ctx = core.ContextWithUser(ctx, &user)
+	ctx = core.ContextWithMerchant(ctx, &merchant)
 
 	// Fetch user location
 	lq := core.LocationQuery{Filter: core.LocationFilter{MerchantID: user.MerchantID}}
