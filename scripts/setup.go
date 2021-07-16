@@ -9,6 +9,7 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/storage/mongo"
+	"github.com/cheggaaa/pb/v3"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -78,6 +79,10 @@ func main() {
 		TaxStorage:           taxStorage,
 		DiscountStorage:      discountStorage,
 		PaymentStorage:       paymentStorage,
+	}
+
+	paymentService := core.PaymentService{
+		PaymentStorage: paymentStorage,
 	}
 
 	log.Println("Droping old documents ...")
@@ -295,10 +300,12 @@ func main() {
 		maxTaxes          = 1
 		maxDiscounts      = 2
 		maxOrderTimeRange = 60 * 24 * 60 * 60
-		numOrders         = 500
+		numOrders         = 1000
 	)
 
 	log.Printf("Creating %v orders ...", numOrders)
+
+	bar := pb.StartNew(numOrders)
 
 	var orders []core.Order
 	for i := 0; i < numOrders; i++ {
@@ -358,7 +365,24 @@ func main() {
 		if _, err := coll.UpdateByID(ctx, order.ID, q); err != nil {
 			log.Fatalf("Could not update order %v: %v", i, err)
 		}
+		bar.Increment()
 
 		orders = append(orders, order)
 	}
+	bar.Finish()
+
+	log.Printf("Paying orders ...")
+
+	for i := 0; i < len(orders)/2; i++ {
+		p := core.NewPayment(core.PaymentCash, orders[i].ID, user.MerchantID, locationIDs[0])
+		p.Amount = core.NewMoney(orders[i].TotalAmount.Value, core.PEN)
+		p.TipAmount = core.NewMoney(0, core.PEN)
+		if _, err := paymentService.CreatePayment(ctx, p); err != nil {
+			log.Fatalf("Could not create payment %v: %v", i, err)
+		}
+		if _, err := orderingService.PayOrder(ctx, orders[i].ID, []core.ID{p.ID}); err != nil {
+			log.Fatalf("Could not pay order %v: %v", i, err)
+		}
+	}
+
 }
