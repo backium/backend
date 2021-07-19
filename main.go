@@ -15,7 +15,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Printf("%+v", config)
+	log.Printf("config: %+v", config)
 	db, err := mongo.New(config.DBURI, config.DBName)
 	if err != nil {
 		log.Fatalf("mongodb: %v", err)
