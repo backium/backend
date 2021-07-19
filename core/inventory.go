@@ -180,6 +180,46 @@ func (s *CatalogService) ApplyInventoryAdjustments(ctx context.Context, adjs []I
 	return counts, nil
 }
 
+func applyInventoryAdjustments(ctx context.Context, storage InventoryStorage, adjs []InventoryAdjustment) error {
+	const op = errors.Op("core/CatalogService.PutInventoryAdjusments")
+
+	variations := make([]ID, len(adjs))
+	for i, adj := range adjs {
+		variations[i] = adj.ItemVariationID
+	}
+	counts, _, err := storage.ListCount(ctx, InventoryFilter{
+		ItemVariationIDs: variations,
+	})
+	if err != nil {
+		return err
+	}
+	if len(counts) == 0 {
+		return errors.E(op, errors.KindValidation, "Unknown item variations in adjustment request")
+	}
+
+	var countsToUpdate []InventoryCount
+	var countIDs []ID
+	for _, count := range counts {
+		changed, err := count.applyAdjustments(adjs)
+		if err != nil {
+			return errors.E(op, err)
+		}
+		if changed {
+			countsToUpdate = append(countsToUpdate, count)
+			countIDs = append(countIDs, count.ID)
+		}
+	}
+
+	if err := storage.PutBatchCount(ctx, countsToUpdate); err != nil {
+		return errors.E(op, err)
+	}
+	if err := storage.PutBatchAdj(ctx, adjs); err != nil {
+		return errors.E(op, err)
+	}
+
+	return nil
+}
+
 func (s *CatalogService) ListInventoryCounts(ctx context.Context, f InventoryFilter) ([]InventoryCount, int64, error) {
 	const op = errors.Op("core/CatalogService.ListInventoryCounts")
 
