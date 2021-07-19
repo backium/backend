@@ -22,6 +22,7 @@ type OrderingService struct {
 	PaymentStorage       PaymentStorage
 	LocationStorage      LocationStorage
 	CustomerStorage      CustomerStorage
+	CashDrawerStorage    CashDrawerStorage
 	Uploader             Uploader
 }
 
@@ -72,6 +73,22 @@ func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (
 	newOrder, err := s.OrderStorage.Get(ctx, order.ID)
 	if err != nil {
 		return Order{}, errors.E(op, err)
+	}
+
+	// Update cash drawer amount of the location
+	cash, _, err := s.CashDrawerStorage.List(ctx, CashDrawerQuery{
+		Filter: CashDrawerFilter{
+			LocationIDs: []ID{newOrder.LocationID},
+		},
+	})
+
+	if len(cash) >= 1 {
+		adj := NewCashDrawerAdjustment(cash[0].ID, newOrder.MerchantID)
+		adj.Op = CashDrawerOpAdd
+		adj.Amount = order.TotalAmount
+		if err := adjustCashDrawer(ctx, s.CashDrawerStorage, adj); err != nil {
+			return Order{}, errors.E(op, errors.KindUnexpected, err)
+		}
 	}
 
 	return newOrder, nil

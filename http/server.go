@@ -86,6 +86,7 @@ func (s *Server) setupHandlers() {
 		DiscountStorage:      s.DiscountStorage,
 		LocationStorage:      s.LocationStorage,
 		CustomerStorage:      s.CustomerStorage,
+		CashDrawerStorage:    s.CashDrawerStorage,
 		Uploader:             s.Uploader,
 	}
 	paymentService := core.PaymentService{

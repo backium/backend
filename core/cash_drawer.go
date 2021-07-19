@@ -69,17 +69,17 @@ type CashDrawerStorage interface {
 	ListAdjustment(context.Context, CashDrawerQuery) ([]CashDrawerAdjustment, int64, error)
 }
 
-func (s *LocationService) AdjustCashDrawer(ctx context.Context, adj CashDrawerAdjustment) (CashDrawer, error) {
-	const op = errors.Op("core/LocationService.ApplyCashDrawerAdjustment")
+func adjustCashDrawer(ctx context.Context, storage CashDrawerStorage, adj CashDrawerAdjustment) error {
+	const op = errors.Op("core/adjustCashDrawer")
 
 	user := UserFromContext(ctx)
 	if user == nil {
-		return CashDrawer{}, errors.E(op, errors.KindUnexpected, "Unknown user")
+		return errors.E(op, errors.KindUnexpected, "Unknown user")
 	}
 
-	cash, err := s.CashDrawerStorage.Get(ctx, adj.CashDrawerID)
+	cash, err := storage.Get(ctx, adj.CashDrawerID)
 	if err != nil {
-		return CashDrawer{}, errors.E(op, err)
+		return errors.E(op, err)
 	}
 
 	switch adj.Op {
@@ -88,20 +88,35 @@ func (s *LocationService) AdjustCashDrawer(ctx context.Context, adj CashDrawerAd
 	case CashDrawerOpRemove:
 		cash.Amount.Value -= adj.Amount.Value
 	default:
-		return CashDrawer{}, errors.E(op, errors.KindValidation, "Invalid cashdrawer operation")
+		return errors.E(op, errors.KindValidation, "Invalid cashdrawer operation")
 	}
 
 	adj.LocationID = cash.LocationID
 	adj.EmployeeID = user.EmployeeID
-	if err := s.CashDrawerStorage.PutAdj(ctx, adj); err != nil {
+	if err := storage.PutAdj(ctx, adj); err != nil {
+		return errors.E(op, err)
+	}
+
+	if err := storage.Put(ctx, cash); err != nil {
+		return errors.E(op, err)
+	}
+
+	return nil
+}
+
+func (s *LocationService) AdjustCashDrawer(ctx context.Context, adj CashDrawerAdjustment) (CashDrawer, error) {
+	const op = errors.Op("core/LocationService.ApplyCashDrawerAdjustment")
+
+	user := UserFromContext(ctx)
+	if user == nil {
+		return CashDrawer{}, errors.E(op, errors.KindUnexpected, "Unknown user")
+	}
+
+	if err := adjustCashDrawer(ctx, s.CashDrawerStorage, adj); err != nil {
 		return CashDrawer{}, errors.E(op, err)
 	}
 
-	if err := s.CashDrawerStorage.Put(ctx, cash); err != nil {
-		return CashDrawer{}, errors.E(op, err)
-	}
-
-	cash, err = s.CashDrawerStorage.Get(ctx, cash.ID)
+	cash, err := s.CashDrawerStorage.Get(ctx, adj.CashDrawerID)
 	if err != nil {
 		return CashDrawer{}, errors.E(op, err)
 	}
