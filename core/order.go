@@ -27,6 +27,7 @@ type Order struct {
 	TotalTaxAmount      Money                `bson:"total_tax_amount"`
 	TotalTipAmount      Money                `bson:"total_tip_amount"`
 	TotalAmount         Money                `bson:"total_amount"`
+	TotalCostAmount     Money                `bson:"total_cost_amount"`
 	State               OrderState           `bson:"state"`
 	EmployeeID          ID                   `bson:"employee_id"`
 	CustomerID          ID                   `bson:"customer_id"`
@@ -62,6 +63,7 @@ type OrderItemVariation struct {
 	TotalDiscountAmount Money                      `bson:"total_discount_amount"`
 	TotalTaxAmount      Money                      `bson:"total_tax_amount"`
 	TotalAmount         Money                      `bson:"total_amount"`
+	TotalCostAmount     Money                      `bson:"total_cost_amount"`
 	BasePrice           Money                      `bson:"base_price"`
 	AppliedTaxes        []OrderItemAppliedTax      `bson:"applied_taxes"`
 	AppliedDiscounts    []OrderItemAppliedDiscount `bson:"applied_discounts"`

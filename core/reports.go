@@ -74,6 +74,7 @@ type ReportFilter struct {
 
 type Aggregations struct {
 	TotalSalesAmount Money
+	TotalCostAmount  Money
 	GrossSalesAmount Money
 	NetSalesAmount   Money
 	TaxAmount        Money
@@ -212,6 +213,7 @@ func (svc *ReportService) generateCustom(orders []WrappedOrder, groupBy []Groupi
 func calculateAggregations(orders []WrappedOrder, currency Currency) Aggregations {
 	var (
 		totalSales     int64
+		totalCost      int64
 		grossSales     int64
 		netSales       int64
 		taxAmount      int64
@@ -226,6 +228,7 @@ func calculateAggregations(orders []WrappedOrder, currency Currency) Aggregation
 		for _, variation := range order.Order.ItemVariations {
 			if order.Contains(variation.UID) {
 				totalSales += variation.TotalAmount.Value
+				totalCost += variation.TotalCostAmount.Value
 				grossSales += variation.GrossSales.Value
 				netSales += variation.GrossSales.Value - variation.TotalDiscountAmount.Value
 				taxAmount += variation.TotalTaxAmount.Value
@@ -239,6 +242,7 @@ func calculateAggregations(orders []WrappedOrder, currency Currency) Aggregation
 
 	return Aggregations{
 		TotalSalesAmount: NewMoney(totalSales, currency),
+		TotalCostAmount:  NewMoney(totalCost, currency),
 		GrossSalesAmount: NewMoney(grossSales, currency),
 		NetSalesAmount:   NewMoney(netSales, currency),
 		TaxAmount:        NewMoney(taxAmount, currency),

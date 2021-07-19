@@ -272,6 +272,7 @@ func NewOrderBuilder(sch OrderSchema, lookup *OrderLookup) *OrderBuilder {
 // applyItemsAndInit will populate order items from the schema and calculate initial totals
 func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 	var itemsTotalAmount int64
+	var itemsTotalCostAmount int64
 	currency := b.schema.Currency
 	for _, schemaItemVariation := range b.schema.ItemVariations {
 		uid := schemaItemVariation.UID
@@ -291,13 +292,21 @@ func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 			TotalDiscountAmount: NewMoney(0, currency),
 			TotalTaxAmount:      NewMoney(0, currency),
 			TotalAmount:         NewMoney(variation.Price.Value*schemaItemVariation.Quantity, currency),
+			TotalCostAmount:     NewMoney(0, currency),
 		}
+
+		if variation.Cost != nil {
+			orderItem.TotalCostAmount.Value = variation.Cost.Value * schemaItemVariation.Quantity
+		}
+
 		order.ItemVariations = append(order.ItemVariations, orderItem)
 		itemsTotalAmount += orderItem.TotalAmount.Value
+		itemsTotalCostAmount += orderItem.TotalCostAmount.Value
 	}
 	order.TotalDiscountAmount = NewMoney(0, currency)
 	order.TotalTaxAmount = NewMoney(0, currency)
 	order.TotalAmount = NewMoney(itemsTotalAmount, currency)
+	order.TotalCostAmount = NewMoney(itemsTotalCostAmount, currency)
 }
 
 func (b *OrderBuilder) applyOrderLevelFixedDiscounts(order *Order) {

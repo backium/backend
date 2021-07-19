@@ -69,6 +69,7 @@ func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 
 type Aggregations struct {
 	TotalSalesAmount Money `json:"total_sales_amount"`
+	TotalCostAmount  Money `json:"total_cost_amount"`
 	GrossSalesAmount Money `json:"gross_sales_amount"`
 	NetSalesAmount   Money `json:"net_sales_amount"`
 	TaxAmount        Money `json:"tax_amount"`
@@ -98,6 +99,7 @@ func NewCustomReport(report core.CustomReport) CustomReport {
 		SubReport:  subreport,
 		Aggregations: Aggregations{
 			TotalSalesAmount: NewMoney(report.Aggregations.TotalSalesAmount),
+			TotalCostAmount:  NewMoney(report.Aggregations.TotalCostAmount),
 			GrossSalesAmount: NewMoney(report.Aggregations.GrossSalesAmount),
 			NetSalesAmount:   NewMoney(report.Aggregations.NetSalesAmount),
 			TaxAmount:        NewMoney(report.Aggregations.TaxAmount),
