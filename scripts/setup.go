@@ -80,6 +80,7 @@ func main() {
 		DiscountStorage:      discountStorage,
 		CustomerStorage:      customerStorage,
 		CashDrawerStorage:    cashDrawerStorage,
+		InventoryStorage:     inventoryStorage,
 		PaymentStorage:       paymentStorage,
 	}
 
