@@ -79,6 +79,7 @@ func main() {
 		TaxStorage:           taxStorage,
 		DiscountStorage:      discountStorage,
 		CustomerStorage:      customerStorage,
+		CashDrawerStorage:    cashDrawerStorage,
 		PaymentStorage:       paymentStorage,
 	}
 
