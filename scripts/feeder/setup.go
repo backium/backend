@@ -9,7 +9,6 @@ import (
 
 	"github.com/backium/backend/core"
 	"github.com/backium/backend/storage/mongo"
-	"github.com/cheggaaa/pb/v3"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -35,9 +34,14 @@ func main() {
 	log.Println("Setting up local development environment ...")
 
 	log.Println("Connecting to mongodb ...")
-	db, err := mongo.New(mongoCfg.URI, mongoCfg.Name)
-	if err != nil {
-		log.Fatalf("Could not connect to mongoDB: %v", err)
+
+	var db mongo.DB
+	for {
+		d, err := mongo.New(mongoCfg.URI, mongoCfg.Name)
+		if err == nil {
+			db = d
+			break
+		}
 	}
 
 	// Setting up services
@@ -104,7 +108,7 @@ func main() {
 	user := core.NewUserOwner()
 	user.Email = email
 
-	user, err = userService.Create(ctx, user, password)
+	user, err := userService.Create(ctx, user, password)
 	if err != nil {
 		log.Fatalf("Could not create new user: %v", err)
 	}
@@ -313,8 +317,6 @@ func main() {
 
 	log.Printf("Creating %v orders ...", numOrders)
 
-	bar := pb.StartNew(numOrders)
-
 	var orders []core.Order
 	for i := 0; i < numOrders; i++ {
 		idx := rand.Int63() % int64(len(customers))
@@ -373,12 +375,9 @@ func main() {
 		if _, err := coll.UpdateByID(ctx, order.ID, q); err != nil {
 			log.Fatalf("Could not update order %v: %v", i, err)
 		}
-		bar.Increment()
 
 		orders = append(orders, order)
 	}
-	bar.Finish()
-
 	log.Printf("Paying orders ...")
 
 	for i := 0; i < len(orders)/2; i++ {
