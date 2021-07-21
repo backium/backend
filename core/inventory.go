@@ -48,6 +48,7 @@ type InventoryCount struct {
 	ItemVariationID ID             `bson:"item_variation_id"`
 	Quantity        int64          `bson:"quantity"`
 	State           InventoryState `bson:"state"`
+	Status          Status         `bson:"status"`
 	CalculatedAt    int64          `bson:"calculated_at"`
 	LocationID      ID             `bson:"location_id"`
 	MerchantID      ID             `bson:"merchant_id"`

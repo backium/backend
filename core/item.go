@@ -124,6 +124,35 @@ func (s *CatalogService) DeleteItem(ctx context.Context, id ID) (Item, error) {
 		return Item{}, errors.E(op, err)
 	}
 
+	variations, _, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
+		Filter: ItemVariationFilter{
+			ItemIDs: []ID{item.ID},
+		},
+	})
+
+	// Delete item inventory and variations
+	var ids []ID
+	for i := range variations {
+		variations[i].Status = StatusShadowDeleted
+		ids = append(ids, variations[i].ID)
+	}
+
+	counts, _, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{ItemVariationIDs: ids})
+	if err != nil {
+		return Item{}, errors.E(op, err)
+	}
+
+	for i := range counts {
+		counts[i].Status = StatusShadowDeleted
+	}
+
+	if err := s.ItemVariationStorage.PutBatch(ctx, variations); err != nil {
+		return Item{}, errors.E(op, err)
+	}
+	if err := s.InventoryStorage.PutBatchCount(ctx, counts); err != nil {
+		return Item{}, errors.E(op, err)
+	}
+
 	return item, nil
 }
 
