@@ -94,6 +94,7 @@ func (h *Handler) HandleSearchCashDrawer(c echo.Context) error {
 		Offset: req.Offset,
 		Filter: core.CashDrawerFilter{
 			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
 		},
 	})
 	if err != nil {
@@ -151,6 +152,7 @@ func (h *Handler) HandleSearchCashDrawerAdjustment(c echo.Context) error {
 		Offset: req.Offset,
 		Filter: core.CashDrawerFilter{
 			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  merchant.ID,
 		},
 	})
 	if err != nil {
