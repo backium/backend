@@ -229,6 +229,7 @@ func (h *Handler) HandleSearchItem(c echo.Context) error {
 	type filter struct {
 		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
 		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
+		CategoryIDs []core.ID `json:"category_ids" validate:"omitempty,dive,id"`
 		Name        string    `json:"name"`
 	}
 
@@ -265,6 +266,7 @@ func (h *Handler) HandleSearchItem(c echo.Context) error {
 		Offset: req.Offset,
 		Filter: core.ItemFilter{
 			Name:        req.Filter.Name,
+			CategoryIDs: req.Filter.CategoryIDs,
 			LocationIDs: req.Filter.LocationIDs,
 			MerchantID:  merchant.ID,
 		},
