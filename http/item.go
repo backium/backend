@@ -186,15 +186,8 @@ func (h *Handler) HandleListItems(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = ItemListDefaultSize
-	if req.Limit <= ItemListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = ItemListMaxSize
-	}
-
 	query := core.ItemQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.ItemFilter{MerchantID: merchant.ID},
 	}
@@ -267,17 +260,9 @@ func (h *Handler) HandleSearchItem(c echo.Context) error {
 		return err
 	}
 
-	var limit, offset int64 = ItemListDefaultSize, req.Offset
-	if req.Limit <= ItemListMaxSize {
-		limit = req.Limit
-	}
-	if req.Limit > ItemListMaxSize {
-		limit = ItemListMaxSize
-	}
-
 	query := core.ItemQuery{
-		Limit:  limit,
-		Offset: offset,
+		Limit:  req.Limit,
+		Offset: req.Offset,
 		Filter: core.ItemFilter{
 			Name:        req.Filter.Name,
 			LocationIDs: req.Filter.LocationIDs,

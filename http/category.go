@@ -156,15 +156,8 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = CategoryListDefaultSize
-	if req.Limit <= CategoryListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = CategoryListMaxSize
-	}
-
 	categories, count, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.CategoryFilter{
 			Name:        req.Filter.Name,
@@ -215,15 +208,8 @@ func (h *Handler) HandleListCategories(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = CategoryListDefaultSize
-	if req.Limit <= CategoryListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = CategoryListMaxSize
-	}
-
 	categories, count, err := h.CatalogService.ListCategory(ctx, core.CategoryQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.CategoryFilter{MerchantID: merchant.ID},
 	})
