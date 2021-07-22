@@ -48,6 +48,7 @@ func (s *Server) setupHandlers() {
 		ItemStorage:          s.ItemStorage,
 		ItemVariationStorage: s.ItemVariationStorage,
 		CategoryStorage:      s.CategoryStorage,
+		EmployeeStorage:      s.EmployeeStorage,
 	}
 	locationService := core.LocationService{
 		LocationStorage:      s.LocationStorage,

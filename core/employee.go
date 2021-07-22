@@ -30,6 +30,7 @@ type Employee struct {
 	RateHistory   []RateEntry   `bson:"rate_history"`
 	Salary        *Money        `bson:"salary"`
 	SalaryHistory []SalaryEntry `bson:"salary_history"`
+	Permissions   []Permission  `bson:"permissions"`
 	LocationIDs   []ID          `bson:"location_ids"`
 	MerchantID    ID            `bson:"merchant_id"`
 	CreatedAt     int64         `bson:"created_at"`

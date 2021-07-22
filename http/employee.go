@@ -23,14 +23,15 @@ func (h *Handler) HandleCreateEmployee(c echo.Context) error {
 	}
 
 	type request struct {
-		FirstName   string        `json:"first_name" validate:"required"`
-		LastName    string        `json:"last_name" validate:"required"`
-		Email       string        `json:"email" validate:"omitempty,email"`
-		Phone       string        `json:"phone" validate:"omitempty,e164"`
-		Image       string        `json:"image"`
-		Rate        *MoneyRequest `json:"rate" validate:"omitempty"`
-		Salary      *salary       `json:"salary" validate:"omitempty"`
-		LocationIDs []core.ID     `json:"location_ids" validate:"omitempty,dive,required"`
+		FirstName   string            `json:"first_name" validate:"required"`
+		LastName    string            `json:"last_name" validate:"required"`
+		Email       string            `json:"email" validate:"omitempty,email"`
+		Phone       string            `json:"phone" validate:"omitempty,e164"`
+		Image       string            `json:"image"`
+		Rate        *MoneyRequest     `json:"rate" validate:"omitempty"`
+		Salary      *salary           `json:"salary" validate:"omitempty"`
+		Permissions []core.Permission `json:"permissions" validate:"omitempty"`
+		LocationIDs []core.ID         `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -49,6 +50,7 @@ func (h *Handler) HandleCreateEmployee(c echo.Context) error {
 	employee.Email = req.Email
 	employee.Phone = req.Phone
 	employee.Image = req.Image
+	employee.Permissions = req.Permissions
 	if req.Rate != nil {
 		rate := core.NewMoney(ptr.GetInt64(req.Rate.Value), req.Rate.Currency)
 		employee.ChangeRate(rate)
@@ -78,15 +80,16 @@ func (h *Handler) HandleUpdateEmployee(c echo.Context) error {
 	}
 
 	type request struct {
-		ID          core.ID       `param:"id" validate:"required"`
-		FirstName   *string       `json:"first_name" validate:"omitempty,min=1"`
-		LastName    *string       `json:"last_name" validate:"omitempty,min=1"`
-		Email       *string       `json:"email" validate:"omitempty,email"`
-		Phone       *string       `json:"phone" validate:"omitempty,e164"`
-		Image       *string       `json:"image"`
-		Rate        *MoneyRequest `json:"rate" validate:"omitempty"`
-		Salary      *salary       `json:"salary" validate:"omitempty"`
-		LocationIDs *[]core.ID    `json:"location_ids" validate:"omitempty,dive,required"`
+		ID          core.ID            `param:"id" validate:"required"`
+		FirstName   *string            `json:"first_name" validate:"omitempty,min=1"`
+		LastName    *string            `json:"last_name" validate:"omitempty,min=1"`
+		Email       *string            `json:"email" validate:"omitempty,email"`
+		Phone       *string            `json:"phone" validate:"omitempty,e164"`
+		Image       *string            `json:"image"`
+		Rate        *MoneyRequest      `json:"rate" validate:"omitempty"`
+		Salary      *salary            `json:"salary" validate:"omitempty"`
+		Permissions *[]core.Permission `json:"permissions" validate:"omitempty"`
+		LocationIDs *[]core.ID         `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -104,6 +107,9 @@ func (h *Handler) HandleUpdateEmployee(c echo.Context) error {
 	employee, err := h.EmployeeService.Get(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
+	}
+	if req.Permissions != nil {
+		employee.Permissions = *req.Permissions
 	}
 	if req.FirstName != nil {
 		employee.FirstName = *req.FirstName
@@ -277,22 +283,23 @@ type SalaryEntry struct {
 }
 
 type Employee struct {
-	ID            core.ID       `json:"id"`
-	FirstName     string        `json:"first_name"`
-	LastName      string        `json:"last_name"`
-	Email         string        `json:"email,omitempty"`
-	Phone         string        `json:"phone,omitempty"`
-	Image         string        `json:"image,omitempty"`
-	IsOwner       bool          `json:"is_owner"`
-	Rate          *MoneyRequest `json:"rate,omitempty"`
-	RateHistory   []RateEntry   `json:"rate_history"`
-	Salary        *MoneyRequest `json:"salary,omitempty"`
-	SalaryHistory []SalaryEntry `json:"salary_history"`
-	LocationIDs   []core.ID     `json:"location_ids"`
-	MerchantID    core.ID       `json:"merchant_id"`
-	CreatedAt     int64         `json:"created_at"`
-	UpdatedAt     int64         `json:"updated_at"`
-	Status        core.Status   `json:"status"`
+	ID            core.ID           `json:"id"`
+	FirstName     string            `json:"first_name"`
+	LastName      string            `json:"last_name"`
+	Email         string            `json:"email,omitempty"`
+	Phone         string            `json:"phone,omitempty"`
+	Image         string            `json:"image,omitempty"`
+	IsOwner       bool              `json:"is_owner"`
+	Rate          *MoneyRequest     `json:"rate,omitempty"`
+	RateHistory   []RateEntry       `json:"rate_history"`
+	Salary        *MoneyRequest     `json:"salary,omitempty"`
+	SalaryHistory []SalaryEntry     `json:"salary_history"`
+	Permissions   []core.Permission `json:"permissions"`
+	LocationIDs   []core.ID         `json:"location_ids"`
+	MerchantID    core.ID           `json:"merchant_id"`
+	CreatedAt     int64             `json:"created_at"`
+	UpdatedAt     int64             `json:"updated_at"`
+	Status        core.Status       `json:"status"`
 }
 
 func NewEmployee(employee core.Employee) Employee {
@@ -346,6 +353,7 @@ func NewEmployee(employee core.Employee) Employee {
 		RateHistory:   rHistory,
 		Salary:        salary,
 		SalaryHistory: sHistory,
+		Permissions:   employee.Permissions,
 		LocationIDs:   employee.LocationIDs,
 		MerchantID:    employee.MerchantID,
 		CreatedAt:     employee.CreatedAt,

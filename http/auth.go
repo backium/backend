@@ -41,7 +41,12 @@ func RequireAPIKey(merchantStorage core.MerchantStorage, sessionStorage core.Ses
 	}
 }
 
-func RequireSession(merchantStorage core.MerchantStorage, sessionStorage core.SessionStorage, userStorage core.UserStorage) echo.MiddlewareFunc {
+func RequireSession(
+	merchantStorage core.MerchantStorage,
+	sessionStorage core.SessionStorage,
+	userStorage core.UserStorage,
+	employeeStorage core.EmployeeStorage,
+) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			const op = errors.Op("handler.Auth.Authenticate")
@@ -68,10 +73,15 @@ func RequireSession(merchantStorage core.MerchantStorage, sessionStorage core.Se
 			if err != nil {
 				return errors.E(op, errors.KindInvalidSession, err)
 			}
+			employee, err := employeeStorage.Get(ctx, user.EmployeeID)
+			if err != nil {
+				return errors.E(op, errors.KindInvalidSession, err)
+			}
 			c.Logger().Infof("session found: %+v", session)
 
 			ctx = core.ContextWithMerchant(ctx, &merchant)
 			ctx = core.ContextWithUser(ctx, &user)
+			ctx = core.ContextWithEmployee(ctx, &employee)
 			ctx = core.ContextWithSession(ctx, &session)
 			c.SetRequest(req.Clone(ctx))
 

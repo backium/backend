@@ -11,7 +11,8 @@ func (s *Server) setupRoutes() {
 	s.Echo.Use(middleware.CORS())
 	s.Echo.Use(s.loggerMiddleware)
 
-	userGroup := s.Echo.Group("/api/v1", RequireSession(s.MerchantStorage, s.SessionRepository, s.UserStorage))
+	userGroup := s.Echo.Group("/api/v1",
+		RequireSession(s.MerchantStorage, s.SessionRepository, s.UserStorage, s.EmployeeStorage))
 	pubGroup := s.Echo.Group("/api/v1")
 
 	userGroup.GET("/merchants/:id", h.HandleRetrieveMerchant)

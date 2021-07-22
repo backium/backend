@@ -13,6 +13,33 @@ const (
 
 type ID string
 
+func ContainsOneID(given []ID, target []ID) bool {
+	for _, id := range target {
+		if ContainsID(given, id) {
+			return true
+		}
+	}
+	return false
+}
+
+func ContainsAllID(given []ID, target []ID) bool {
+	for _, id := range target {
+		if !ContainsID(given, id) {
+			return false
+		}
+	}
+	return true
+}
+
+func ContainsID(given []ID, target ID) bool {
+	for _, id := range given {
+		if id == target {
+			return true
+		}
+	}
+	return false
+}
+
 func NewID(prefix string) ID {
 	return NewIDWithSize(prefix, idSize)
 }
