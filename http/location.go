@@ -164,6 +164,7 @@ func (h *Handler) HandleSearchLocation(c echo.Context) error {
 		Limit:  limit,
 		Offset: req.Offset,
 		Filter: core.LocationFilter{
+			IDs:        req.Filter.IDs,
 			Name:       req.Filter.Name,
 			MerchantID: merchant.ID,
 		},
