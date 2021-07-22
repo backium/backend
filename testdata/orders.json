@@ -80,6 +80,10 @@
             "Value": 1000,
             "Currency": "PEN"
           },
+          "TotalCostAmount": {
+            "Value": 0,
+            "Currency": "PEN"
+          },
           "BasePrice": {
             "Value": 500,
             "Currency": "PEN"
@@ -108,6 +112,10 @@
             "Value": 2000,
             "Currency": "PEN"
           },
+          "TotalCostAmount": {
+            "Value": 0,
+            "Currency": "PEN"
+          },
           "BasePrice": {
             "Value": 1000,
             "Currency": "PEN"
@@ -124,6 +132,10 @@
       },
       "TotalAmount": {
         "Value": 3000,
+        "Currency": "PEN"
+      },
+      "TotalCostAmount": {
+        "Value": 0,
         "Currency": "PEN"
       },
       "LocationID": "location_id",
@@ -219,6 +231,10 @@
             "Value": 700,
             "Currency": "PEN"
           },
+          "TotalCostAmount": {
+            "Value": 0,
+            "Currency": "PEN"
+          },
           "BasePrice": {
             "Value": 500,
             "Currency": "PEN"
@@ -278,6 +294,10 @@
       },
       "TotalAmount": {
         "Value": 700,
+        "Currency": "PEN"
+      },
+      "TotalCostAmount": {
+        "Value": 0,
         "Currency": "PEN"
       },
       "LocationID": "location_id",
@@ -388,6 +408,10 @@
             "Value": 382,
             "Currency": "PEN"
           },
+          "TotalCostAmount": {
+            "Value": 0,
+            "Currency": "PEN"
+          },
           "BasePrice": {
             "Value": 350,
             "Currency": "PEN"
@@ -425,6 +449,10 @@
             "Value": 382,
             "Currency": "PEN"
           },
+          "TotalCostAmount": {
+            "Value": 0,
+            "Currency": "PEN"
+          },
           "BasePrice": {
             "Value": 350,
             "Currency": "PEN"
@@ -460,6 +488,10 @@
           },
           "TotalAmount": {
             "Value": 383,
+            "Currency": "PEN"
+          },
+          "TotalCostAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
           "BasePrice": {
@@ -500,6 +532,10 @@
       },
       "TotalAmount": {
         "Value": 1147,
+        "Currency": "PEN"
+      },
+      "TotalCostAmount": {
+        "Value": 0,
         "Currency": "PEN"
       },
       "LocationID": "location_id",
@@ -619,6 +655,10 @@
             "Value": 5561,
             "Currency": "PEN"
           },
+          "TotalCostAmount": {
+            "Value": 0,
+            "Currency": "PEN"
+          },
           "BasePrice": {
             "Value": 5150,
             "Currency": "PEN"
@@ -672,6 +712,10 @@
             "Value": 2781,
             "Currency": "PEN"
           },
+          "TotalCostAmount": {
+            "Value": 0,
+            "Currency": "PEN"
+          },
           "BasePrice": {
             "Value": 5150,
             "Currency": "PEN"
@@ -723,6 +767,10 @@
           },
           "TotalAmount": {
             "Value": 2780,
+            "Currency": "PEN"
+          },
+          "TotalCostAmount": {
+            "Value": 0,
             "Currency": "PEN"
           },
           "BasePrice": {
@@ -806,6 +854,10 @@
       },
       "TotalAmount": {
         "Value": 11122,
+        "Currency": "PEN"
+      },
+      "TotalCostAmount": {
+        "Value": 0,
         "Currency": "PEN"
       },
       "LocationID": "location_id",

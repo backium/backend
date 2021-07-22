@@ -160,3 +160,94 @@ func (m *mockItemStorage) Get(ctx context.Context, id ID) (Item, error) {
 func (m *mockItemStorage) List(ctx context.Context, fil ItemQuery) ([]Item, int64, error) {
 	return m.ListFn(ctx, fil)
 }
+
+type mockInventoryStorage struct {
+	PutCountFn       func(context.Context, InventoryCount) error
+	PutBatchCountFn  func(context.Context, []InventoryCount) error
+	PutBatchAdjFn    func(context.Context, []InventoryAdjustment) error
+	ListCountFn      func(context.Context, InventoryFilter) ([]InventoryCount, int64, error)
+	ListAdjustmentFn func(context.Context, InventoryFilter) ([]InventoryAdjustment, int64, error)
+}
+
+func NewMockInventoryStorage() *mockInventoryStorage {
+	return &mockInventoryStorage{}
+}
+
+func (m *mockInventoryStorage) PutCount(ctx context.Context, t InventoryCount) error {
+	return m.PutCountFn(ctx, t)
+}
+
+func (m *mockInventoryStorage) PutBatchCount(ctx context.Context, batch []InventoryCount) error {
+	return m.PutBatchCountFn(ctx, batch)
+}
+
+func (m *mockInventoryStorage) PutBatchAdj(ctx context.Context, batch []InventoryAdjustment) error {
+	return m.PutBatchAdjFn(ctx, batch)
+}
+
+func (m *mockInventoryStorage) ListCount(ctx context.Context, fil InventoryFilter) ([]InventoryCount, int64, error) {
+	return m.ListCountFn(ctx, fil)
+}
+
+func (m *mockInventoryStorage) ListAdjustment(ctx context.Context, fil InventoryFilter) ([]InventoryAdjustment, int64, error) {
+	return m.ListAdjustmentFn(ctx, fil)
+}
+
+type mockCustomerStorage struct {
+	PutFn      func(context.Context, Customer) error
+	PutBatchFn func(context.Context, []Customer) error
+	GetFn      func(context.Context, ID) (Customer, error)
+	ListFn     func(context.Context, CustomerQuery) ([]Customer, int64, error)
+}
+
+func NewMockCustomerStorage() *mockCustomerStorage {
+	return &mockCustomerStorage{}
+}
+
+func (m *mockCustomerStorage) Put(ctx context.Context, t Customer) error {
+	return m.PutFn(ctx, t)
+}
+
+func (m *mockCustomerStorage) PutBatch(ctx context.Context, batch []Customer) error {
+	return m.PutBatchFn(ctx, batch)
+}
+
+func (m *mockCustomerStorage) Get(ctx context.Context, id ID) (Customer, error) {
+	return m.GetFn(ctx, id)
+}
+
+func (m *mockCustomerStorage) List(ctx context.Context, fil CustomerQuery) ([]Customer, int64, error) {
+	return m.ListFn(ctx, fil)
+}
+
+type mockCashDrawerStorage struct {
+	PutFn            func(context.Context, CashDrawer) error
+	PutAdjFn         func(context.Context, CashDrawerAdjustment) error
+	GetFn            func(context.Context, ID) (CashDrawer, error)
+	ListFn           func(context.Context, CashDrawerQuery) ([]CashDrawer, int64, error)
+	ListAdjustmentFn func(context.Context, CashDrawerQuery) ([]CashDrawerAdjustment, int64, error)
+}
+
+func NewMockCashDrawerStorage() *mockCashDrawerStorage {
+	return &mockCashDrawerStorage{}
+}
+
+func (m *mockCashDrawerStorage) Put(ctx context.Context, t CashDrawer) error {
+	return m.PutFn(ctx, t)
+}
+
+func (m *mockCashDrawerStorage) PutAdj(ctx context.Context, t CashDrawerAdjustment) error {
+	return m.PutAdjFn(ctx, t)
+}
+
+func (m *mockCashDrawerStorage) Get(ctx context.Context, id ID) (CashDrawer, error) {
+	return m.GetFn(ctx, id)
+}
+
+func (m *mockCashDrawerStorage) List(ctx context.Context, fil CashDrawerQuery) ([]CashDrawer, int64, error) {
+	return m.ListFn(ctx, fil)
+}
+
+func (m *mockCashDrawerStorage) ListAdjustment(ctx context.Context, fil CashDrawerQuery) ([]CashDrawerAdjustment, int64, error) {
+	return m.ListAdjustmentFn(ctx, fil)
+}

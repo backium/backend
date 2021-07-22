@@ -33,12 +33,16 @@ func TestCreateOrder(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.Name, func(t *testing.T) {
 			ctx := context.Background()
+			ctx = ContextWithUser(ctx, &User{})
 			orderStorage := NewMockOrderStorage()
 			variationStorage := NewMockItemVariationStorage()
 			taxStorage := NewMockTaxStorage()
 			discountStorage := NewMockDiscountStorage()
 			categoryStorage := NewMockCategoryStorage()
 			itemStorage := NewMockItemStorage()
+			customerStorage := NewMockCustomerStorage()
+			cashDrawerStorage := NewMockCashDrawerStorage()
+			inventoryStorage := NewMockInventoryStorage()
 
 			svc := OrderingService{
 				OrderStorage:         orderStorage,
@@ -46,6 +50,9 @@ func TestCreateOrder(t *testing.T) {
 				TaxStorage:           taxStorage,
 				DiscountStorage:      discountStorage,
 				CategoryStorage:      categoryStorage,
+				CustomerStorage:      customerStorage,
+				CashDrawerStorage:    cashDrawerStorage,
+				InventoryStorage:     inventoryStorage,
 				ItemStorage:          itemStorage,
 			}
 
@@ -63,6 +70,15 @@ func TestCreateOrder(t *testing.T) {
 			}
 			discountStorage.ListFn = func(ctx context.Context, fil DiscountQuery) ([]Discount, int64, error) {
 				return tc.Discounts, 0, nil
+			}
+			customerStorage.GetFn = func(ctx context.Context, id ID) (Customer, error) {
+				return Customer{}, nil
+			}
+			cashDrawerStorage.ListFn = func(ctx context.Context, q CashDrawerQuery) ([]CashDrawer, int64, error) {
+				return []CashDrawer{}, 0, nil
+			}
+			inventoryStorage.ListCountFn = func(ctx context.Context, q InventoryFilter) ([]InventoryCount, int64, error) {
+				return []InventoryCount{}, 0, nil
 			}
 			orderInMem := Order{}
 			orderStorage.PutFn = func(ctx context.Context, order Order) error {

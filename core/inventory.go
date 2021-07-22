@@ -195,7 +195,7 @@ func applyInventoryAdjustments(ctx context.Context, storage InventoryStorage, ad
 		return err
 	}
 	if len(counts) == 0 {
-		return errors.E(op, errors.KindValidation, "Unknown item variations in adjustment request")
+		return nil
 	}
 
 	var countsToUpdate []InventoryCount

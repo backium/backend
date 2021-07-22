@@ -329,29 +329,42 @@ func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 func (b *OrderBuilder) applyOrderLevelFixedDiscounts(order *Order) {
 	var schemaDiscounts []OrderSchemaDiscount
 	currency := b.schema.Currency
-	for _, schemaDiscount := range b.schema.Discounts {
-		if b.lookup.Discount(schemaDiscount.UID).Type == DiscountFixed {
-			schemaDiscounts = append(schemaDiscounts, schemaDiscount)
-		}
-	}
-	// Compute and save order level taxes amount
+	// Compute and save order level discount amount by uid
 	discountTotalAmount := map[string]int64{}
-	remainDiscountTotalAmount := map[string]int64{}
-	for _, schemaDiscount := range schemaDiscounts {
+	remainingDiscountTotalAmount := map[string]int64{}
+	remainingOrderTotalAmount := order.TotalAmount.Value
+	for _, schemaDiscount := range b.schema.Discounts {
 		discount := b.lookup.Discount(schemaDiscount.UID)
-		amount := discount.Amount.Value
-		discountTotalAmount[schemaDiscount.UID] = amount
-		remainDiscountTotalAmount[schemaDiscount.UID] = amount
+
+		if remainingOrderTotalAmount == 0 {
+			break
+		}
+		if discount.Type != DiscountFixed {
+			continue
+		}
+
+		var discountAmount int64
+		if remainingOrderTotalAmount < discount.Amount.Value {
+			discountAmount = remainingOrderTotalAmount
+		} else {
+			discountAmount = discount.Amount.Value
+		}
+
+		discountTotalAmount[schemaDiscount.UID] = discountAmount
+		remainingDiscountTotalAmount[schemaDiscount.UID] = discountAmount
+		remainingOrderTotalAmount -= discountAmount
 
 		orderDiscount := OrderDiscount{
 			UID:           schemaDiscount.UID,
 			ID:            discount.ID,
 			Name:          discount.Name,
-			Amount:        NewMoney(discount.Amount.Value, currency),
+			Amount:        NewMoney(discountAmount, currency),
 			Type:          DiscountFixed,
-			AppliedAmount: NewMoney(amount, currency),
+			AppliedAmount: NewMoney(discountAmount, currency),
 		}
+
 		order.Discounts = append(order.Discounts, orderDiscount)
+		schemaDiscounts = append(schemaDiscounts, schemaDiscount)
 	}
 
 	// Apply order level discounts
@@ -366,7 +379,7 @@ func (b *OrderBuilder) applyOrderLevelFixedDiscounts(order *Order) {
 				factor := d.NewFromInt(itemAmount).Div(d.NewFromInt(order.TotalAmount.Value))
 				itemDiscountAmount = total.Mul(factor).RoundBank(0).IntPart()
 			} else {
-				itemDiscountAmount = remainDiscountTotalAmount[schemaDiscount.UID]
+				itemDiscountAmount = remainingDiscountTotalAmount[schemaDiscount.UID]
 			}
 
 			applied := OrderItemAppliedDiscount{
@@ -374,7 +387,7 @@ func (b *OrderBuilder) applyOrderLevelFixedDiscounts(order *Order) {
 				AppliedAmount: NewMoney(itemDiscountAmount, currency),
 			}
 			itemDiscountTotalAmount += itemDiscountAmount
-			remainDiscountTotalAmount[schemaDiscount.UID] -= itemDiscountAmount
+			remainingDiscountTotalAmount[schemaDiscount.UID] -= itemDiscountAmount
 			appliedDiscounts = append(appliedDiscounts, applied)
 		}
 		order.ItemVariations[i].TotalAmount.Value -= itemDiscountTotalAmount

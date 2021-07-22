@@ -50,19 +50,19 @@ func (s *OrderingService) GenerateOrderReceipt(ctx context.Context, orderID ID) 
 
 	htmlFilename, err := compileReceiptHtml(location, order, customer)
 	if err != nil {
-		return "", errors.E(op, errors.KindUnexpected, errors.Errorf("compiling receipt: %w", err))
+		return "", errors.E(op, errors.KindUnexpected, errors.Errorf("compiling receipt: %v", err))
 	}
 	defer os.Remove(htmlFilename)
 
 	pdfFilename, err := htmlToPdf(htmlFilename)
 	if err != nil {
-		return "", errors.E(op, errors.KindUnexpected, errors.Errorf("html to pdf: %w", err))
+		return "", errors.E(op, errors.KindUnexpected, errors.Errorf("html to pdf: %v", err))
 	}
 	defer os.Remove(pdfFilename)
 
 	url, err := s.Uploader.Upload(ctx, pdfFilename)
 	if err != nil {
-		return "", errors.E(op, errors.KindUnexpected, errors.Errorf("uploading receipt: %w", err))
+		return "", errors.E(op, errors.KindUnexpected, errors.Errorf("uploading receipt: %v", err))
 	}
 
 	return url, nil
