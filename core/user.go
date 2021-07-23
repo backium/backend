@@ -120,6 +120,11 @@ func (svc *UserService) Create(ctx context.Context, user User, password string) 
 		if employee.MerchantID != user.MerchantID {
 			return User{}, errors.E(op, errors.KindValidation, "Provided employee doesn't belong to your business")
 		}
+
+		employee.IsUser = true
+		if err := svc.EmployeeStorage.Put(ctx, employee); err != nil {
+			return User{}, errors.E(op, errors.KindUnexpected)
+		}
 	default:
 		return User{}, errors.E(op, errors.KindValidation, "Unknown user kind")
 	}
