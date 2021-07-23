@@ -240,6 +240,7 @@ func main() {
 		iv.Price = core.NewMoney(idata[i].price, core.PEN)
 		iv.Cost = &core.Money{Value: idata[i].cost, Currency: core.PEN}
 		iv.MinimumRequiredStock = idata[i].minimum_stock
+		iv.Measurement = core.PerItem
 		iv.LocationIDs = locationIDs
 		variations = append(variations, iv)
 	}

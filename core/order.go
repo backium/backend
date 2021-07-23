@@ -59,6 +59,7 @@ type OrderItemVariation struct {
 	ID                  ID                         `bson:"variation_id"`
 	Name                string                     `bson:"name"`
 	Quantity            int64                      `bson:"quantity"`
+	Measurement         MeasurementUnit            `bson:"measurement"`
 	GrossSales          Money                      `bson:"gross_sales"`
 	TotalDiscountAmount Money                      `bson:"total_discount_amount"`
 	TotalTaxAmount      Money                      `bson:"total_tax_amount"`
@@ -174,9 +175,10 @@ func (sch *OrderSchema) discountIDs() []ID {
 }
 
 type OrderSchemaItemVariation struct {
-	UID      string `bson:"uid"`
-	ID       ID     `bson:"variation_id"`
-	Quantity int64  `bson:"quantity"`
+	UID string `bson:"uid"`
+	ID  ID     `bson:"variation_id"`
+	// 3 decimals of precision if the variation measurement is different than PerItem
+	Quantity int64 `bson:"quantity"`
 }
 
 type OrderSchemaTax struct {

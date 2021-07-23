@@ -27,7 +27,7 @@ type receiptContent struct {
 
 type item struct {
 	Name     string
-	Quantity int64
+	Quantity string
 	Price    string
 }
 
@@ -93,9 +93,13 @@ func compileReceiptHtml(location Location, order Order, customer Customer) (stri
 
 	items := make([]item, len(order.ItemVariations))
 	for i, v := range order.ItemVariations {
+		quantity := fmt.Sprintf("%v", v.Quantity)
+		if v.Measurement != PerItem {
+			quantity = fmt.Sprintf("%v.%v %v", v.Quantity/1000, v.Quantity%1000, v.Measurement)
+		}
 		items[i] = item{
 			Name:     strings.ToUpper(v.Name),
-			Quantity: v.Quantity,
+			Quantity: quantity,
 			Price:    centsToString(v.TotalAmount.Value),
 		}
 	}

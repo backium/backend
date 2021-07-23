@@ -8,19 +8,20 @@ import (
 )
 
 type ItemVariation struct {
-	ID                   ID     `bson:"_id"`
-	Name                 string `bson:"name"`
-	SKU                  string `bson:"sku"`
-	ItemID               ID     `bson:"item_id"`
-	Price                Money  `bson:"price"`
-	Cost                 *Money `bson:"cost"`
-	Image                string `bson:"image"`
-	MinimumRequiredStock int64  `bson:"minimum_required_stock"`
-	LocationIDs          []ID   `bson:"location_ids"`
-	MerchantID           ID     `bson:"merchant_id"`
-	CreatedAt            int64  `bson:"created_at"`
-	UpdatedAt            int64  `bson:"updated_at"`
-	Status               Status `bson:"status"`
+	ID                   ID              `bson:"_id"`
+	Name                 string          `bson:"name"`
+	SKU                  string          `bson:"sku"`
+	ItemID               ID              `bson:"item_id"`
+	Measurement          MeasurementUnit `bson:"measurement"`
+	Price                Money           `bson:"price"`
+	Cost                 *Money          `bson:"cost"`
+	Image                string          `bson:"image"`
+	MinimumRequiredStock int64           `bson:"minimum_required_stock"`
+	LocationIDs          []ID            `bson:"location_ids"`
+	MerchantID           ID              `bson:"merchant_id"`
+	CreatedAt            int64           `bson:"created_at"`
+	UpdatedAt            int64           `bson:"updated_at"`
+	Status               Status          `bson:"status"`
 }
 
 // Creates an ItemVariationVariation with default values
