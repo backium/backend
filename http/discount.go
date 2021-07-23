@@ -9,11 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	DiscountListDefaultSize = 10
-	DiscountListMaxSize     = 50
-)
-
 func (h *Handler) HandleCreateDiscount(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateDiscount")
 
@@ -167,15 +162,8 @@ func (h *Handler) HandleListDiscounts(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = DiscountListDefaultSize
-	if req.Limit <= DiscountListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = DiscountListMaxSize
-	}
-
 	discounts, count, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.DiscountFilter{MerchantID: merchant.ID},
 	})
@@ -231,15 +219,8 @@ func (h *Handler) HandleSearchDiscount(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = DiscountListDefaultSize
-	if req.Limit <= DiscountListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = DiscountListMaxSize
-	}
-
 	discounts, count, err := h.CatalogService.ListDiscount(ctx, core.DiscountQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.DiscountFilter{
 			Name:        req.Filter.Name,

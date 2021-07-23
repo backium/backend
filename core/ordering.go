@@ -575,7 +575,7 @@ func (s *OrderingService) build(ctx context.Context, sch OrderSchema) (*Order, e
 	}
 
 	categories, _, err := s.CategoryStorage.List(ctx, CategoryQuery{
-		Filter: CategoryFilter{LocationIDs: []ID{sch.LocationID}},
+		Filter: CategoryFilter{MerchantID: sch.MerchantID},
 	})
 	if err != nil {
 		return nil, errors.E(op, err)

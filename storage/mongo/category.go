@@ -112,9 +112,6 @@ func (s *categoryStorage) List(ctx context.Context, q core.CategoryQuery) ([]cor
 	if len(q.Filter.IDs) != 0 {
 		filter["_id"] = bson.M{"$in": q.Filter.IDs}
 	}
-	if len(q.Filter.LocationIDs) != 0 {
-		filter["location_ids"] = bson.M{"$in": q.Filter.LocationIDs}
-	}
 	if q.Filter.Name != "" {
 		filter["name"] = bson.M{"$regex": primitive.Regex{Pattern: q.Filter.Name, Options: "i"}}
 	}

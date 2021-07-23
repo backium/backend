@@ -8,18 +8,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	CategoryListDefaultSize = 10
-	CategoryListMaxSize     = 50
-)
-
 func (h *Handler) HandleCreateCategory(c echo.Context) error {
 	const op = errors.Op("handler.Category.Create")
 
 	type request struct {
-		Name        string     `json:"name" validate:"required"`
-		Image       string     `json:"image"`
-		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
+		Name  string `json:"name" validate:"required"`
+		Image string `json:"image"`
 	}
 
 	ctx := c.Request().Context()
@@ -36,9 +30,6 @@ func (h *Handler) HandleCreateCategory(c echo.Context) error {
 
 	category := core.NewCategory(req.Name, merchant.ID)
 	category.Image = req.Image
-	if req.LocationIDs != nil {
-		category.LocationIDs = *req.LocationIDs
-	}
 
 	category, err := h.CatalogService.PutCategory(ctx, category)
 	if err != nil {
@@ -52,10 +43,9 @@ func (h *Handler) HandleUpdateCategory(c echo.Context) error {
 	const op = errors.Op("handler.Category.Update")
 
 	type request struct {
-		ID          core.ID    `param:"id" validate:"required"`
-		Name        *string    `json:"name" validate:"omitempty,min=1"`
-		Image       *string    `json:"image"`
-		LocationIDs *[]core.ID `json:"location_ids" validate:"omitempty,dive,required"`
+		ID    core.ID `param:"id" validate:"required"`
+		Name  *string `json:"name" validate:"omitempty,min=1"`
+		Image *string `json:"image"`
 	}
 
 	ctx := c.Request().Context()
@@ -79,9 +69,6 @@ func (h *Handler) HandleUpdateCategory(c echo.Context) error {
 	}
 	if req.Image != nil {
 		category.Image = *req.Image
-	}
-	if req.LocationIDs != nil {
-		category.LocationIDs = *req.LocationIDs
 	}
 
 	category, err = h.CatalogService.PutCategory(ctx, category)
@@ -123,9 +110,8 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleSearchCategory")
 
 	type filter struct {
-		IDs         []core.ID `json:"ids" validate:"omitempty,dive,id"`
-		LocationIDs []core.ID `json:"location_ids" validate:"omitempty,dive,id"`
-		Name        string    `json:"name"`
+		IDs  []core.ID `json:"ids" validate:"omitempty,dive,id"`
+		Name string    `json:"name"`
 	}
 
 	type sort struct {
@@ -160,9 +146,8 @@ func (h *Handler) HandleSearchCategory(c echo.Context) error {
 		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.CategoryFilter{
-			Name:        req.Filter.Name,
-			LocationIDs: req.Filter.LocationIDs,
-			MerchantID:  merchant.ID,
+			Name:       req.Filter.Name,
+			MerchantID: merchant.ID,
 		},
 		Sort: core.CategorySort{
 			Name: req.Sort.Name,
@@ -256,25 +241,23 @@ func (h *Handler) HandleDeleteCategory(c echo.Context) error {
 }
 
 type Category struct {
-	ID          core.ID     `json:"id"`
-	Name        string      `json:"name"`
-	Image       string      `json:"image"`
-	LocationIDs []core.ID   `json:"location_ids"`
-	MerchantID  core.ID     `json:"merchant_id"`
-	CreatedAt   int64       `json:"created_at"`
-	UpdatedAt   int64       `json:"updated_at"`
-	Status      core.Status `json:"status"`
+	ID         core.ID     `json:"id"`
+	Name       string      `json:"name"`
+	Image      string      `json:"image"`
+	MerchantID core.ID     `json:"merchant_id"`
+	CreatedAt  int64       `json:"created_at"`
+	UpdatedAt  int64       `json:"updated_at"`
+	Status     core.Status `json:"status"`
 }
 
 func NewCategory(category core.Category) Category {
 	return Category{
-		ID:          category.ID,
-		Name:        category.Name,
-		Image:       category.Image,
-		LocationIDs: category.LocationIDs,
-		MerchantID:  category.MerchantID,
-		CreatedAt:   category.CreatedAt,
-		UpdatedAt:   category.UpdatedAt,
-		Status:      category.Status,
+		ID:         category.ID,
+		Name:       category.Name,
+		Image:      category.Image,
+		MerchantID: category.MerchantID,
+		CreatedAt:  category.CreatedAt,
+		UpdatedAt:  category.UpdatedAt,
+		Status:     category.Status,
 	}
 }

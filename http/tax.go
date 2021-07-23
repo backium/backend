@@ -8,11 +8,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	TaxListDefaultSize = 10
-	TaxListMaxSize     = 50
-)
-
 func (h *Handler) HandleCreateTax(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleCreateTax")
 
@@ -201,15 +196,8 @@ func (h *Handler) HandleListTaxes(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = TaxListDefaultSize
-	if req.Limit <= TaxListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = TaxListMaxSize
-	}
-
 	taxes, count, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.TaxFilter{MerchantID: merchant.ID},
 	})
@@ -265,15 +253,8 @@ func (h *Handler) HandleSearchTax(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = TaxListDefaultSize
-	if req.Limit <= TaxListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = TaxListMaxSize
-	}
-
 	taxes, count, err := h.CatalogService.ListTax(ctx, core.TaxQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.TaxFilter{
 			Name:        req.Filter.Name,

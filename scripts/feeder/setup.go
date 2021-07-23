@@ -171,7 +171,6 @@ func main() {
 	var categories []core.Category
 	for _, cd := range cdata {
 		c := core.NewCategory(cd.name, user.MerchantID)
-		c.LocationIDs = locationIDs
 		categories = append(categories, c)
 	}
 

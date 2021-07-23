@@ -9,11 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	ItemVariationListDefaultSize = 10
-	ItemVariationListMaxSize     = 50
-)
-
 func (h *Handler) HandleCreateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Create")
 

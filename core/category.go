@@ -7,31 +7,28 @@ import (
 )
 
 type Category struct {
-	ID          ID     `bson:"_id"`
-	Name        string `bson:"name"`
-	Image       string `bson:"image"`
-	LocationIDs []ID   `bson:"location_ids"`
-	MerchantID  ID     `bson:"merchant_id"`
-	CreatedAt   int64  `bson:"created_at"`
-	UpdatedAt   int64  `bson:"updated_at"`
-	Status      Status `bson:"status"`
+	ID         ID     `bson:"_id"`
+	Name       string `bson:"name"`
+	Image      string `bson:"image"`
+	MerchantID ID     `bson:"merchant_id"`
+	CreatedAt  int64  `bson:"created_at"`
+	UpdatedAt  int64  `bson:"updated_at"`
+	Status     Status `bson:"status"`
 }
 
 func NewCategory(name string, merchantID ID) Category {
 	return Category{
-		ID:          NewID("cat"),
-		Name:        name,
-		LocationIDs: []ID{},
-		Status:      StatusActive,
-		MerchantID:  merchantID,
+		ID:         NewID("cat"),
+		Name:       name,
+		Status:     StatusActive,
+		MerchantID: merchantID,
 	}
 }
 
 type CategoryFilter struct {
-	Name        string
-	IDs         []ID
-	LocationIDs []ID
-	MerchantID  ID
+	Name       string
+	IDs        []ID
+	MerchantID ID
 }
 
 type CategorySort struct {

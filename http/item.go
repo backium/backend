@@ -9,11 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	ItemListDefaultSize = 10
-	ItemListMaxSize     = 50
-)
-
 func (h *Handler) HandleCreateItem(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreateItem")
 
