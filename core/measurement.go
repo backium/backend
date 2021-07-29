@@ -3,7 +3,7 @@ package core
 type MeasurementUnit string
 
 const (
-	PerItem   MeasurementUnit = "per_item"
+	PerItem   MeasurementUnit = "item"
 	Kilogram  MeasurementUnit = "kilogram"
 	Gram      MeasurementUnit = "gram"
 	Liter     MeasurementUnit = "liter"

@@ -24,7 +24,7 @@
         "ID": "variation1_id",
         "ItemID": "item1_id",
         "Name": "variation1",
-        "Measurement": "per_item",
+        "Measurement": "item",
         "Price": {
           "Value": 500,
           "Currency": "PEN"
@@ -34,7 +34,7 @@
         "ID": "variation2_id",
         "ItemID": "item2_id",
         "Name": "variation2",
-        "Measurement": "per_item",
+        "Measurement": "item",
         "Price": {
           "Value": 1000,
           "Currency": "PEN"
@@ -66,7 +66,7 @@
           "ItemName": "item1",
           "CategoryName": "category1",
           "Quantity": 2,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 1000,
             "Currency": "PEN"
@@ -99,7 +99,7 @@
           "ItemName": "item2",
           "CategoryName": "category1",
           "Quantity": 2,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 2000,
             "Currency": "PEN"
@@ -166,7 +166,7 @@
         "ID": "variation1_id",
         "ItemID": "item1_id",
         "Name": "variation1",
-        "Measurement": "per_item",
+        "Measurement": "item",
         "Price": {
           "Value": 500,
           "Currency": "PEN"
@@ -220,7 +220,7 @@
           "ItemName": "item1",
           "Name": "variation1",
           "Quantity": 2,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 1000,
             "Currency": "PEN"
@@ -330,7 +330,7 @@
         "ID": "variation1_id",
         "ItemID": "item1_id",
         "Name": "variation1",
-        "Measurement": "per_item",
+        "Measurement": "item",
         "Price": {
           "Value": 350,
           "Currency": "PEN"
@@ -340,7 +340,7 @@
         "ID": "variation2_id",
         "ItemID": "item1_id",
         "Name": "variation2",
-        "Measurement": "per_item",
+        "Measurement": "item",
         "Price": {
           "Value": 350,
           "Currency": "PEN"
@@ -350,7 +350,7 @@
         "ID": "variation3_id",
         "ItemID": "item1_id",
         "Name": "variation3",
-        "Measurement": "per_item",
+        "Measurement": "item",
         "Price": {
           "Value": 350,
           "Currency": "PEN"
@@ -401,7 +401,7 @@
           "ItemName": "item1",
           "Name": "variation1",
           "Quantity": 1,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 350,
             "Currency": "PEN"
@@ -443,7 +443,7 @@
           "ItemName": "item1",
           "Name": "variation2",
           "Quantity": 1,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 350,
             "Currency": "PEN"
@@ -485,7 +485,7 @@
           "ItemName": "item1",
           "Name": "variation3",
           "Quantity": 1,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 350,
             "Currency": "PEN"
@@ -574,7 +574,7 @@
         "ID": "variation1_id",
         "ItemID": "item1_id",
         "Name": "variation1",
-        "Measurement": "per_item",
+        "Measurement": "item",
         "Price": {
           "Value": 5150,
           "Currency": "PEN"
@@ -652,7 +652,7 @@
           "ItemName": "item1",
           "Name": "variation1",
           "Quantity": 2,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 10300,
             "Currency": "PEN"
@@ -710,7 +710,7 @@
           "ItemName": "item1",
           "Name": "variation1",
           "Quantity": 1,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 5150,
             "Currency": "PEN"
@@ -768,7 +768,7 @@
           "ItemName": "item1",
           "Name": "variation1",
           "Quantity": 1,
-          "Measurement": "per_item",
+          "Measurement": "item",
           "GrossSales": {
             "Value": 5150,
             "Currency": "PEN"
