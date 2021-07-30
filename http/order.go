@@ -274,6 +274,28 @@ func (h *Handler) HandleCreateOrder(c echo.Context) error {
 	return c.JSON(http.StatusOK, NewOrder(order))
 }
 
+func (h *Handler) HandleCancelOrder(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleCancelOrder")
+
+	type request struct {
+		OrderID core.ID `param:"order_id" validate:"required"`
+	}
+
+	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	order, err := h.OrderingService.CancelOrder(ctx, req.OrderID)
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	return c.JSON(http.StatusOK, NewOrder(order))
+}
+
 func (h *Handler) HandlePayOrder(c echo.Context) error {
 	const op = errors.Op("http/Handler.PayOrder")
 
