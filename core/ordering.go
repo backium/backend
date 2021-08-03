@@ -111,7 +111,7 @@ func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (
 	return newOrder, nil
 }
 
-func (s *OrderingService) CancelOrder(ctx context.Context, orderID ID) (Order, error) {
+func (s *OrderingService) CancelOrder(ctx context.Context, orderID ID, reason string) (Order, error) {
 	const op = errors.Op("core/OrderingService.CancelOrder")
 
 	order, err := s.OrderStorage.Get(ctx, orderID)
@@ -120,6 +120,7 @@ func (s *OrderingService) CancelOrder(ctx context.Context, orderID ID) (Order, e
 	}
 
 	order.State = OrderStateCanceled
+	order.CancelReason = reason
 	if err := s.OrderStorage.Put(ctx, order); err != nil {
 		return Order{}, errors.E(op, errors.KindUnexpected, err)
 	}

@@ -279,6 +279,7 @@ func (h *Handler) HandleCancelOrder(c echo.Context) error {
 
 	type request struct {
 		OrderID core.ID `param:"order_id" validate:"required"`
+		Reason  string  `json:"reason"`
 	}
 
 	ctx := c.Request().Context()
@@ -288,7 +289,7 @@ func (h *Handler) HandleCancelOrder(c echo.Context) error {
 		return err
 	}
 
-	order, err := h.OrderingService.CancelOrder(ctx, req.OrderID)
+	order, err := h.OrderingService.CancelOrder(ctx, req.OrderID, req.Reason)
 	if err != nil {
 		return errors.E(op, err)
 	}
@@ -333,6 +334,7 @@ type Order struct {
 	Taxes               []OrderTax      `json:"taxes"`
 	Discounts           []OrderDiscount `json:"discounts"`
 	State               core.OrderState `json:"state"`
+	CancelReason        string          `json:"cancel_reason"`
 	EmployeeID          core.ID         `json:"employee_id"`
 	CustomerID          core.ID         `json:"customer_id,omitempty"`
 	LocationID          core.ID         `json:"location_id"`
@@ -372,12 +374,13 @@ func NewOrder(order core.Order) Order {
 			Value:    ptr.Int64(order.TotalAmount.Value),
 			Currency: order.TotalAmount.Currency,
 		},
-		EmployeeID: order.EmployeeID,
-		CustomerID: order.CustomerID,
-		LocationID: order.LocationID,
-		MerchantID: order.MerchantID,
-		CreatedAt:  order.CreatedAt,
-		UpdatedAt:  order.UpdatedAt,
+		CancelReason: order.CancelReason,
+		EmployeeID:   order.EmployeeID,
+		CustomerID:   order.CustomerID,
+		LocationID:   order.LocationID,
+		MerchantID:   order.MerchantID,
+		CreatedAt:    order.CreatedAt,
+		UpdatedAt:    order.UpdatedAt,
 	}
 }
 
