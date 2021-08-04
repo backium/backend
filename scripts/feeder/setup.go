@@ -184,38 +184,41 @@ func main() {
 		cost          int64
 		price         int64
 		minimum_stock int64
+		measurement   core.MeasurementUnit
 		category      core.ID
 	}
 
 	idata := []itemdata{
 		// Panes
-		{"Tartaleta de Fresa", 175, 350, 4, categories[0].ID},
-		{"Porcion de Budin", 150, 300, 4, categories[0].ID},
-		{"Mil Hojas de manjar", 150, 300, 4, categories[0].ID},
-		{"Tartaleta de Manzana", 175, 350, 4, categories[0].ID},
-		{"Orejas", 125, 250, 4, categories[0].ID},
-		{"Empanada de Pollo", 200, 400, 4, categories[0].ID},
-		{"Empanada de Carne", 200, 400, 4, categories[0].ID},
-		{"Crema Volteada", 150, 300, 4, categories[0].ID},
-		{"Leche Asada", 150, 300, 4, categories[0].ID},
-		{"Empanadas Mixtas", 150, 350, 4, categories[0].ID},
-		{"Tres leches vainilla", 200, 450, 4, categories[0].ID},
-		{"Tres leches chocolate", 200, 450, 4, categories[0].ID},
-		{"Torta Chocolate", 200, 450, 4, categories[0].ID},
-		{"Mil Hojas de Fresa", 200, 450, 4, categories[0].ID},
-		{"Pionono de Fresa", 200, 450, 4, categories[0].ID},
-		{"Torta Helada", 200, 450, 4, categories[0].ID},
-		{"Cheesecake Maracuya", 200, 450, 4, categories[0].ID},
-		{"Cheesecake Sauco", 200, 450, 4, categories[0].ID},
-		{"Cheesecake Fresa", 200, 450, 4, categories[0].ID},
-		{"Pye de Limon", 200, 400, 4, categories[0].ID},
-		{"Empanadas de Salchicha", 200, 400, 4, categories[0].ID},
-		{"Alfajor Pequeño", 7, 20, 4, categories[0].ID},
-		{"Alfajor", 30, 75, 4, categories[0].ID},
-		{"Relampagos", 100, 300, 4, categories[0].ID},
-		{"Poseidon", 100, 250, 4, categories[0].ID},
-		{"Pizza", 175, 350, 4, categories[0].ID},
-		{"Churros", 50, 200, 4, categories[0].ID},
+		{"Tartaleta de Fresa", 175, 350, 4, core.PerItem, categories[0].ID},
+		{"Porcion de Budin", 150, 300, 4, core.PerItem, categories[0].ID},
+		{"Mil Hojas de manjar", 150, 300, 4, core.PerItem, categories[0].ID},
+		{"Tartaleta de Manzana", 175, 350, 4, core.PerItem, categories[0].ID},
+		{"Orejas", 125, 250, 4, core.PerItem, categories[0].ID},
+		{"Empanada de Pollo", 200, 400, 4, core.PerItem, categories[0].ID},
+		{"Empanada de Carne", 200, 400, 4, core.PerItem, categories[0].ID},
+		{"Crema Volteada", 150, 300, 4, core.PerItem, categories[0].ID},
+		{"Leche Asada", 150, 300, 4, core.PerItem, categories[0].ID},
+		{"Empanadas Mixtas", 150, 350, 4, core.PerItem, categories[0].ID},
+		{"Tres leches vainilla", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Tres leches chocolate", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Torta Chocolate", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Mil Hojas de Fresa", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Pionono de Fresa", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Torta Helada", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Cheesecake Maracuya", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Cheesecake Sauco", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Cheesecake Fresa", 200, 450, 4, core.PerItem, categories[0].ID},
+		{"Pye de Limon", 200, 400, 4, core.PerItem, categories[0].ID},
+		{"Empanadas de Salchicha", 200, 400, 4, core.PerItem, categories[0].ID},
+		{"Alfajor Pequeño", 7, 20, 4, core.PerItem, categories[0].ID},
+		{"Alfajor", 30, 75, 4, core.PerItem, categories[0].ID},
+		{"Relampagos", 100, 300, 4, core.PerItem, categories[0].ID},
+		{"Poseidon", 100, 250, 4, core.PerItem, categories[0].ID},
+		{"Pizza", 175, 350, 4, core.PerItem, categories[0].ID},
+		{"Churros", 50, 200, 4, core.PerItem, categories[0].ID},
+		{"Harina", 200, 400, 4, core.Kilogram, categories[0].ID},
+		{"Azucar", 100, 300, 4, core.Kilogram, categories[0].ID},
 	}
 
 	log.Printf("Creating %v items ...", len(idata))
@@ -332,10 +335,14 @@ func main() {
 		for vi := int64(0); vi < in; vi++ {
 			idx := rand.Int63() % int64(len(variations))
 			variation := variations[idx]
+			maxQuantity := int64(maxItemQuantity)
+			if variation.Measurement != core.PerItem {
+				maxQuantity = 5000
+			}
 			schema.ItemVariations = append(schema.ItemVariations, core.OrderSchemaItemVariation{
 				UID:      string(core.NewID("item_uid")),
 				ID:       variation.ID,
-				Quantity: rand.Int63()%maxItemQuantity + 1,
+				Quantity: rand.Int63()%maxQuantity + 1,
 			})
 		}
 
