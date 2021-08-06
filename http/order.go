@@ -9,11 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	OrderListDefaultSize = 10
-	OrderListMaxSize     = 50
-)
-
 func (h *Handler) HandleGenerateReceipt(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleGenerateReceipt")
 
@@ -89,15 +84,8 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = OrderListDefaultSize
-	if req.Limit <= OrderListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = OrderListMaxSize
-	}
-
 	orders, count, err := h.OrderingService.ListOrder(ctx, core.OrderQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.OrderFilter{
 			LocationIDs: req.Filter.LocationIDs,

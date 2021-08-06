@@ -42,6 +42,7 @@ type PaymentFilter struct {
 	IDs         []ID
 	OrderIDs    []ID
 	LocationIDs []ID
+	Types       []PaymentType
 	MerchantID  ID
 	CreatedAt   DateFilter
 }

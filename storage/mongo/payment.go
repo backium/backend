@@ -87,6 +87,9 @@ func (s *paymentStorage) List(ctx context.Context, q core.PaymentQuery) ([]core.
 	if len(q.Filter.OrderIDs) != 0 {
 		filter["order_id"] = bson.M{"$in": q.Filter.OrderIDs}
 	}
+	if len(q.Filter.Types) != 0 {
+		filter["type"] = bson.M{"$in": q.Filter.Types}
+	}
 	if len(q.Filter.IDs) != 0 {
 		filter["_id"] = bson.M{"$in": q.Filter.IDs}
 	}
