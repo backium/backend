@@ -51,9 +51,10 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 	}
 
 	type filter struct {
-		IDs         []core.ID  `json:"ids" validate:"omitempty,dive,id"`
-		LocationIDs []core.ID  `json:"location_ids" validate:"omitempty,dive,id"`
-		CreatedAt   dateFilter `json:"created_at"`
+		IDs          []core.ID          `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs  []core.ID          `json:"location_ids" validate:"omitempty,dive,id"`
+		PaymentTypes []core.PaymentType `json:"payment_types"`
+		CreatedAt    dateFilter         `json:"created_at"`
 	}
 
 	type sort struct {
@@ -291,20 +292,21 @@ func (h *Handler) HandlePayOrder(c echo.Context) error {
 }
 
 type Order struct {
-	ID                  core.ID         `json:"id"`
-	Items               []OrderItem     `json:"items"`
-	TotalAmount         MoneyRequest    `json:"total_amount"`
-	TotalDiscountAmount MoneyRequest    `json:"total_discount_amount"`
-	TotalTaxAmount      MoneyRequest    `json:"total_tax_amount"`
-	Taxes               []OrderTax      `json:"taxes"`
-	Discounts           []OrderDiscount `json:"discounts"`
-	State               core.OrderState `json:"state"`
-	EmployeeID          core.ID         `json:"employee_id"`
-	CustomerID          core.ID         `json:"customer_id,omitempty"`
-	LocationID          core.ID         `json:"location_id"`
-	MerchantID          core.ID         `json:"merchant_id"`
-	CreatedAt           int64           `json:"created_at,omitempty"`
-	UpdatedAt           int64           `json:"updated_at,omitempty"`
+	ID                  core.ID          `json:"id"`
+	Items               []OrderItem      `json:"items"`
+	TotalAmount         MoneyRequest     `json:"total_amount"`
+	TotalDiscountAmount MoneyRequest     `json:"total_discount_amount"`
+	TotalTaxAmount      MoneyRequest     `json:"total_tax_amount"`
+	Taxes               []OrderTax       `json:"taxes"`
+	Discounts           []OrderDiscount  `json:"discounts"`
+	State               core.OrderState  `json:"state"`
+	PaymentTypes        core.PaymentType `json:"payment_types"`
+	EmployeeID          core.ID          `json:"employee_id"`
+	CustomerID          core.ID          `json:"customer_id,omitempty"`
+	LocationID          core.ID          `json:"location_id"`
+	MerchantID          core.ID          `json:"merchant_id"`
+	CreatedAt           int64            `json:"created_at,omitempty"`
+	UpdatedAt           int64            `json:"updated_at,omitempty"`
 }
 
 func NewOrder(order core.Order) Order {
@@ -338,12 +340,13 @@ func NewOrder(order core.Order) Order {
 			Value:    ptr.Int64(order.TotalAmount.Value),
 			Currency: order.TotalAmount.Currency,
 		},
-		EmployeeID: order.EmployeeID,
-		CustomerID: order.CustomerID,
-		LocationID: order.LocationID,
-		MerchantID: order.MerchantID,
-		CreatedAt:  order.CreatedAt,
-		UpdatedAt:  order.UpdatedAt,
+		PaymentTypes: order.PaymentTypes,
+		EmployeeID:   order.EmployeeID,
+		CustomerID:   order.CustomerID,
+		LocationID:   order.LocationID,
+		MerchantID:   order.MerchantID,
+		CreatedAt:    order.CreatedAt,
+		UpdatedAt:    order.UpdatedAt,
 	}
 }
 

@@ -29,6 +29,7 @@ type Order struct {
 	TotalAmount         Money                `bson:"total_amount"`
 	TotalCostAmount     Money                `bson:"total_cost_amount"`
 	State               OrderState           `bson:"state"`
+	PaymentTypes        []PaymentType        `bson:"payment_types"`
 	EmployeeID          ID                   `bson:"employee_id"`
 	CustomerID          ID                   `bson:"customer_id"`
 	LocationID          ID                   `bson:"location_id"`
@@ -103,10 +104,11 @@ type OrderDiscount struct {
 }
 
 type OrderFilter struct {
-	IDs         []ID
-	LocationIDs []ID
-	MerchantID  ID
-	CreatedAt   DateFilter
+	IDs          []ID
+	LocationIDs  []ID
+	MerchantID   ID
+	CreatedAt    DateFilter
+	PaymentTypes []PaymentType
 }
 
 type OrderSort struct {

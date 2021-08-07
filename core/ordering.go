@@ -133,6 +133,7 @@ func (s *OrderingService) PayOrder(ctx context.Context, orderID ID,
 
 	var payAmount int64
 	var tipAmount int64
+	var paymentTypes []PaymentType
 	for _, payment := range payments {
 		if payment.OrderID != order.ID {
 			return Order{}, errors.E(op, errors.KindValidation,
@@ -140,8 +141,10 @@ func (s *OrderingService) PayOrder(ctx context.Context, orderID ID,
 		}
 		payAmount += payment.Amount.Value
 		tipAmount += payment.TipAmount.Value
+		paymentTypes = append(paymentTypes, payment.Type)
 	}
 
+	order.PaymentTypes = append(order.PaymentTypes, paymentTypes...)
 	order.TotalTipAmount = NewMoney(tipAmount, order.Schema.Currency)
 	order.TotalAmount.Value += tipAmount
 	if order.TotalAmount.Value == payAmount {
