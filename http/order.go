@@ -89,8 +89,9 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.OrderFilter{
-			LocationIDs: req.Filter.LocationIDs,
-			MerchantID:  merchant.ID,
+			LocationIDs:  req.Filter.LocationIDs,
+			MerchantID:   merchant.ID,
+			PaymentTypes: req.Filter.PaymentTypes,
 			CreatedAt: core.DateFilter{
 				Gte: req.Filter.CreatedAt.Gte,
 				Lte: req.Filter.CreatedAt.Lte,
