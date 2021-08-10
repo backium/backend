@@ -4,12 +4,13 @@ type Permission string
 
 const (
 	// UI permissions
-	HomeAccess      Permission = "home_access"
-	LocationAccess  Permission = "location_access"
-	SalesAccess     Permission = "sales_access"
-	InventoryAccess Permission = "inventory_access"
-	StockAccess     Permission = "stock_access"
-	GuestbookAccess Permission = "guestbook_access"
+	HomeAccess       Permission = "home_access"
+	LocationAccess   Permission = "location_access"
+	CashDrawerAccess Permission = "cashdrawer_access"
+	SalesAccess      Permission = "sales_access"
+	InventoryAccess  Permission = "inventory_access"
+	StockAccess      Permission = "stock_access"
+	GuestbookAccess  Permission = "guestbook_access"
 	// Write, read permissions
 	CatalogWrite   Permission = "catalog_write"
 	CatalogRead    Permission = "catalog_read"
