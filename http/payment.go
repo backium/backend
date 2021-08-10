@@ -9,11 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	PaymentListDefaultSize = 10
-	PaymentListMaxSize     = 50
-)
-
 func (h *Handler) HandleCreatePayment(c echo.Context) error {
 	const op = errors.Op("http/Handler.CreatePayment")
 
@@ -61,10 +56,11 @@ func (h *Handler) HandleSearchPayment(c echo.Context) error {
 	}
 
 	type filter struct {
-		IDs         []core.ID  `json:"ids" validate:"omitempty,dive,id"`
-		OrderIDs    []core.ID  `json:"order_ids" validate:"omitempty,dive,id"`
-		LocationIDs []core.ID  `json:"location_ids" validate:"omitempty,dive,id"`
-		CreatedAt   dateFilter `json:"created_at"`
+		IDs         []core.ID          `json:"ids" validate:"omitempty,dive,id"`
+		OrderIDs    []core.ID          `json:"order_ids" validate:"omitempty,dive,id"`
+		LocationIDs []core.ID          `json:"location_ids" validate:"omitempty,dive,id"`
+		Types       []core.PaymentType `json:"types"`
+		CreatedAt   dateFilter         `json:"created_at"`
 	}
 
 	type sort struct {
@@ -95,19 +91,13 @@ func (h *Handler) HandleSearchPayment(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = PaymentListDefaultSize
-	if req.Limit <= PaymentListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = PaymentListMaxSize
-	}
-
 	payments, count, err := h.PaymentService.ListPayment(ctx, core.PaymentQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.PaymentFilter{
 			OrderIDs:    req.Filter.OrderIDs,
 			LocationIDs: req.Filter.LocationIDs,
+			Types:       req.Filter.Types,
 			MerchantID:  merchant.ID,
 			CreatedAt: core.DateFilter{
 				Gte: req.Filter.CreatedAt.Gte,

@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	hundred = d.NewFromInt(100)
+	hundred  = d.NewFromInt(100)
+	thousand = d.NewFromInt(1000)
 )
 
 type OrderingService struct {
@@ -154,6 +155,7 @@ func (s *OrderingService) PayOrder(ctx context.Context, orderID ID,
 
 	var payAmount int64
 	var tipAmount int64
+	var paymentTypes []PaymentType
 	for _, payment := range payments {
 		if payment.OrderID != order.ID {
 			return Order{}, errors.E(op, errors.KindValidation,
@@ -161,8 +163,10 @@ func (s *OrderingService) PayOrder(ctx context.Context, orderID ID,
 		}
 		payAmount += payment.Amount.Value
 		tipAmount += payment.TipAmount.Value
+		paymentTypes = append(paymentTypes, payment.Type)
 	}
 
+	order.PaymentTypes = append(order.PaymentTypes, paymentTypes...)
 	order.TotalTipAmount = NewMoney(tipAmount, order.Schema.Currency)
 	order.TotalAmount.Value += tipAmount
 	if order.TotalAmount.Value == payAmount {
@@ -319,6 +323,16 @@ func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 		category := b.lookup.Category(uid)
 		item := b.lookup.Item(uid)
 
+		var itemAmount int64
+		if variation.Measurement == PerItem {
+			itemAmount = variation.Price.Value * schemaItemVariation.Quantity
+		} else {
+			pricePerUnit := d.NewFromInt(variation.Price.Value)
+			// Use 3 decimals of precision
+			quantity := d.NewFromInt(schemaItemVariation.Quantity).Div(thousand)
+			itemAmount = quantity.Mul(pricePerUnit).RoundBank(0).IntPart()
+		}
+
 		orderItem := OrderItemVariation{
 			UID:                 schemaItemVariation.UID,
 			ID:                  schemaItemVariation.ID,
@@ -326,11 +340,12 @@ func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 			CategoryName:        category.Name,
 			ItemName:            item.Name,
 			Quantity:            schemaItemVariation.Quantity,
+			Measurement:         variation.Measurement,
 			BasePrice:           NewMoney(variation.Price.Value, currency),
-			GrossSales:          NewMoney(variation.Price.Value*schemaItemVariation.Quantity, currency),
+			GrossSales:          NewMoney(itemAmount, currency),
 			TotalDiscountAmount: NewMoney(0, currency),
 			TotalTaxAmount:      NewMoney(0, currency),
-			TotalAmount:         NewMoney(variation.Price.Value*schemaItemVariation.Quantity, currency),
+			TotalAmount:         NewMoney(itemAmount, currency),
 			TotalCostAmount:     NewMoney(0, currency),
 		}
 

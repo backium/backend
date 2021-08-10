@@ -13,14 +13,15 @@ func (h *Handler) HandleCreateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Create")
 
 	type request struct {
-		Name                 string        `json:"name" validate:"required"`
-		SKU                  string        `json:"sku"`
-		ItemID               core.ID       `json:"item_id" validate:"required"`
-		Price                *MoneyRequest `json:"price" validate:"required"`
-		Cost                 *MoneyRequest `json:"cost" validate:"omitempty"`
-		MinimumRequiredStock int64         `json:"minimum_required_stock"`
-		Image                string        `json:"image"`
-		LocationIDs          *[]core.ID    `json:"location_ids" validate:"omitempty,dive,required"`
+		Name                 string               `json:"name" validate:"required"`
+		SKU                  string               `json:"sku"`
+		ItemID               core.ID              `json:"item_id" validate:"required"`
+		Price                *MoneyRequest        `json:"price" validate:"required"`
+		Cost                 *MoneyRequest        `json:"cost" validate:"omitempty"`
+		Measurement          core.MeasurementUnit `json:"measurement" validate:"required"`
+		MinimumRequiredStock int64                `json:"minimum_required_stock"`
+		Image                string               `json:"image"`
+		LocationIDs          *[]core.ID           `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -38,6 +39,7 @@ func (h *Handler) HandleCreateItemVariation(c echo.Context) error {
 	variation := core.NewItemVariation(req.Name, req.ItemID, merchant.ID)
 	variation.SKU = req.SKU
 	variation.Image = req.Image
+	variation.Measurement = req.Measurement
 	variation.MinimumRequiredStock = req.MinimumRequiredStock
 	variation.Price = core.Money{
 		Value:    ptr.GetInt64(req.Price.Value),
@@ -65,14 +67,15 @@ func (h *Handler) HandleUpdateItemVariation(c echo.Context) error {
 	const op = errors.Op("handler.ItemVariation.Update")
 
 	type request struct {
-		ID                   core.ID       `param:"id" validate:"required"`
-		Name                 *string       `json:"name" validate:"omitempty,min=1"`
-		SKU                  *string       `json:"sku"`
-		Price                *MoneyRequest `json:"price"`
-		Cost                 *MoneyRequest `json:"cost"`
-		Image                *string       `json:"image"`
-		MinimumRequiredStock *int64        `json:"minimum_required_stock"`
-		LocationIDs          *[]core.ID    `json:"location_ids" validate:"omitempty,dive,required"`
+		ID                   core.ID               `param:"id" validate:"required"`
+		Name                 *string               `json:"name" validate:"omitempty,min=1"`
+		SKU                  *string               `json:"sku"`
+		Price                *MoneyRequest         `json:"price"`
+		Cost                 *MoneyRequest         `json:"cost"`
+		Measurement          *core.MeasurementUnit `json:"measurement"`
+		Image                *string               `json:"image"`
+		MinimumRequiredStock *int64                `json:"minimum_required_stock"`
+		LocationIDs          *[]core.ID            `json:"location_ids" validate:"omitempty,dive,required"`
 	}
 
 	ctx := c.Request().Context()
@@ -102,6 +105,9 @@ func (h *Handler) HandleUpdateItemVariation(c echo.Context) error {
 	}
 	if req.Name != nil {
 		variation.Name = *req.Name
+	}
+	if req.Measurement != nil {
+		variation.Measurement = *req.Measurement
 	}
 	if req.SKU != nil {
 		variation.SKU = *req.SKU
@@ -288,19 +294,20 @@ func (h *Handler) HandleDeleteItemVariation(c echo.Context) error {
 }
 
 type ItemVariation struct {
-	ID                   core.ID     `json:"id"`
-	Name                 string      `json:"name"`
-	SKU                  string      `json:"sku,omitempty"`
-	ItemID               core.ID     `json:"item_id"`
-	Price                Money       `json:"price"`
-	Cost                 *Money      `json:"cost,omitempty"`
-	Image                string      `json:"image,omitempty"`
-	MinimumRequiredStock int64       `json:"minimum_required_stock"`
-	LocationIDs          []core.ID   `json:"location_ids"`
-	MerchantID           core.ID     `json:"merchant_id"`
-	CreatedAt            int64       `json:"created_at"`
-	UpdatedAt            int64       `json:"updated_at"`
-	Status               core.Status `json:"status"`
+	ID                   core.ID              `json:"id"`
+	Name                 string               `json:"name"`
+	SKU                  string               `json:"sku,omitempty"`
+	ItemID               core.ID              `json:"item_id"`
+	Price                Money                `json:"price"`
+	Cost                 *Money               `json:"cost,omitempty"`
+	Image                string               `json:"image,omitempty"`
+	Measurement          core.MeasurementUnit `json:"measurement"`
+	MinimumRequiredStock int64                `json:"minimum_required_stock"`
+	LocationIDs          []core.ID            `json:"location_ids"`
+	MerchantID           core.ID              `json:"merchant_id"`
+	CreatedAt            int64                `json:"created_at"`
+	UpdatedAt            int64                `json:"updated_at"`
+	Status               core.Status          `json:"status"`
 }
 
 func NewItemVariation(variation core.ItemVariation) ItemVariation {
@@ -316,6 +323,7 @@ func NewItemVariation(variation core.ItemVariation) ItemVariation {
 		Price:                NewMoney(variation.Price),
 		Cost:                 cost,
 		Image:                variation.Image,
+		Measurement:          variation.Measurement,
 		MinimumRequiredStock: variation.MinimumRequiredStock,
 		LocationIDs:          variation.LocationIDs,
 		MerchantID:           variation.MerchantID,

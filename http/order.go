@@ -9,11 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	OrderListDefaultSize = 10
-	OrderListMaxSize     = 50
-)
-
 func (h *Handler) HandleGenerateReceipt(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleGenerateReceipt")
 
@@ -56,9 +51,10 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 	}
 
 	type filter struct {
-		IDs         []core.ID  `json:"ids" validate:"omitempty,dive,id"`
-		LocationIDs []core.ID  `json:"location_ids" validate:"omitempty,dive,id"`
-		CreatedAt   dateFilter `json:"created_at"`
+		IDs          []core.ID          `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs  []core.ID          `json:"location_ids" validate:"omitempty,dive,id"`
+		PaymentTypes []core.PaymentType `json:"payment_types"`
+		CreatedAt    dateFilter         `json:"created_at"`
 	}
 
 	type sort struct {
@@ -89,19 +85,13 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 		return err
 	}
 
-	var limit int64 = OrderListDefaultSize
-	if req.Limit <= OrderListMaxSize {
-		limit = req.Limit
-	} else {
-		limit = OrderListMaxSize
-	}
-
 	orders, count, err := h.OrderingService.ListOrder(ctx, core.OrderQuery{
-		Limit:  limit,
+		Limit:  req.Limit,
 		Offset: req.Offset,
 		Filter: core.OrderFilter{
-			LocationIDs: req.Filter.LocationIDs,
-			MerchantID:  merchant.ID,
+			LocationIDs:  req.Filter.LocationIDs,
+			MerchantID:   merchant.ID,
+			PaymentTypes: req.Filter.PaymentTypes,
 			CreatedAt: core.DateFilter{
 				Gte: req.Filter.CreatedAt.Gte,
 				Lte: req.Filter.CreatedAt.Lte,
@@ -334,6 +324,7 @@ type Order struct {
 	Taxes               []OrderTax      `json:"taxes"`
 	Discounts           []OrderDiscount `json:"discounts"`
 	State               core.OrderState `json:"state"`
+  PaymentTypes        []core.PaymentType `json:"payment_types"`
 	CancelReason        string          `json:"cancel_reason"`
 	EmployeeID          core.ID         `json:"employee_id"`
 	CustomerID          core.ID         `json:"customer_id,omitempty"`
@@ -374,6 +365,7 @@ func NewOrder(order core.Order) Order {
 			Value:    ptr.Int64(order.TotalAmount.Value),
 			Currency: order.TotalAmount.Currency,
 		},
+		PaymentTypes: order.PaymentTypes,
 		CancelReason: order.CancelReason,
 		EmployeeID:   order.EmployeeID,
 		CustomerID:   order.CustomerID,
@@ -389,6 +381,7 @@ type OrderItem struct {
 	VariationID         core.ID                    `json:"variation_id"`
 	Name                string                     `json:"name"`
 	Quantity            int64                      `json:"quantity"`
+	Measurement         core.MeasurementUnit       `json:"measurement"`
 	AppliedTaxes        []OrderItemAppliedTax      `json:"applied_taxes"`
 	AppliedDiscounts    []OrderItemAppliedDiscount `json:"applied_discounts"`
 	BasePrice           MoneyRequest               `json:"base_price"`
@@ -424,6 +417,7 @@ func NewOrderItem(item core.OrderItemVariation) OrderItem {
 		VariationID: item.ID,
 		Name:        item.Name,
 		Quantity:    item.Quantity,
+		Measurement: item.Measurement,
 		BasePrice: MoneyRequest{
 			Value:    ptr.Int64(item.BasePrice.Value),
 			Currency: item.BasePrice.Currency,

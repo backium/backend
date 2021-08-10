@@ -86,6 +86,9 @@ func (s *orderStorage) List(ctx context.Context, q core.OrderQuery) ([]core.Orde
 	if len(q.Filter.IDs) != 0 {
 		filter["_id"] = bson.M{"$in": q.Filter.IDs}
 	}
+	if len(q.Filter.PaymentTypes) != 0 {
+		filter["payment_types"] = bson.M{"$in": q.Filter.PaymentTypes}
+	}
 	if len(q.Filter.LocationIDs) != 0 {
 		filter["location_id"] = bson.M{"$in": q.Filter.LocationIDs}
 	}

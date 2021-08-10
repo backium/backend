@@ -16,7 +16,7 @@ RUN go env -w GOPRIVATE=github.com/backium
 
 RUN echo "127.0.0.1\tmongodb" | (tee -a /etc/hosts) > /dev/null
 
-RUN go mod init feeder && go mod tidy
+RUN go mod init feeder &&  go get "github.com/backium/backend@8bc2a16c9e554dcaef3cdea1dda44e4384217b39" && go mod tidy
 
 RUN go build -o main .
 
