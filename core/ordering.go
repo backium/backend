@@ -112,6 +112,28 @@ func (s *OrderingService) CreateOrder(ctx context.Context, schema OrderSchema) (
 	return newOrder, nil
 }
 
+func (s *OrderingService) CancelOrder(ctx context.Context, orderID ID, reason string) (Order, error) {
+	const op = errors.Op("core/OrderingService.CancelOrder")
+
+	order, err := s.OrderStorage.Get(ctx, orderID)
+	if err != nil {
+		return Order{}, errors.E(op, err)
+	}
+
+	order.State = OrderStateCanceled
+	order.CancelReason = reason
+	if err := s.OrderStorage.Put(ctx, order); err != nil {
+		return Order{}, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	order, err = s.OrderStorage.Get(ctx, order.ID)
+	if err != nil {
+		return Order{}, errors.E(op, errors.KindUnexpected, err)
+	}
+
+	return order, nil
+}
+
 func (s *OrderingService) PayOrder(ctx context.Context, orderID ID,
 	paymentIDs []ID) (Order, error) {
 	const op = errors.Op("core/OrderingService.CreateOrder")

@@ -264,6 +264,29 @@ func (h *Handler) HandleCreateOrder(c echo.Context) error {
 	return c.JSON(http.StatusOK, NewOrder(order))
 }
 
+func (h *Handler) HandleCancelOrder(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleCancelOrder")
+
+	type request struct {
+		OrderID core.ID `param:"order_id" validate:"required"`
+		Reason  string  `json:"reason"`
+	}
+
+	ctx := c.Request().Context()
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	order, err := h.OrderingService.CancelOrder(ctx, req.OrderID, req.Reason)
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	return c.JSON(http.StatusOK, NewOrder(order))
+}
+
 func (h *Handler) HandlePayOrder(c echo.Context) error {
 	const op = errors.Op("http/Handler.PayOrder")
 
@@ -293,21 +316,22 @@ func (h *Handler) HandlePayOrder(c echo.Context) error {
 }
 
 type Order struct {
-	ID                  core.ID            `json:"id"`
-	Items               []OrderItem        `json:"items"`
-	TotalAmount         MoneyRequest       `json:"total_amount"`
-	TotalDiscountAmount MoneyRequest       `json:"total_discount_amount"`
-	TotalTaxAmount      MoneyRequest       `json:"total_tax_amount"`
-	Taxes               []OrderTax         `json:"taxes"`
-	Discounts           []OrderDiscount    `json:"discounts"`
-	State               core.OrderState    `json:"state"`
-	PaymentTypes        []core.PaymentType `json:"payment_types"`
-	EmployeeID          core.ID            `json:"employee_id"`
-	CustomerID          core.ID            `json:"customer_id,omitempty"`
-	LocationID          core.ID            `json:"location_id"`
-	MerchantID          core.ID            `json:"merchant_id"`
-	CreatedAt           int64              `json:"created_at,omitempty"`
-	UpdatedAt           int64              `json:"updated_at,omitempty"`
+	ID                  core.ID         `json:"id"`
+	Items               []OrderItem     `json:"items"`
+	TotalAmount         MoneyRequest    `json:"total_amount"`
+	TotalDiscountAmount MoneyRequest    `json:"total_discount_amount"`
+	TotalTaxAmount      MoneyRequest    `json:"total_tax_amount"`
+	Taxes               []OrderTax      `json:"taxes"`
+	Discounts           []OrderDiscount `json:"discounts"`
+	State               core.OrderState `json:"state"`
+  PaymentTypes        []core.PaymentType `json:"payment_types"`
+	CancelReason        string          `json:"cancel_reason"`
+	EmployeeID          core.ID         `json:"employee_id"`
+	CustomerID          core.ID         `json:"customer_id,omitempty"`
+	LocationID          core.ID         `json:"location_id"`
+	MerchantID          core.ID         `json:"merchant_id"`
+	CreatedAt           int64           `json:"created_at,omitempty"`
+	UpdatedAt           int64           `json:"updated_at,omitempty"`
 }
 
 func NewOrder(order core.Order) Order {
@@ -342,6 +366,7 @@ func NewOrder(order core.Order) Order {
 			Currency: order.TotalAmount.Currency,
 		},
 		PaymentTypes: order.PaymentTypes,
+		CancelReason: order.CancelReason,
 		EmployeeID:   order.EmployeeID,
 		CustomerID:   order.CustomerID,
 		LocationID:   order.LocationID,

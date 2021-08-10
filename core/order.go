@@ -30,6 +30,7 @@ type Order struct {
 	TotalCostAmount     Money                `bson:"total_cost_amount"`
 	State               OrderState           `bson:"state"`
 	PaymentTypes        []PaymentType        `bson:"payment_types"`
+	CancelReason        string               `bson:"cancel_reason"`
 	EmployeeID          ID                   `bson:"employee_id"`
 	CustomerID          ID                   `bson:"customer_id"`
 	LocationID          ID                   `bson:"location_id"`
