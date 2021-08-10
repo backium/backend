@@ -356,6 +356,7 @@ type OrderItem struct {
 	VariationID         core.ID                    `json:"variation_id"`
 	Name                string                     `json:"name"`
 	Quantity            int64                      `json:"quantity"`
+	Measurement         core.MeasurementUnit       `json:"measurement"`
 	AppliedTaxes        []OrderItemAppliedTax      `json:"applied_taxes"`
 	AppliedDiscounts    []OrderItemAppliedDiscount `json:"applied_discounts"`
 	BasePrice           MoneyRequest               `json:"base_price"`
@@ -391,6 +392,7 @@ func NewOrderItem(item core.OrderItemVariation) OrderItem {
 		VariationID: item.ID,
 		Name:        item.Name,
 		Quantity:    item.Quantity,
+		Measurement: item.Measurement,
 		BasePrice: MoneyRequest{
 			Value:    ptr.Int64(item.BasePrice.Value),
 			Currency: item.BasePrice.Currency,
