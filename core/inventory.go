@@ -61,6 +61,7 @@ func NewInventoryCount(variationID, locationID, merchantID ID) InventoryCount {
 		State:           InventoryStateSold,
 		LocationID:      locationID,
 		MerchantID:      merchantID,
+		Status:          StatusActive,
 	}
 }
 
