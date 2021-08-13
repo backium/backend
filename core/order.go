@@ -107,6 +107,7 @@ type OrderDiscount struct {
 type OrderFilter struct {
 	IDs          []ID
 	LocationIDs  []ID
+	EmployeeIDs  []ID
 	MerchantID   ID
 	CreatedAt    DateFilter
 	States       []OrderState

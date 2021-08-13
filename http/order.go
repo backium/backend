@@ -53,6 +53,7 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 	type filter struct {
 		IDs          []core.ID          `json:"ids" validate:"omitempty,dive,id"`
 		LocationIDs  []core.ID          `json:"location_ids" validate:"omitempty,dive,id"`
+		EmployeeIDs  []core.ID          `json:"employee_ids" validate:"omitempty,dive,id"`
 		PaymentTypes []core.PaymentType `json:"payment_types"`
 		States       []core.OrderState  `json:"states"`
 		CreatedAt    dateFilter         `json:"created_at"`
@@ -91,6 +92,7 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 		Offset: req.Offset,
 		Filter: core.OrderFilter{
 			LocationIDs:  req.Filter.LocationIDs,
+			EmployeeIDs:  req.Filter.EmployeeIDs,
 			MerchantID:   merchant.ID,
 			PaymentTypes: req.Filter.PaymentTypes,
 			States:       req.Filter.States,
