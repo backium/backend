@@ -66,10 +66,13 @@ type ReportService struct {
 }
 
 type ReportFilter struct {
-	MerchantID  ID
-	LocationIDs []ID
-	BeginTime   int64
-	EndTime     int64
+	MerchantID   ID
+	LocationIDs  []ID
+	EmployeeIDs  []ID
+	PaymentTypes []PaymentType
+	OrderStates  []OrderState
+	BeginTime    int64
+	EndTime      int64
 }
 
 type Aggregations struct {
@@ -103,8 +106,11 @@ func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRe
 
 	orders, _, err := svc.OrderStorage.List(ctx, OrderQuery{
 		Filter: OrderFilter{
-			LocationIDs: req.Filter.LocationIDs,
-			MerchantID:  req.Filter.MerchantID,
+			LocationIDs:  req.Filter.LocationIDs,
+			MerchantID:   req.Filter.MerchantID,
+			EmployeeIDs:  req.Filter.EmployeeIDs,
+			States:       req.Filter.OrderStates,
+			PaymentTypes: req.Filter.PaymentTypes,
 			CreatedAt: DateFilter{
 				Gte: req.Filter.BeginTime,
 				Lte: req.Filter.EndTime,

@@ -13,11 +13,14 @@ func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleGenerateCustomReport")
 
 	type request struct {
-		LocationIDs []core.ID           `json:"location_ids" validate:"omitempty,dive,required"`
-		GroupByType []core.GroupingType `json:"group_by_type" validate:"required"`
-		Timezone    string              `json:"timezone" validate:"required"`
-		BeginTime   int64               `json:"begin_time" validate:"required"`
-		EndTime     int64               `json:"end_time" validate:"required"`
+		LocationIDs  []core.ID           `json:"location_ids" validate:"omitempty,dive,required"`
+		EmployeeIDs  []core.ID           `json:"employee_ids" validate:"omitempty,dive,required"`
+		PaymentTypes []core.PaymentType  `json:"payment_types" validate:"omitempty,dive,required"`
+		OrderStates  []core.OrderState   `json:"order_states" validate:"omitempty,dive,required"`
+		GroupByType  []core.GroupingType `json:"group_by_type" validate:"required"`
+		Timezone     string              `json:"timezone" validate:"required"`
+		BeginTime    int64               `json:"begin_time" validate:"required"`
+		EndTime      int64               `json:"end_time" validate:"required"`
 	}
 
 	type response struct {
@@ -49,10 +52,13 @@ func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 		GroupType: req.GroupByType,
 		Timezone:  req.Timezone,
 		Filter: core.ReportFilter{
-			MerchantID:  merchant.ID,
-			LocationIDs: req.LocationIDs,
-			BeginTime:   req.BeginTime,
-			EndTime:     req.EndTime,
+			MerchantID:   merchant.ID,
+			LocationIDs:  req.LocationIDs,
+			EmployeeIDs:  req.EmployeeIDs,
+			OrderStates:  req.OrderStates,
+			PaymentTypes: req.PaymentTypes,
+			BeginTime:    req.BeginTime,
+			EndTime:      req.EndTime,
 		},
 	})
 	if err != nil {
