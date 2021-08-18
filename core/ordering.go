@@ -349,8 +349,16 @@ func (b *OrderBuilder) applyItemsAndInit(order *Order) {
 			TotalCostAmount:     NewMoney(0, currency),
 		}
 
+		// TODO: Remove code duplication
 		if variation.Cost != nil {
-			orderItem.TotalCostAmount.Value = variation.Cost.Value * schemaItemVariation.Quantity
+			if variation.Measurement == PerItem {
+				orderItem.TotalCostAmount.Value = variation.Cost.Value * schemaItemVariation.Quantity
+			} else {
+				costPerUnit := d.NewFromInt(variation.Cost.Value)
+				// Use 3 decimals of precision
+				quantity := d.NewFromInt(schemaItemVariation.Quantity).Div(thousand)
+				orderItem.TotalCostAmount.Value = quantity.Mul(costPerUnit).RoundBank(0).IntPart()
+			}
 		}
 
 		order.ItemVariations = append(order.ItemVariations, orderItem)
