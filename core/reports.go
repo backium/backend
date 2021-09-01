@@ -104,6 +104,8 @@ type CustomReportRequest struct {
 func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRequest) ([]CustomReport, error) {
 	const op = errors.Op("core/ReportService.GenerateCustom")
 
+	fmt.Println("Getting orders ...")
+	from := time.Now()
 	orders, _, err := svc.OrderStorage.List(ctx, OrderQuery{
 		Filter: OrderFilter{
 			LocationIDs:  req.Filter.LocationIDs,
@@ -120,6 +122,8 @@ func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRe
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
+	to := time.Now()
+	fmt.Printf("%v orders received, taken %v seconds", len(orders), to.Sub(from).Seconds())
 
 	wrappedOrders := make([]WrappedOrder, len(orders))
 	for i := range orders {

@@ -100,6 +100,12 @@ func (s *Server) setupHandlers() {
 		ItemVariationStorage: s.ItemVariationStorage,
 		CategoryStorage:      s.CategoryStorage,
 	}
+	exportService := core.ExportService{
+		OrderStorage:    s.OrderStorage,
+		LocationStorage: s.LocationStorage,
+		EmployeeStorage: s.EmployeeStorage,
+		Uploader:        s.Uploader,
+	}
 
 	// setup handlers
 	s.Handler = Handler{
@@ -113,6 +119,7 @@ func (s *Server) setupHandlers() {
 		OrderingService:   orderingService,
 		PaymentService:    paymentService,
 		ReportService:     reportService,
+		ExportService:     exportService,
 		SessionRepository: s.SessionRepository,
 	}
 }

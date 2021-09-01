@@ -9,6 +9,68 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+func (h *Handler) HandleExportOrders(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleExportOrders")
+
+	type dateFilter struct {
+		Gte int64 `json:"gte" validate:"gte=0"`
+		Lte int64 `json:"lte" validate:"gte=0"`
+	}
+
+	type filter struct {
+		IDs          []core.ID          `json:"ids" validate:"omitempty,dive,id"`
+		LocationIDs  []core.ID          `json:"location_ids" validate:"omitempty,dive,id"`
+		EmployeeIDs  []core.ID          `json:"employee_ids" validate:"omitempty,dive,id"`
+		PaymentTypes []core.PaymentType `json:"payment_types"`
+		States       []core.OrderState  `json:"states"`
+		CreatedAt    dateFilter         `json:"created_at"`
+	}
+
+	type request struct {
+		Limit    int64  `json:"limit" validate:"gte=0"`
+		Offset   int64  `json:"offset" validate:"gte=0"`
+		Filter   filter `json:"filter"`
+		Timezone string `json:"timezone"`
+	}
+
+	type response struct {
+		URL string `json:"url"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return err
+	}
+
+	url, err := h.ExportService.ExportOrders(ctx, core.OrderQuery{
+		Filter: core.OrderFilter{
+			LocationIDs:  req.Filter.LocationIDs,
+			EmployeeIDs:  req.Filter.EmployeeIDs,
+			MerchantID:   merchant.ID,
+			PaymentTypes: req.Filter.PaymentTypes,
+			States:       req.Filter.States,
+			CreatedAt: core.DateFilter{
+				Gte: req.Filter.CreatedAt.Gte,
+				Lte: req.Filter.CreatedAt.Lte,
+			},
+		},
+	}, req.Timezone)
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{URL: url}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (h *Handler) HandleGenerateReceipt(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleGenerateReceipt")
 

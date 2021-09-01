@@ -11,6 +11,7 @@ services:
       - mongodb
     environment:
       - BACKIUM_DB_URI=mongodb://mongodb:27017
+      - BACKIUM_DB_NAME=testing
       - BACKIUM_APP_PORT=8080
       - BACKIUM_REDIS_URI=redis:6379
       - BACKIUM_REDIS_PASSWORD=

@@ -22,7 +22,7 @@ func New(url string) (core.Uploader, error) {
 }
 
 func (u *api) Upload(ctx context.Context, file string) (string, error) {
-	res, err := u.cld.Upload.Upload(ctx, file, uploader.UploadParams{ResourceType: "pdf"})
+	res, err := u.cld.Upload.Upload(ctx, file, uploader.UploadParams{})
 	if err != nil {
 		return "", err
 	}

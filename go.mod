@@ -3,8 +3,7 @@ module github.com/backium/backend
 go 1.16
 
 require (
-	github.com/cheggaaa/pb/v3 v3.0.8 // indirect
-	github.com/cloudinary/cloudinary-go v1.2.0 // indirect
+	github.com/cloudinary/cloudinary-go v1.2.0
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/validator/v10 v10.6.1
 	github.com/go-redis/redis/v8 v8.10.0
@@ -14,6 +13,7 @@ require (
 	github.com/shopspring/decimal v1.2.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.7.0
+	github.com/xuri/excelize/v2 v2.4.1
 	go.mongodb.org/mongo-driver v1.5.3
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97
 )
