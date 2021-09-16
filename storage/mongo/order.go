@@ -104,6 +104,12 @@ func (s *orderStorage) List(ctx context.Context, q core.OrderQuery) ([]core.Orde
 	if q.Filter.CreatedAt.Lte != 0 {
 		filter["created_at"] = bson.M{"$gte": q.Filter.CreatedAt.Gte, "$lte": q.Filter.CreatedAt.Lte}
 	}
+	if q.Filter.UpdatedAt.Gte != 0 {
+		filter["updated_at"] = bson.M{"$gte": q.Filter.UpdatedAt.Gte}
+	}
+	if q.Filter.UpdatedAt.Lte != 0 {
+		filter["updated_at"] = bson.M{"$gte": q.Filter.UpdatedAt.Gte, "$lte": q.Filter.UpdatedAt.Lte}
+	}
 
 	count, err := s.collection.CountDocuments(ctx, filter)
 	if err != nil {

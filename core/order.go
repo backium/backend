@@ -110,6 +110,7 @@ type OrderFilter struct {
 	EmployeeIDs  []ID
 	MerchantID   ID
 	CreatedAt    DateFilter
+	UpdatedAt    DateFilter
 	States       []OrderState
 	PaymentTypes []PaymentType
 }

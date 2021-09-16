@@ -113,7 +113,7 @@ func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRe
 			EmployeeIDs:  req.Filter.EmployeeIDs,
 			States:       req.Filter.OrderStates,
 			PaymentTypes: req.Filter.PaymentTypes,
-			CreatedAt: DateFilter{
+			UpdatedAt: DateFilter{
 				Gte: req.Filter.BeginTime,
 				Lte: req.Filter.EndTime,
 			},
@@ -404,7 +404,7 @@ func groupOrdersByDay(orders []WrappedOrder, timezone string) map[string][]Wrapp
 	for _, order := range orders {
 		uidGroups := map[string][]string{}
 
-		creationTime := time.Unix(order.Order.CreatedAt, 0).In(location)
+		creationTime := time.Unix(order.Order.UpdatedAt, 0).In(location)
 		startOfDay := startOfDay(creationTime)
 		endOfDay := endOfDay(creationTime)
 
@@ -430,7 +430,7 @@ func groupOrdersByMonth(orders []WrappedOrder, timezone string) map[string][]Wra
 	for _, order := range orders {
 		uidGroups := map[string][]string{}
 
-		creationTime := time.Unix(order.Order.CreatedAt, 0).In(location)
+		creationTime := time.Unix(order.Order.UpdatedAt, 0).In(location)
 		name := strings.ToLower(creationTime.Month().String())
 		for _, variation := range order.Order.ItemVariations {
 			if order.Contains(variation.UID) {
@@ -453,7 +453,7 @@ func groupOrdersByWeekday(orders []WrappedOrder, timezone string) map[string][]W
 	for _, order := range orders {
 		uidGroups := map[string][]string{}
 
-		creationTime := time.Unix(order.Order.CreatedAt, 0).In(location)
+		creationTime := time.Unix(order.Order.UpdatedAt, 0).In(location)
 		name := strings.ToLower(creationTime.Weekday().String())
 		for _, variation := range order.Order.ItemVariations {
 			if order.Contains(variation.UID) {
@@ -476,7 +476,7 @@ func groupOrdersByHourOfDay(orders []WrappedOrder, timezone string) map[string][
 	for _, order := range orders {
 		uidGroups := map[string][]string{}
 
-		creationTime := time.Unix(order.Order.CreatedAt, 0).In(location)
+		creationTime := time.Unix(order.Order.UpdatedAt, 0).In(location)
 		name := strconv.Itoa(creationTime.Hour())
 		for _, variation := range order.Order.ItemVariations {
 			if order.Contains(variation.UID) {
