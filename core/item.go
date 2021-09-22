@@ -126,9 +126,15 @@ func (s *CatalogService) DeleteItem(ctx context.Context, id ID) (Item, error) {
 
 	variations, _, err := s.ItemVariationStorage.List(ctx, ItemVariationQuery{
 		Filter: ItemVariationFilter{
-			ItemIDs: []ID{item.ID},
+			ItemIDs:    []ID{item.ID},
+			MerchantID: item.MerchantID,
 		},
 	})
+
+	// If there are no variations, then is not possible to cleanup
+	if len(variations) == 0 {
+		return Item{}, errors.E(op, err)
+	}
 
 	// Delete item inventory and variations
 	var ids []ID
@@ -137,7 +143,10 @@ func (s *CatalogService) DeleteItem(ctx context.Context, id ID) (Item, error) {
 		ids = append(ids, variations[i].ID)
 	}
 
-	counts, _, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{ItemVariationIDs: ids})
+	counts, _, err := s.InventoryStorage.ListCount(ctx, InventoryFilter{
+		ItemVariationIDs: ids,
+		MerchantID:       item.MerchantID,
+	})
 	if err != nil {
 		return Item{}, errors.E(op, err)
 	}
