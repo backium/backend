@@ -86,6 +86,9 @@ func (count *InventoryCount) applyAdjustments(adjs []InventoryAdjustment) (bool,
 			return false, errors.E(errors.KindValidation, "Invalid inventory adjusment operation")
 		}
 	}
+	if count.Quantity < 0 {
+		count.Quantity = 0
+	}
 	if count.Quantity == 0 {
 		count.State = InventoryStateSold
 	}
