@@ -79,6 +79,10 @@ func (s *orderStorage) List(ctx context.Context, q core.OrderQuery) ([]core.Orde
 		opts.SetSort(bson.M{"created_at": sortOrder(q.Sort.CreatedAt)})
 	}
 
+	if q.Sort.UpdatedAt != core.SortNone {
+		opts.SetSort(bson.M{"updated_at": sortOrder(q.Sort.UpdatedAt)})
+	}
+
 	filter := bson.M{"status": bson.M{"$ne": core.StatusShadowDeleted}}
 	if q.Filter.MerchantID != "" {
 		filter["merchant_id"] = q.Filter.MerchantID

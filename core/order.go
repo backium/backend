@@ -117,6 +117,7 @@ type OrderFilter struct {
 
 type OrderSort struct {
 	CreatedAt SortOrder
+	UpdatedAt SortOrder
 }
 
 type OrderQuery struct {
