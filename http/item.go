@@ -26,6 +26,10 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
+	employee := core.EmployeeFromContext(ctx)
+	if employee == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 
 	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
@@ -35,6 +39,7 @@ func (h *Handler) HandleCreateItem(c echo.Context) error {
 	item := core.NewItem(req.Name, req.CategoryID, merchant.ID)
 	item.Description = req.Description
 	item.EnabledInPOS = req.EnabledInPOS
+	item.LastModifiedBy = employee.ID
 	if req.LocationIDs != nil {
 		item.LocationIDs = *req.LocationIDs
 	}
@@ -69,6 +74,10 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
+	employee := core.EmployeeFromContext(ctx)
+	if employee == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 
 	req := request{}
 	if err := bindAndValidate(c, &req); err != nil {
@@ -79,6 +88,7 @@ func (h *Handler) HandleUpdateItem(c echo.Context) error {
 	if err != nil {
 		return errors.E(op, err)
 	}
+	item.LastModifiedBy = employee.ID
 	if req.Name != nil {
 		item.Name = *req.Name
 	}
@@ -297,11 +307,16 @@ func (h *Handler) HandleDeleteItem(c echo.Context) error {
 	if merchant == nil {
 		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
 	}
+	employee := core.EmployeeFromContext(ctx)
+	if employee == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
 
 	item, err := h.CatalogService.DeleteItem(ctx, req.ID)
 	if err != nil {
 		return errors.E(op, err)
 	}
+	item.LastModifiedBy = employee.ID
 	variations, _, err := h.CatalogService.ListItemVariation(ctx, core.ItemVariationQuery{
 		Filter: core.ItemVariationFilter{
 			ItemIDs: []core.ID{item.ID},

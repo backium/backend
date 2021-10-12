@@ -7,16 +7,17 @@ import (
 )
 
 type Item struct {
-	ID           ID     `bson:"_id"`
-	Name         string `bson:"name,omitempty"`
-	Description  string `bson:"description,omitempty"`
-	CategoryID   ID     `bson:"category_id,omitempty"`
-	LocationIDs  []ID   `bson:"location_ids"`
-	MerchantID   ID     `bson:"merchant_id,omitempty"`
-	EnabledInPOS bool   `bson:"enabled_in_pos"`
-	CreatedAt    int64  `bson:"created_at"`
-	UpdatedAt    int64  `bson:"updated_at"`
-	Status       Status `bson:"status,omitempty"`
+	ID             ID     `bson:"_id"`
+	Name           string `bson:"name,omitempty"`
+	Description    string `bson:"description,omitempty"`
+	CategoryID     ID     `bson:"category_id,omitempty"`
+	LocationIDs    []ID   `bson:"location_ids"`
+	MerchantID     ID     `bson:"merchant_id,omitempty"`
+	EnabledInPOS   bool   `bson:"enabled_in_pos"`
+	LastModifiedBy ID     `bson:"last_modified_by"`
+	CreatedAt      int64  `bson:"created_at"`
+	UpdatedAt      int64  `bson:"updated_at"`
+	Status         Status `bson:"status,omitempty"`
 }
 
 func NewItem(name string, categoryID, merchantID ID) Item {
