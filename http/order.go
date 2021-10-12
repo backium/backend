@@ -119,10 +119,12 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 		PaymentTypes []core.PaymentType `json:"payment_types"`
 		States       []core.OrderState  `json:"states"`
 		CreatedAt    dateFilter         `json:"created_at"`
+		UpdatedAt    dateFilter         `json:"updated_at"`
 	}
 
 	type sort struct {
 		CreatedAt core.SortOrder `json:"created_at"`
+		UpdatedAt core.SortOrder `json:"updated_at"`
 	}
 
 	type request struct {
@@ -162,9 +164,14 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 				Gte: req.Filter.CreatedAt.Gte,
 				Lte: req.Filter.CreatedAt.Lte,
 			},
+			UpdatedAt: core.DateFilter{
+				Gte: req.Filter.UpdatedAt.Gte,
+				Lte: req.Filter.UpdatedAt.Lte,
+			},
 		},
 		Sort: core.OrderSort{
 			CreatedAt: req.Sort.CreatedAt,
+			UpdatedAt: req.Sort.UpdatedAt,
 		},
 	})
 	if err != nil {
