@@ -20,7 +20,7 @@ WORKDIR /app
 RUN go install
 
 # FROM scratch
-FROM alpine:latest
+FROM alpine:3.14
 
 # Install dependencies
 RUN apk update && apk add --upgrade --no-cache \
