@@ -10,7 +10,7 @@ WORKDIR /app
 
 RUN apk add git
 
-RUN git config --global url."https://echovl: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@github.com/".insteadOf "https://github.com/"
+RUN git config --global url."https://echovl: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@github.com/".insteadOf "https://github.com/"
 
 RUN go env -w GOPRIVATE=github.com/backium
 
