@@ -99,6 +99,9 @@ func (s *orderStorage) List(ctx context.Context, q core.OrderQuery) ([]core.Orde
 	if len(q.Filter.EmployeeIDs) != 0 {
 		filter["employee_id"] = bson.M{"$in": q.Filter.EmployeeIDs}
 	}
+	if len(q.Filter.CustomerIDs) != 0 {
+		filter["customer_id"] = bson.M{"$in": q.Filter.CustomerIDs}
+	}
 	if len(q.Filter.States) != 0 {
 		filter["state"] = bson.M{"$in": q.Filter.States}
 	}

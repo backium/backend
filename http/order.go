@@ -116,6 +116,7 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 		IDs          []core.ID          `json:"ids" validate:"omitempty,dive,id"`
 		LocationIDs  []core.ID          `json:"location_ids" validate:"omitempty,dive,id"`
 		EmployeeIDs  []core.ID          `json:"employee_ids" validate:"omitempty,dive,id"`
+		CustomerIDs  []core.ID          `json:"customer_ids" validate:"omitempty,dive,id"`
 		PaymentTypes []core.PaymentType `json:"payment_types"`
 		States       []core.OrderState  `json:"states"`
 		CreatedAt    dateFilter         `json:"created_at"`

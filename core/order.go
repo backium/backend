@@ -108,6 +108,7 @@ type OrderFilter struct {
 	IDs          []ID
 	LocationIDs  []ID
 	EmployeeIDs  []ID
+	CustomerIDs  []ID
 	MerchantID   ID
 	CreatedAt    DateFilter
 	UpdatedAt    DateFilter
