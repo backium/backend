@@ -69,6 +69,7 @@ type ReportFilter struct {
 	MerchantID   ID
 	LocationIDs  []ID
 	EmployeeIDs  []ID
+	CustomerIDs  []ID
 	PaymentTypes []PaymentType
 	OrderStates  []OrderState
 	BeginTime    int64
@@ -111,6 +112,7 @@ func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRe
 			LocationIDs:  req.Filter.LocationIDs,
 			MerchantID:   req.Filter.MerchantID,
 			EmployeeIDs:  req.Filter.EmployeeIDs,
+			CustomerIDs:  req.Filter.CustomerIDs,
 			States:       req.Filter.OrderStates,
 			PaymentTypes: req.Filter.PaymentTypes,
 			UpdatedAt: DateFilter{

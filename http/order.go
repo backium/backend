@@ -158,6 +158,7 @@ func (h *Handler) HandleSearchOrder(c echo.Context) error {
 		Filter: core.OrderFilter{
 			LocationIDs:  req.Filter.LocationIDs,
 			EmployeeIDs:  req.Filter.EmployeeIDs,
+			CustomerIDs:  req.Filter.CustomerIDs,
 			MerchantID:   merchant.ID,
 			PaymentTypes: req.Filter.PaymentTypes,
 			States:       req.Filter.States,

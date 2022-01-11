@@ -15,6 +15,7 @@ func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 	type request struct {
 		LocationIDs  []core.ID           `json:"location_ids" validate:"omitempty,dive,required"`
 		EmployeeIDs  []core.ID           `json:"employee_ids" validate:"omitempty,dive,required"`
+		CustomerIDs  []core.ID           `json:"customer_ids" validate:"omitempty,dive,required"`
 		PaymentTypes []core.PaymentType  `json:"payment_types" validate:"omitempty,dive,required"`
 		OrderStates  []core.OrderState   `json:"order_states" validate:"omitempty,dive,required"`
 		GroupByType  []core.GroupingType `json:"group_by_type" validate:"required"`
