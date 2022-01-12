@@ -98,6 +98,7 @@ func (s *Server) setupHandlers() {
 		OrderStorage:         s.OrderStorage,
 		ItemStorage:          s.ItemStorage,
 		ItemVariationStorage: s.ItemVariationStorage,
+		InventoryStorage:     s.InventoryStorage,
 		CategoryStorage:      s.CategoryStorage,
 	}
 	exportService := core.ExportService{

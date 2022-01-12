@@ -9,6 +9,48 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+func (h *Handler) HandleGenerateStockReport(c echo.Context) error {
+	const op = errors.Op("http/Handler.HandleGenerateStockReport")
+
+	type request struct {
+		LocationIDs      []core.ID `json:"location_ids" validate:"omitempty,dive,required"`
+		ItemVariationIDs []core.ID `json:"item_variation_ids" validate:"omitempty,dive,required"`
+	}
+
+	type response struct {
+		Report StockReport `json:"report"`
+	}
+
+	ctx := c.Request().Context()
+
+	merchant := core.MerchantFromContext(ctx)
+	if merchant == nil {
+		return errors.E(op, errors.KindUnexpected, "invalid echo.Context")
+	}
+
+	req := request{}
+	if err := bindAndValidate(c, &req); err != nil {
+		return errors.E(op, err)
+	}
+
+	report, err := h.ReportService.GenerateStockReport(ctx, core.StockReportRequest{
+		Filter: core.StockFilter{
+			MerchantID:       merchant.ID,
+			LocationIDs:      req.LocationIDs,
+			ItemVariationIDs: req.ItemVariationIDs,
+		},
+	})
+	if err != nil {
+		return errors.E(op, err)
+	}
+
+	resp := response{
+		Report: NewStockReport(report),
+	}
+
+	return c.JSON(http.StatusOK, resp)
+}
+
 func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 	const op = errors.Op("http/Handler.HandleGenerateCustomReport")
 
@@ -85,6 +127,22 @@ type Aggregations struct {
 	DiscountCount    int64 `json:"discount_count"`
 	TaxCount         int64 `json:"tax_count"`
 	OrderCount       int64 `json:"order_count"`
+}
+
+type StockReport struct {
+	TotalStock  int64 `json:"total_stock"`
+	TotalCost   Money `json:"total_cost"`
+	TotalPrice  Money `json:"total_price"`
+	TotalProfit Money `json:"total_profit"`
+}
+
+func NewStockReport(report core.StockReport) StockReport {
+	return StockReport{
+		TotalStock:  report.TotalStock,
+		TotalCost:   NewMoney(report.TotalCost),
+		TotalPrice:  NewMoney(report.TotalPrice),
+		TotalProfit: NewMoney(report.TotalProfit),
+	}
 }
 
 type CustomReport struct {

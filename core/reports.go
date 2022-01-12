@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/backium/backend/errors"
+	d "github.com/shopspring/decimal"
 )
 
 const (
@@ -62,6 +63,7 @@ type ReportService struct {
 	OrderStorage         OrderStorage
 	ItemStorage          ItemStorage
 	ItemVariationStorage ItemVariationStorage
+	InventoryStorage     InventoryStorage
 	CategoryStorage      CategoryStorage
 }
 
@@ -74,6 +76,12 @@ type ReportFilter struct {
 	OrderStates  []OrderState
 	BeginTime    int64
 	EndTime      int64
+}
+
+type StockFilter struct {
+	MerchantID       ID
+	LocationIDs      []ID
+	ItemVariationIDs []ID
 }
 
 type Aggregations struct {
@@ -96,17 +104,90 @@ type CustomReport struct {
 	Aggregations Aggregations
 }
 
+type StockReport struct {
+	TotalStock  int64
+	TotalCost   Money
+	TotalPrice  Money
+	TotalProfit Money
+}
+
 type CustomReportRequest struct {
 	GroupType []GroupingType
 	Timezone  string
 	Filter    ReportFilter
 }
 
+type StockReportRequest struct {
+	Filter StockFilter
+}
+
+func (svc *ReportService) GenerateStockReport(ctx context.Context, req StockReportRequest) (StockReport, error) {
+	const op = errors.Op("core/ReportService.GenerateStockReport")
+
+	inventory, _, err := svc.InventoryStorage.ListCount(ctx, InventoryFilter{
+		ItemVariationIDs: req.Filter.ItemVariationIDs,
+		LocationIDs:      req.Filter.LocationIDs,
+		MerchantID:       req.Filter.MerchantID,
+	})
+	if err != nil {
+		return StockReport{}, errors.E(op, err)
+	}
+
+	variations, _, err := svc.ItemVariationStorage.List(ctx, ItemVariationQuery{
+		Filter: ItemVariationFilter{
+			IDs:         req.Filter.ItemVariationIDs,
+			LocationIDs: req.Filter.LocationIDs,
+			MerchantID:  req.Filter.MerchantID,
+		},
+	})
+	if err != nil {
+		return StockReport{}, errors.E(op, err)
+	}
+
+	report := StockReport{
+		TotalCost:   NewMoney(0, USD),
+		TotalPrice:  NewMoney(0, USD),
+		TotalProfit: NewMoney(0, USD),
+	}
+
+	// TODO: Need to figure out how to count items with different measurements
+	for _, inv := range inventory {
+		// Ignore negative stock
+		if inv.Quantity < 0 {
+			continue
+		}
+		for _, item := range variations {
+			if inv.ItemVariationID != item.ID {
+				continue
+			}
+
+			var itemAmount int64
+			var itemCost int64
+			if item.Measurement == PerItem {
+				itemAmount = item.Price.Value * inv.Quantity
+				itemCost = item.Cost.Value * inv.Quantity
+			} else {
+				pricePerUnit := d.NewFromInt(item.Price.Value)
+				costPerUnit := d.NewFromInt(item.Cost.Value)
+				// Use 3 decimals of precision
+				quantity := d.NewFromInt(inv.Quantity).Div(thousand)
+
+				itemAmount = quantity.Mul(pricePerUnit).RoundBank(0).IntPart()
+				itemCost = quantity.Mul(costPerUnit).RoundBank(0).IntPart()
+			}
+
+			report.TotalPrice.Value += itemAmount
+			report.TotalCost.Value += itemCost
+		}
+	}
+	report.TotalProfit.Value = report.TotalPrice.Value - report.TotalCost.Value
+
+	return report, nil
+}
+
 func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRequest) ([]CustomReport, error) {
 	const op = errors.Op("core/ReportService.GenerateCustom")
 
-	fmt.Println("Getting orders ...")
-	from := time.Now()
 	orders, _, err := svc.OrderStorage.List(ctx, OrderQuery{
 		Filter: OrderFilter{
 			LocationIDs:  req.Filter.LocationIDs,
@@ -124,8 +205,6 @@ func (svc *ReportService) GenerateCustom(ctx context.Context, req CustomReportRe
 	if err != nil {
 		return nil, errors.E(op, err)
 	}
-	to := time.Now()
-	fmt.Printf("%v orders received, taken %v seconds", len(orders), to.Sub(from).Seconds())
 
 	wrappedOrders := make([]WrappedOrder, len(orders))
 	for i := range orders {
