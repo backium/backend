@@ -98,6 +98,7 @@ func (h *Handler) HandleGenerateCustomReport(c echo.Context) error {
 			MerchantID:   merchant.ID,
 			LocationIDs:  req.LocationIDs,
 			EmployeeIDs:  req.EmployeeIDs,
+			CustomerIDs:  req.CustomerIDs,
 			OrderStates:  req.OrderStates,
 			PaymentTypes: req.PaymentTypes,
 			BeginTime:    req.BeginTime,
